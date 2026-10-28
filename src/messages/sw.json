@@ -1,0 +1,276 @@
+{
+  "navigation": {
+    "trackParcel": "Fuatilia Mzigo",
+    "features": "Sifa",
+    "about": "Kuhusu",
+    "partners": "Washirika",
+    "contact": "Wasiliana",
+    "login": "Ingia"
+  },
+  "hero": {
+    "title": "Tunakusogezea Usafirishaji wa Vifurushi wa Kisasa Tanzania — Tumejengwa kwa Ajili ya Afrika",
+    "subtitlePrefix": "Saidia",
+    "stakeholders": {
+      "transportOperators": "Transport Operators",
+      "courierServices": "Courier Services",
+      "logisticsProviders": "Logistics Providers",
+      "businesses": "Businesses"
+    },
+    "subtitleSuffix": "kuondokana na ucheleweshaji wa usafirishaji, kazi za mikono, na changamoto za malipo.",
+    "description": "Afrika inapata ufuatiliaji wa moja kwa moja na usimamizi bora wa vifurushi kupitia MySafari Parcel.",
+    "features": {
+      "feature1": "📦 Ufuatiliaji wa Mzigo kwa Wateja",
+      "feature2": "💼 Dashibodi ya Wasimamizi",
+      "feature3": "🔗 Ushirikiano Rahisi kwa Watoa Huduma"
+    },
+    "trackButton": "Fuatilia Mzigo",
+    "learnMoreButton": "Jifunze Zaidi",
+    "trust": {
+      "tracking": "Fuatilia kila kifurushi moja kwa moja",
+      "float": "Ongeza float yako kwa pesa za simu kwa urahisi",
+      "app": "Pakua app ya wakala kwenye Google Play"
+    },
+    "banner": {
+      "cta": "Wasiliana nasi",
+      "items": [
+        {
+          "label": "Wamiliki wa mabasi",
+          "text": "Geuza kila safari kuwa mapato ya vifurushi, mawakala na mapato sehemu moja."
+        },
+        {
+          "label": "Huduma za usafirishaji",
+          "text": "Kila kifurushi kinaonekana, kuanzia kupokelewa hadi kufikishwa."
+        },
+        {
+          "label": "Watoa huduma za lojistiki",
+          "text": "Safirisha zaidi, simamia kidogo, ufuatiliaji na mawakala pamoja."
+        },
+        {
+          "label": "Biashara",
+          "text": "Tuma kwa akili na fuatilia kila mzigo kwa uhakika, moja kwa moja."
+        }
+      ]
+    },
+    "headline": {
+      "line1": "Usafirishaji bora wa vifurushi",
+      "line2": "kwa"
+    },
+    "eyebrow": "Mfumo wa Usafirishaji wa Vifurushi na Lojistiki Tanzania"
+  },
+  "partners": {
+    "title": "Washirika Wetu",
+    "subtitle": "Tunafanya kazi pamoja na biashara zinazotangulia kutoa huduma bora za usafirishaji",
+    "trustedBy": "Inaaminika na"
+  },
+  "agentNetwork": {
+    "title": "Jiunge na Mtandao Wetu wa Wakala",
+    "description": "Kuwa wakala wa MySafari Parcel na upate kamisheni kwa kutoa huduma za mizigo katika eneo lako.",
+    "benefits": {
+      "commission": "Pata kamisheni za ushindani kwa kila muamala",
+      "training": "Pokea mafunzo na msaada kamili",
+      "platform": "Ufikiaji wa jukwaa letu la kisasa la usimamizi"
+    },
+    "cta": "Kuwa Wakala"
+  },
+  "management": {
+    "title": "Tovuti ya Usimamizi wa Biashara",
+    "subtitle": "Udhibiti kamili wa shughuli zako za usafirishaji na mfumo wetu kamili wa usimamizi",
+    "cta": "Fikia Tovuti"
+  },
+  "features": {
+    "heading": "Mizigo Yako, Kipaumbele Chetu — Rahisi, Salama, Kisasa.",
+    "subheading": "Kusimamia mizigo kunatakiwa kuwa rahisi.",
+    "description": "Katika MySafari Parcel, tumejitolea kutoa huduma bora, salama na za kisasa — iwe unatuma, kufuatilia, kusimamia, au kujenga biashara ya usafirishaji.",
+    "tagline": "Hivi ndivyo tunavyofanya iwe rahisi kwako:"
+  },
+  "footer": {
+    "quickLinks": "Viungo vya Haraka",
+    "management": "Usimamizi",
+    "contact": "Wasiliana",
+    "login": "Ingia",
+    "register": "Jisajili",
+    "dashboard": "Dashibodi",
+    "agentNetwork": "Mtandao wa Wakala",
+    "contactUs": "Wasiliana Nasi",
+    "support": "Msaada",
+    "aboutUs": "Kuhusu Sisi"
+  },
+  "auth": {
+    "login": {
+      "title": "Kuingia",
+      "description": "Ingiza taarifa zako kuendelea",
+      "phoneNumber": "Nambari ya Simu",
+      "password": "Nenosiri",
+      "enterPassword": "Ingiza nenosiri lako",
+      "signingIn": "Inaingia...",
+      "signIn": "Ingia",
+      "hidePassword": "Ficha nenosiri",
+      "showPassword": "Onyesha nenosiri",
+      "forgotPassword": "Umesahau nenosiri lako?",
+      "welcomeBack": "Karibu tena! 🎉",
+      "successfullyLoggedIn": "Umeingia kwa mafanikio kama",
+      "loginFailed": "Kuingia Kumeshindwa ❌",
+      "invalidCredentials": "Taarifa si sahihi. Tafadhali angalia nambari ya simu na nenosiri lako.",
+      "invalidPhoneNumber": "Nambari ya Simu Si Sahihi",
+      "pleaseEnterValidPhone": "Tafadhali ingiza nambari sahihi ya simu yenye",
+      "digitsFor": "nambari za",
+      "dontHaveAccount": "Huna akaunti?",
+      "createAccount": "Tengeneza Akaunti"
+    },
+    "forgotPassword": {
+      "title": "Weka Upya Nenosiri",
+      "description": "Ingiza nambari yako ya simu kuweka upya nenosiri",
+      "enterPhoneDescription": "Ingiza nambari yako ya simu na tutakutumia kiungo cha kuweka upya nenosiri lako.",
+      "sendResetLink": "Tuma Kiungo cha Kuweka Upya",
+      "sendingResetLink": "Inatuma Kiungo cha Kuweka Upya...",
+      "resetLinkSent": "Kiungo cha Kuweka Upya Kimetumwa! 📧",
+      "resetLinkDescription": "Ikiwa akaunti ipo na nambari hii ya simu, utapokea kiungo cha kuweka upya nenosiri kupitia SMS.",
+      "resetFailed": "Kuweka Upya Kumeshindwa ❌",
+      "unableToSendReset": "Haiwezi kutuma kiungo cha kuweka upya. Tafadhali jaribu tena baadaye.",
+      "rememberPassword": "Unakumbuka nenosiri lako? Ingia"
+    },
+    "signup": {
+      "title": "Jiunge na MySafari Parcel",
+      "description": "Chagua aina ya akaunti yako kuanza",
+      "chooseAccountType": "Chagua Aina ya Akaunti Yako",
+      "selectCategory": "Chagua jamii inayoelezea vizuri jinsi utakavyotumia MySafari Parcel",
+      "needHelp": "Unahitaji Msaada wa Kuchagua?",
+      "needHelpDescription": "Huna uhakika ni aina gani ya akaunti inakufaa? Acha Zena akuongoze kupitia mazungumzo ya haraka kupata mechi yako kamili.",
+      "chatWithZena": "Zungumza na Zena",
+      "alreadyHaveAccount": "Tayari Una Akaunti?",
+      "alreadyHaveAccountDescription": "Ingia ili kufikia akaunti yako iliyopo na uendelee pale ulipoacha.",
+      "signInInstead": "Ingia Badala Yake",
+      "manualSelection": "Uchaguzi wa Mkono",
+      "manualSelectionDescription": "Unajua unachohitaji? Chagua aina ya akaunti yako moja kwa moja",
+      "backToCategories": "Rudi kwa Makundi",
+      "skipZena": "Ruka Zena na uchague kwa mkono",
+      "accountTypesAvailable": "aina za akaunti zinapatikana",
+      "chooseSpecificAccount": "Chagua Aina ya Akaunti",
+      "selectAccountDescription": "Chagua aina ya akaunti inayofaa zaidi mahitaji yako",
+      "alreadyHaveAccountSignIn": "Tayari una akaunti? Ingia"
+    },
+    "ai": {
+      "title": "Kutana na Zena - Mshauri wako wa AI wa Akaunti",
+      "description": "Hujambo! Mimi ni Zena, msaidizi wako binafsi wa AI. Nitakusaidia kugundua aina kamili ya akaunti kulingana na mahitaji na malengo yako ya kipekee. Hebu tuone mechi yako bora pamoja!",
+      "question": "Swali",
+      "of": "ya",
+      "complete": "Kamili",
+      "perfectMatch": "Mechi Kamili Imepatikana! 🎯",
+      "zenaRecommends": "Kulingana na majibu yako, Zena anapendekeza",
+      "questions": {
+        "primaryGoal": "Lengo lako kuu na MySafari Parcel ni nini?",
+        "sendReceivePersonally": "Kutuma na kupokea vifurushi kibinafsi",
+        "handleBusinessShipping": "Kushughulikia usafirishaji kwa biashara yangu",
+        "earnMoneyServices": "Kupata pesa kwa kutoa huduma",
+        "expandTransportBusiness": "Kupanua biashara yangu ya usafirishaji",
+        "usageFrequency": "Ni mara ngapi unapanga kutumia huduma zetu?",
+        "occasionally": "Mara chache (mara chache kwa mwezi)",
+        "regularly": "Kawaida (kila wiki)",
+        "daily": "Kila siku au mara nyingi kwa siku",
+        "flexibleSchedule": "Ratiba ya kubadilika",
+        "existingResources": "Una biashara au rasilimali za usafirishaji zilizopo?",
+        "noExistingBusiness": "Hakuna biashara iliyopo",
+        "smallBusiness": "Biashara ndogo au duka",
+        "ownVehicles": "Gari la/za binafsi",
+        "transportCompany": "Kampuni ya usafirishaji/usafirishaji",
+        "involvementLevel": "Ni kiwango gani cha ushiriki unachopendelea?",
+        "simpleAndStraightforward": "Rahisi na ya moja kwa moja",
+        "moderateManagement": "Usimamizi wa biashara wa wastani",
+        "activeDailyOperations": "Shughuli za kila siku za kazi",
+        "comprehensiveControl": "Udhibiti kamili wa biashara"
+      }
+    },
+    "categories": {
+      "shipping": {
+        "title": "Kutuma na Kupokea",
+        "subtitle": "Tuma na pokea vifurushi",
+        "description": "Kamili kwa watu binafsi na biashara zinazohitaji kutuma vifurushi"
+      },
+      "logistics": {
+        "title": "Usafirishaji na Uwasilishaji",
+        "subtitle": "Toa huduma za usafirishaji",
+        "description": "Jiunge na mtandao wetu kama mtoa huduma na upate pesa"
+      }
+    },
+    "accountTypes": {
+      "customer": {
+        "title": "Mteja Binafsi",
+        "subtitle": "Usafirishaji wa kibinafsi umefanywa rahisi",
+        "description": "Tuma na pokea vifurushi kwa matumizi ya kibinafsi kwa urahisi",
+        "features": {
+          "personalShipping": "Usafirishaji wa kibinafsi",
+          "realTimeTracking": "Ufuatiliaji wa wakati halisi",
+          "multiplePayments": "Malipo mengi",
+          "addressBook": "Kitabu cha anwani"
+        }
+      },
+      "business": {
+        "title": "Akaunti ya Biashara",
+        "subtitle": "Ongeza shughuli zako",
+        "description": "Suluhisho kamili za usafirishaji kwa biashara za ukubwa wote",
+        "features": {
+          "bulkDiscounts": "Punguzo la wingi",
+          "teamManagement": "Usimamizi wa timu",
+          "analytics": "Uchanganuzi",
+          "apiIntegration": "Muunganisho wa API"
+        }
+      },
+      "transporter": {
+        "title": "Kampuni ya Usafirishaji",
+        "subtitle": "Panua mtandao wako",
+        "description": "Jiunge na mtandao wetu wa usafirishaji na ukuze biashara yako",
+        "features": {
+          "fleetManagement": "Usimamizi wa gari",
+          "routeOptimization": "Kuboresha njia",
+          "revenueTracking": "Ufuatiliaji wa mapato",
+          "driverCoordination": "Uratibu wa madereva"
+        }
+      },
+      "driver": {
+        "title": "Dereva wa Kitaaluma",
+        "subtitle": "Endesha na upate",
+        "description": "Pata pesa kwa kuwasilisha vifurushi kwa ratiba za kubadilika",
+        "features": {
+          "flexibleHours": "Masaa ya kubadilika",
+          "gpsNavigation": "Uongozaji wa GPS",
+          "earningsTracking": "Ufuatiliaji wa mapato",
+          "performanceMetrics": "Vipimo vya utendaji"
+        }
+      },
+      "agent": {
+        "title": "Wakala wa Kuchukua",
+        "subtitle": "Kituo cha huduma za mitaani",
+        "description": "Endesha kituo cha mitaani cha kuchukua na kuacha vifurushi",
+        "features": {
+          "locationManagement": "Usimamizi wa mahali",
+          "commissionTracking": "Ufuatiliaji wa kamisheni",
+          "customerService": "Huduma kwa wateja",
+          "inventoryControl": "Udhibiti wa hesabu"
+        }
+      }
+    },
+    "kyc": {
+      "step": "Hatua",
+      "complete": "Kamili",
+      "back": "Rudi",
+      "next": "Ifuatayo",
+      "createAccount": "Tengeneza Akaunti",
+      "creatingAccount": "Inatengeneza Akaunti...",
+      "accountCreated": "Akaunti Imetengenezwa! 🎉",
+      "accountCreatedSuccess": "akaunti imetengenezwa kwa mafanikio.",
+      "signupFailed": "Kujisajili Kumeshindwa ❌",
+      "unableToCreateAccount": "Haiwezi kutengeneza akaunti. Tafadhali jaribu tena baadaye."
+    },
+    "portal": {
+      "welcome": "Karibu tena kwenye",
+      "badge": "Ingia kwenye mfumo",
+      "lookingFor": "Unatafuta kifurushi?",
+      "forgotIntro": "Msimamizi wako anaweza kuweka upya nenosiri lako kupitia mfumo wa MySafari.",
+      "forgotStep1": "Mwombe msimamizi wa kampuni yako, au huduma kwa wateja wa MySafari, akuwekee upya nenosiri.",
+      "forgotStep2": "Utapokea nenosiri la muda la tarakimu 6 kwa SMS.",
+      "forgotStep3": "Ingia nalo, kisha weka nenosiri jipya kwenye wasifu wako.",
+      "contactSupport": "Wasiliana na huduma kwa wateja",
+      "rights": "Haki zote zimehifadhiwa."
+    }
+  }
+}

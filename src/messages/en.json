@@ -1,0 +1,465 @@
+{
+  "navigation": {
+    "trackParcel": "Track Parcel",
+    "features": "Features",
+    "pricing": "Pricing",
+    "about": "About",
+    "partners": "Partners",
+    "contact": "Contact",
+    "login": "Login"
+  },
+  "hero": {
+    "title": "Powering Smarter Parcel Delivery in Tanzania — Built for Africa",
+    "subtitlePrefix": "Help",
+    "stakeholders": {
+      "transportOperators": "Transport Operators",
+      "courierServices": "Courier Services",
+      "logisticsProviders": "Logistics Providers",
+      "businesses": "Businesses"
+    },
+    "subtitleSuffix": "overcome delivery delays, manual work, and payment issues.",
+    "description": "Africa gets real-time tracking and smarter parcel operations with MySafari Parcel.",
+    "features": {
+      "feature1": "📦 Customer Parcel Tracking",
+      "feature2": "💼 Operator Dashboards",
+      "feature3": "🔗 Simple System Integration"
+    },
+    "trackButton": "Track Parcel",
+    "learnMoreButton": "Learn More",
+    "trust": {
+      "tracking": "Track every parcel in real time",
+      "float": "Top up your mobile money float with ease",
+      "app": "Get the agent app on Google Play"
+    },
+    "banner": {
+      "cta": "Talk to us",
+      "items": [
+        {
+          "label": "Bus operators",
+          "text": "Turn every route into parcel revenue, with agents and earnings in one place."
+        },
+        {
+          "label": "Courier services",
+          "text": "Every parcel in sight, from booking to delivery, with live status updates."
+        },
+        {
+          "label": "Logistics providers",
+          "text": "Move more parcels and manage less, with tracking and agents together."
+        },
+        {
+          "label": "Businesses",
+          "text": "Send smarter and track every shipment with confidence, in real time."
+        }
+      ]
+    },
+    "headline": {
+      "line1": "Smarter parcel delivery",
+      "line2": "for"
+    },
+    "eyebrow": "Parcel Delivery & Logistics Platform in Tanzania"
+  },
+  "partners": {
+    "title": "Our Trusted Partners",
+    "subtitle": "Join the growing network of businesses that trust MySafari Parcel",
+    "heroTagline": "Leading organisations trust MySafari Parcel for their logistics needs",
+    "description": "Facilitating seamless parcel operations across Tanzania",
+    "trustedBy": "Trusted By"
+  },
+  "agentNetwork": {
+    "title": "Join Our Wakala Network",
+    "description": "Become a MySafari Parcel Wakala and grow your business. Access our platform, technology, and nationwide network to offer parcel services in your area.",
+    "benefits": {
+      "commission": "Earn commission on every delivery",
+      "training": "Receive dedicated training and support",
+      "platform": "Use our technology platform at no cost"
+    },
+    "cta": "Become a Wakala"
+  },
+  "management": {
+    "title": "Ready to Manage Your Parcels?",
+    "subtitle": "Access our management portal to start tracking and managing your deliveries efficiently.",
+    "cta": "Go to Management Portal"
+  },
+  "landing": {
+    "title": "Welcome to MySafari Parcel",
+    "subtitle": "Track your parcels with ease",
+    "getStarted": "Get Started"
+  },
+  "common": {
+    "login": "Login",
+    "register": "Register",
+    "about": "About",
+    "contact": "Contact",
+    "or": "or",
+    "and": "and",
+    "continue": "Continue",
+    "cancel": "Cancel",
+    "save": "Save",
+    "edit": "Edit",
+    "delete": "Delete",
+    "close": "Close",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "warning": "Warning",
+    "info": "Information"
+  },
+  "footer": {
+    "quickLinks": "Quick Links",
+    "management": "Management",
+    "contact": "Contact",
+    "login": "Login",
+    "register": "Register",
+    "dashboard": "Dashboard",
+    "agentNetwork": "Agent Network",
+    "contactUs": "Contact Us",
+    "support": "Support",
+    "aboutUs": "About Us"
+  },
+  "features": {
+    "title": "Features that Make a Difference",
+    "subtitle": "Discover how we make parcel management simple and efficient",
+    "heading": "Your Parcels, Our Priority — Seamless, Secure, Smart.",
+    "subheading": "Managing parcels shouldn't be complicated.",
+    "description": "At MySafari Parcel, we're committed to delivering a seamless, secure, and smart experience — whether you're sending, tracking, managing, or building a delivery business.",
+    "tagline": "Here's how we make it simple for you:",
+    "items": {
+      "realTimeTracking": {
+        "title": "Real-Time Parcel Tracking",
+        "description": "Track your parcels every step of the way with live location updates and real-time delivery status. Stay informed from dispatch to doorstep — no guesswork, just certainty."
+      },
+      "parcelHistory": {
+        "title": "Complete Parcel History",
+        "description": "Access a complete record of your parcel activities whenever you need it. Search past shipments, review delivery statuses, and download reports to keep your operations running smoothly."
+      },
+      "notifications": {
+        "title": "Instant Notifications",
+        "description": "Get real-time alerts via SMS or email about your parcel's movement. Whether it's out for delivery or successfully delivered, you'll always be in the loop."
+      },
+      "security": {
+        "title": "Secure Access",
+        "description": "Your security is our priority. Our platform uses secure authentication protocols to protect your data and ensure that only you have access to your parcel information."
+      },
+      "dashboard": {
+        "title": "Comprehensive Management Dashboard",
+        "description": "Simplify your logistics. Our intuitive dashboard lets you manage multiple parcels, monitor delivery progress, and make data-driven decisions to optimize your operations."
+      },
+      "agentNetwork": {
+        "title": "Join the MySafari Agents Network",
+        "description": "Expand your reach and grow your business with the MySafari Agents Network. Offer trusted parcel services in your community and earn commissions — backed by the MySafari Parcel brand."
+      }
+    }
+  },
+  "support": {
+    "metadata": {
+      "title": "Support - MySafari Parcel",
+      "description": "Get help with your MySafari Parcel deliveries. Find answers to frequently asked questions and contact our support team."
+    },
+    "title": "How can we help you?",
+    "description": "Find answers to common questions or get in touch with our support team.",
+    "faqs": {
+      "title": "Frequently Asked Questions",
+      "description": "Common questions about our services and features"
+    },
+    "contact": {
+      "title": "Still need help?",
+      "description": "Our support team is available 24/7 to assist you",
+      "email": "support@mysafari.co.tz",
+      "phone": "+255 736 969 594",
+      "whatsapp": "+255 736 969 594"
+    }
+  },
+  "auth": {
+    "carousel": {
+      "poweredBy": "MySafari Parcel",
+      "slide1": {
+        "title": "Streamline Your Parcel Operations",
+        "description": "Manage your entire parcel delivery network with our comprehensive management platform designed for East African logistics.",
+        "feature1": "Real-time parcel tracking across Tanzania & East Africa",
+        "feature2": "Automated route optimization & fleet management",
+        "feature3": "Comprehensive analytics & performance dashboards"
+      },
+      "slide2": {
+        "title": "Multi-Currency & Insurance Coverage",
+        "description": "Accept payments in multiple currencies and protect your parcels with comprehensive insurance coverage across all deliveries.",
+        "feature1": "TZS, USD, KES, UGX, ZAR currency support",
+        "feature2": "Full parcel insurance coverage up to $5,000",
+        "feature3": "Mobile money integration (M-Pesa, Airtel, MTN)"
+      },
+      "slide3": {
+        "title": "East Africa & SADC Network",
+        "description": "Currently serving East Africa with expansion across SADC region. Our vision: seamless parcel delivery across the entire African continent.",
+        "feature1": "Active in Tanzania, Kenya, Uganda & Rwanda",
+        "feature2": "Expanding to Zambia, Malawi & South Africa",
+        "feature3": "Vision: Pan-African logistics network by 2027"
+      },
+      "slide4": {
+        "title": "Cross-Border Delivery Made Simple",
+        "description": "Expand your reach across borders with seamless international parcel delivery and automated customs integration.",
+        "feature1": "Automated customs documentation & clearance",
+        "feature2": "Real-time cross-border tracking",
+        "feature3": "Duty & tax calculation with transparent pricing"
+      },
+      "slide5": {
+        "title": "Built for African Logistics",
+        "description": "Experience technology designed specifically for African logistics challenges, from urban centers to remote rural areas.",
+        "feature1": "Multi-language support (English, Swahili, French)",
+        "feature2": "Offline-capable for remote & low-connectivity areas",
+        "feature3": "SMS-based tracking for feature phone users"
+      }
+    },
+    "login": {
+      "title": "Login",
+      "description": "Enter your credentials to continue",
+      "phoneNumber": "Phone Number",
+      "password": "Password",
+      "enterPassword": "Enter your password",
+      "signingIn": "Signing In...",
+      "signIn": "Sign In",
+      "hidePassword": "Hide password",
+      "showPassword": "Show password",
+      "forgotPassword": "Forgot your password?",
+      "welcomeBack": "Welcome back! 🎉",
+      "successfullyLoggedIn": "Successfully logged in as",
+      "loginFailed": "Login Failed ❌",
+      "invalidCredentials": "Invalid credentials. Please check your phone number and password.",
+      "invalidPhoneNumber": "Invalid Phone Number",
+      "pleaseEnterValidPhone": "Please enter a valid phone number with",
+      "digitsFor": "digits for",
+      "dontHaveAccount": "Don't have an account?",
+      "createAccount": "Create Account"
+    },
+    "forgotPassword": {
+      "title": "Reset Password",
+      "description": "Enter your phone number to reset your password",
+      "enterPhoneDescription": "Enter your phone number and we'll send you a link to reset your password.",
+      "sendResetLink": "Send Reset Link",
+      "sendingResetLink": "Sending Reset Link...",
+      "resetLinkSent": "Reset Link Sent! 📧",
+      "resetLinkDescription": "If an account exists with this phone number, you'll receive a password reset link via SMS.",
+      "resetFailed": "Reset Failed ❌",
+      "unableToSendReset": "Unable to send reset link. Please try again later.",
+      "rememberPassword": "Remember your password? Sign in"
+    },
+    "signup": {
+      "title": "Join MySafari Parcel",
+      "description": "Choose your account type to get started",
+      "chooseAccountType": "Choose Your Account Type",
+      "selectCategory": "Select the category that best describes how you'll use MySafari Parcel",
+      "needHelp": "Need Help Choosing?",
+      "needHelpDescription": "Not sure which account type fits your needs? Let Zena guide you through a quick conversation to find your perfect match.",
+      "chatWithZena": "Chat with Zena",
+      "alreadyHaveAccount": "Already Have an Account?",
+      "alreadyHaveAccountDescription": "Sign in to access your existing account and continue where you left off.",
+      "signInInstead": "Sign In Instead",
+      "manualSelection": "Manual Selection",
+      "manualSelectionDescription": "Know what you need? Choose your account type directly",
+      "backToCategories": "Back to Categories",
+      "skipZena": "Skip Zena and choose manually",
+      "accountTypesAvailable": "account types available",
+      "chooseSpecificAccount": "Choose Account Type",
+      "selectAccountDescription": "Select the account type that best fits your needs",
+      "alreadyHaveAccountSignIn": "Already have an account? Sign in"
+    },
+    "ai": {
+      "title": "Meet Zena - Your AI Account Advisor",
+      "description": "Hi! I'm Zena, your personal AI assistant. I'll help you discover the perfect account type based on your unique needs and goals. Let's find your ideal match together!",
+      "question": "Question",
+      "of": "of",
+      "complete": "Complete",
+      "perfectMatch": "Perfect Match Found! 🎯",
+      "zenaRecommends": "Based on your answers, Zena recommends",
+      "questions": {
+        "primaryGoal": "What's your primary goal with MySafari Parcel?",
+        "sendReceivePersonally": "Send and receive parcels personally",
+        "handleBusinessShipping": "Handle shipping for my business",
+        "earnMoneyServices": "Earn money by providing services",
+        "expandTransportBusiness": "Expand my transport business",
+        "usageFrequency": "How often do you plan to use our services?",
+        "occasionally": "Occasionally (few times a month)",
+        "regularly": "Regularly (weekly)",
+        "daily": "Daily or multiple times per day",
+        "flexibleSchedule": "Flexible schedule",
+        "existingResources": "Do you have any existing business or transport resources?",
+        "noExistingBusiness": "No existing business",
+        "smallBusiness": "Small business or shop",
+        "ownVehicles": "Own vehicle(s)",
+        "transportCompany": "Transport/logistics company",
+        "involvementLevel": "What's your preferred level of involvement?",
+        "simpleAndStraightforward": "Simple and straightforward",
+        "moderateManagement": "Moderate business management",
+        "activeDailyOperations": "Active daily operations",
+        "comprehensiveControl": "Comprehensive business control"
+      }
+    },
+    "categories": {
+      "shipping": {
+        "title": "Shipping & Receiving",
+        "subtitle": "Send and receive parcels",
+        "description": "Perfect for individuals and businesses who need to ship parcels"
+      },
+      "logistics": {
+        "title": "Logistics & Delivery",
+        "subtitle": "Provide transportation services",
+        "description": "Join our network as a service provider and earn money"
+      }
+    },
+    "accountTypes": {
+      "customer": {
+        "title": "Individual Customer",
+        "subtitle": "Personal shipping made simple",
+        "description": "Send and receive parcels for personal use with ease",
+        "features": {
+          "personalShipping": "Personal shipping",
+          "realTimeTracking": "Real-time tracking",
+          "multiplePayments": "Multiple payments",
+          "addressBook": "Address book"
+        }
+      },
+      "business": {
+        "title": "Business Account",
+        "subtitle": "Scale your operations",
+        "description": "Comprehensive shipping solutions for businesses of all sizes",
+        "features": {
+          "bulkDiscounts": "Bulk discounts",
+          "teamManagement": "Team management",
+          "analytics": "Analytics",
+          "apiIntegration": "API integration"
+        }
+      },
+      "transporter": {
+        "title": "Transport Company",
+        "subtitle": "Expand your network",
+        "description": "Join our logistics network and grow your business",
+        "features": {
+          "fleetManagement": "Fleet management",
+          "routeOptimization": "Route optimization",
+          "revenueTracking": "Revenue tracking",
+          "driverCoordination": "Driver coordination"
+        }
+      },
+      "driver": {
+        "title": "Professional Driver",
+        "subtitle": "Drive and earn",
+        "description": "Earn money delivering parcels on flexible schedules",
+        "features": {
+          "flexibleHours": "Flexible hours",
+          "gpsNavigation": "GPS navigation",
+          "earningsTracking": "Earnings tracking",
+          "performanceMetrics": "Performance metrics"
+        }
+      },
+      "wakala": {
+        "title": "MySafari Wakala",
+        "subtitle": "Community service hub",
+        "description": "Become a MySafari Wakala and serve your community with parcel services",
+        "features": {
+          "locationManagement": "Location management",
+          "commissionTracking": "Commission tracking",
+          "customerService": "Customer service",
+          "inventoryControl": "Inventory control"
+        }
+      }
+    },
+    "kyc": {
+      "createAccountAs": "Create {type} Account",
+      "completeRegistration": "Complete your registration to get started",
+      "step": "Step",
+      "complete": "Complete",
+      "back": "Back",
+      "next": "Next",
+      "createAccount": "Create Account",
+      "creatingAccount": "Creating Account...",
+      "accountCreated": "Account Created! 🎉",
+      "accountCreatedSuccess": "account has been created successfully.",
+      "signupFailed": "Signup Failed ❌",
+      "unableToCreateAccount": "Unable to create account. Please try again later.",
+      "personalInformation": "Personal Information",
+      "contactDetails": "Contact Details",
+      "identityVerification": "Identity Verification",
+      "accountSetup": "Account Setup",
+      "businessInformation": "Business Information",
+      "businessDocuments": "Business Documents",
+      "bankingDetails": "Banking Details",
+      "verification": "Verification",
+      "vehicleInformation": "Vehicle Information",
+      "drivingLicense": "Driving License",
+      "locationDetails": "Location Details",
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "dateOfBirth": "Date of Birth",
+      "gender": "Gender",
+      "selectGender": "Select Gender",
+      "male": "Male",
+      "female": "Female",
+      "other": "Other",
+      "email": "Email Address",
+      "phoneNumber": "Phone Number",
+      "address": "Address",
+      "idType": "ID Type",
+      "idNumber": "ID Number",
+      "uploadId": "Upload ID Document",
+      "password": "Password",
+      "confirmPassword": "Confirm Password",
+      "agreeTerms": "I agree to the Terms of Service and Privacy Policy",
+      "businessName": "Business Name",
+      "businessType": "Business Type",
+      "registrationNumber": "Registration Number",
+      "taxNumber": "Tax Number",
+      "companyName": "Company Name",
+      "fleetSize": "Fleet Size",
+      "operatingLicense": "Operating License",
+      "vehicleRegistration": "Vehicle Registration",
+      "licenseNumber": "License Number",
+      "experienceYears": "Years of Experience",
+      "agentLocation": "Agent Location",
+      "storageCapacity": "Storage Capacity",
+      "operatingHours": "Operating Hours",
+      "enterFirstName": "Enter your first name",
+      "enterLastName": "Enter your last name",
+      "enterEmail": "Enter your email address",
+      "enterPhone": "Enter phone number",
+      "enterAddress": "Enter your full address",
+      "enterIdNumber": "Enter your ID number",
+      "createPassword": "Create a strong password",
+      "confirmYourPassword": "Confirm your password",
+      "enterBusinessName": "Enter your business name",
+      "enterRegistrationNumber": "Enter registration number",
+      "enterTaxNumber": "Enter tax number",
+      "enterCompanyName": "Enter your company name",
+      "enterFleetSize": "Number of vehicles",
+      "enterLicenseNumber": "Enter license number",
+      "enterExperience": "Years of driving experience",
+      "enterLocation": "Enter your location",
+      "enterCapacity": "Storage capacity in cubic meters",
+      "enterHours": "e.g., 8:00 AM - 6:00 PM",
+      "selectIdType": "Select ID Type",
+      "nationalId": "National ID",
+      "passport": "Passport",
+      "drivingLicenseId": "Driving License",
+      "selectBusinessType": "Select Business Type",
+      "soleProprietorship": "Sole Proprietorship",
+      "partnership": "Partnership",
+      "limitedCompany": "Limited Company",
+      "corporation": "Corporation",
+      "uploadDocument": "Click to upload or drag and drop",
+      "fileFormat": "PNG, JPG up to 5MB",
+      "required": "This field is required",
+      "invalidEmail": "Please enter a valid email address",
+      "passwordMismatch": "Passwords do not match",
+      "passwordTooShort": "Password must be at least 8 characters",
+      "phoneNumberInvalid": "Please enter a valid phone number"
+    },
+    "portal": {
+      "welcome": "Welcome back to",
+      "badge": "Portal sign in",
+      "lookingFor": "Looking for a parcel?",
+      "forgotIntro": "Your administrator can reset it from the MySafari portal.",
+      "forgotStep1": "Ask your company's administrator, or MySafari support, to reset your password.",
+      "forgotStep2": "You'll get a temporary 6-digit password by SMS.",
+      "forgotStep3": "Sign in with it, then set a new password from your profile.",
+      "contactSupport": "Contact support",
+      "rights": "All rights reserved."
+    }
+  }
+}

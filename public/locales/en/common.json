@@ -1,0 +1,51 @@
+{
+  "hero": {
+    "title": "Track Your Parcel",
+    "subtitle": "Enter your parcel tracking number to get real-time updates on its location and status.",
+    "trackingPlaceholder": "Enter tracking number",
+    "trackButton": "Track",
+    "needHelp": "Need help tracking your parcel?",
+    "reportLost": "Report Lost Item",
+    "fileComplaint": "File a Complaint"
+  },
+  "howItWorks": {
+    "title": "Your Parcels, Our Priority",
+    "subtitle": "Managing parcels shouldn't be complicated.",
+    "description": "At MySafari Parcel, we're committed to delivering a seamless, secure, and smart experience — whether you're sending, tracking, managing, or building a delivery business.",
+    "getStarted": "Get Started Today"
+  },
+  "partners": {
+    "title": "Our Partners",
+    "subtitle": "We collaborate with leading businesses across Tanzania to provide seamless delivery services."
+  },
+  "agentNetwork": {
+    "title": "Join Our Agent Network",
+    "description": "Become a MySafari Parcel agent and grow your business. Access our platform, technology, and nationwide network to offer parcel services in your area.",
+    "benefits": {
+      "commission": "Earn commission on every delivery",
+      "training": "Receive dedicated training and support",
+      "platform": "Use our technology platform at no cost"
+    },
+    "cta": "Become an Agent"
+  },
+  "management": {
+    "title": "Ready to Manage Your Parcels?",
+    "subtitle": "Access our management portal to start tracking and managing your deliveries efficiently.",
+    "cta": "Go to Management Portal"
+  },
+  "navigation": {
+    "trackParcel": "Track Parcel"
+  },
+  "footer": {
+    "quickLinks": "Quick Links",
+    "management": "Management",
+    "contact": "Contact",
+    "login": "Login",
+    "register": "Register",
+    "dashboard": "Dashboard",
+    "agentNetwork": "Agent Network",
+    "contactUs": "Contact Us",
+    "support": "Support",
+    "aboutUs": "About Us"
+  }
+}

@@ -1,0 +1,16 @@
+# MySafari Parcel portal
+#   docker compose up -d --build        build and start
+#   docker compose logs -f portal       follow the logs
+services:
+  portal:
+    build:
+      context: .
+      args:
+        BACKEND_URL: ${BACKEND_URL:-https://parcel.mysafari.co.tz}
+    image: mysafari-portal:latest
+    container_name: mysafari-portal
+    restart: unless-stopped
+    ports:
+      - "${PORTAL_PORT:-3000}:3000"
+    environment:
+      BACKEND_URL: ${BACKEND_URL:-https://parcel.mysafari.co.tz}

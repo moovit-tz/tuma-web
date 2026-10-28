@@ -1,0 +1,55 @@
+{
+  "hero": {
+    "title": "Fuatilia Kifurushi Chako",
+    "subtitle": "Weka namba ya kufuatilia kifurushi chako kupata habari za wakati halisi kuhusu eneo na hali yake.",
+    "trackingPlaceholder": "Weka namba ya kufuatilia",
+    "trackButton": "Fuatilia",
+    "needHelp": "Unahitaji usaidizi wa kufuatilia kifurushi chako?",
+    "reportLost": "Ripoti Kifurushi Kilichopotea",
+    "fileComplaint": "Wasilisha Malalamiko"
+  },
+  "howItWorks": {
+    "title": "Kifurushi Chako, Kipaumbele Chetu",
+    "subtitle": "Kusimamia kifurushi hakipaswi kuwa ngumu.",
+    "description": "Kwa MySafari Parcel, tunajitolea kutoa uzoefu wa urahisi, usalama, na busara — iwe unatuma, unafuatilia, unasimamia, au unajenga biashara ya usambazaji.",
+    "getStarted": "Anza Leo"
+  },
+  "partners": {
+    "title": "Washirika Wetu",
+    "subtitle": "Tunashirikiana na biashara za kiongozi nchini Tanzania kutoa huduma za usambazaji zisizo na shida."
+  },
+  "agentNetwork": {
+    "title": "Jiunge na Mtandao wa Mawakili Wetu",
+    "description": "Kuwa mwakili wa MySafari Parcel na ukuze biashara yako. Pata ufikiaji wa jukwaa letu, teknolojia, na mtandao wa kitaifa wa kutoa huduma za kifurushi katika eneo lako.",
+    "benefits": {
+      "commission": "Pata tume kwa kila usambazaji",
+      "training": "Pata mafunzo na usaidizi maalum",
+      "platform": "Tumia jukwaa letu la teknolojia bila malipo"
+    },
+    "cta": "Kuwa Mwakili"
+  },
+  "management": {
+    "title": "Tayari Kusimamia Kifurushi Chako?",
+    "subtitle": "Pata ufikiaji wa jukwaa letu la usimamizi kuanza kufuatilia na kusimamia usambazaji wako kwa ufanisi.",
+    "cta": "Nenda kwenye Jukwaa la Usimamizi"
+  },
+  "navigation": {
+    "trackParcel": "Fuatilia Kifurushi",
+    "howItWorks": "Jinsi Inavyofanya Kazi",
+    "partners": "Washirika",
+    "contact": "Wasiliana",
+    "login": "Ingia kwa Usimamizi"
+  },
+  "footer": {
+    "quickLinks": "Viungo vya Haraka",
+    "management": "Usimamizi",
+    "contact": "Wasiliana",
+    "login": "Ingia",
+    "register": "Jisajili",
+    "dashboard": "Dashibodi",
+    "agentNetwork": "Mtandao wa Mawakili",
+    "contactUs": "Wasiliana Nasi",
+    "support": "Usaidizi",
+    "aboutUs": "Kuhusu Sisi"
+  }
+} 

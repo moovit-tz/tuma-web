@@ -1,0 +1,620 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-primary: oklch(0.90 0.18 95); /* #FFD428 */
+  --color-primary-foreground: oklch(0.29 0.03 270); /* #242A37 */
+
+  --color-secondary: oklch(0.29 0.03 270); /* #242A37 */
+  --color-secondary-foreground: oklch(1 0 0); /* #FFFFFF */
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  /* Semantic status colors — the ONLY colors that should ever represent
+     state (success/warning/danger/info). Never use these, or any other
+     color, purely for decoration. See design-audit "Color" section. */
+  --color-success: var(--accent-success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--accent-warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-danger: var(--accent-danger);
+  --color-danger-foreground: var(--danger-foreground);
+  --color-info: var(--accent-info);
+  --color-info-foreground: var(--info-foreground);
+}
+
+:root {
+  --radius: 0.625rem;
+
+  /* Base colors */
+  --background: oklch(1 0 0); /* White */
+  --foreground: oklch(0.12 0.02 280); /* Dark readable text */
+
+  /* Primary colors */
+  --primary: oklch(0.898 0.215 95.5); /* #FFD428 - Yellow */
+  --primary-light: oklch(0.94 0.16 95); /* #FFE275 - Lighter yellow */
+  --primary-dark: oklch(0.82 0.22 95); /* #E6BC00 - Darker yellow */
+  --primary-foreground: oklch(0.26 0.049 278); /* #242A37 - Dark blue-gray */
+
+  /* Secondary colors */
+  --secondary: oklch(0.26 0.049 278); /* #242A37 - Dark blue-gray */
+  --secondary-light: oklch(0.38 0.04 270); /* #3D4456 - Lighter blue-gray */
+  --secondary-dark: oklch(0.2 0.04 278); /* #1A1F29 - Darker blue-gray */
+  --secondary-foreground: oklch(1 0 0); /* White */
+
+  /* Card and popover */
+  --card: var(--background);
+  --card-foreground: var(--foreground);
+  --popover: var(--background);
+  --popover-foreground: var(--foreground);
+
+  /* Muted colors */
+  --muted: oklch(0.96 0.01 250); /* #F9FAFB - Light gray */
+  --muted-foreground: oklch(0.45 0.03 270); /* #6B7280 - Gray */
+
+  /* Accent colors - using secondary as default */
+  --accent: var(--secondary);
+  --accent-foreground: var(--secondary-foreground);
+
+  /* UI colors */
+  --destructive: oklch(0.6 0.24 25); /* #EF4444 - Red */
+  --border: oklch(0.9 0.01 250); /* #E5E7EB - Light border */
+  --input: oklch(0.9 0.01 250); /* #E5E7EB - Light input */
+  --ring: var(--primary); /* Using primary color for focus rings */
+
+  /* Sidebar colors */
+  --sidebar: oklch(0.985 0.01 100); /* Very light gray */
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--secondary);
+  --sidebar-accent-foreground: var(--secondary-foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
+
+  /* Semantic status colors — success/warning/danger/info only. */
+  --accent-success: oklch(0.55 0.15 155); /* #00875A - Green */
+  --success-foreground: oklch(1 0 0);
+  --accent-warning: oklch(0.7 0.16 70); /* #B4790C - Amber */
+  --warning-foreground: oklch(0.2 0.03 70);
+  --accent-danger: oklch(0.55 0.22 25); /* #DE350B - Red */
+  --danger-foreground: oklch(1 0 0);
+  --accent-info: oklch(0.55 0.16 250); /* #0052CC - Blue */
+  --info-foreground: oklch(1 0 0);
+
+  /* Chart colors */
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+}
+
+.dark {
+  /* Base colors - Dark mode */
+  --background: oklch(0.12 0.02 280); /* #111827 - Dark slate background */
+  --foreground: oklch(0.985 0.01 100); /* #F9FAFB - Bright foreground */
+
+  /* Card and popover - Dark mode */
+  --card: oklch(0.2 0.03 275); /* #1F2937 - Dark card background */
+  --card-foreground: var(--foreground);
+  --popover: var(--card);
+  --popover-foreground: var(--foreground);
+
+  /* Primary colors - Dark mode */
+  --primary: oklch(0.898 0.215 95.5); /* #FFD428 - Yellow (kept consistent) */
+  --primary-light: oklch(0.94 0.16 95); /* #FFE275 - Lighter yellow */
+  --primary-dark: oklch(0.82 0.22 95); /* #E6BC00 - Darker yellow */
+  --primary-foreground: oklch(0.12 0.02 280); /* Dark background for contrast */
+
+  /* Secondary colors - Dark mode */
+  --secondary: oklch(0.29 0.05 278); /* #242A37 - Dark blue-gray (slightly more saturated) */
+  --secondary-light: oklch(0.38 0.04 270); /* #3D4456 - Lighter blue-gray */
+  --secondary-dark: oklch(0.2 0.04 278); /* #1A1F29 - Darker blue-gray */
+  --secondary-foreground: oklch(1 0 0); /* White */
+
+  /* Muted colors - Dark mode */
+  --muted: oklch(0.2 0.03 260); /* #374151 - Dark muted */
+  --muted-foreground: oklch(0.65 0.04 260); /* #9CA3AF - Light muted foreground */
+
+  /* Accent colors - Dark mode - Using primary as accent for dark mode */
+  --accent: var(--primary);
+  --accent-foreground: var(--primary-foreground);
+
+  /* UI colors - Dark mode */
+  --destructive: oklch(0.55 0.2 25); /* Darker red for dark mode */
+  --border: oklch(1 0 0 / 10%); /* Subtle border */
+  --input: oklch(1 0 0 / 15%); /* Subtle input */
+  --ring: oklch(0.85 0.2 95); /* Brighter ring for dark mode based on primary */
+
+  /* Sidebar colors - Dark mode */
+  --sidebar: var(--card);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--secondary);
+  --sidebar-accent-foreground: var(--secondary-foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
+
+  /* Semantic status colors - Dark mode */
+  --accent-success: oklch(0.68 0.16 155);
+  --success-foreground: oklch(0.15 0.03 155);
+  --accent-warning: oklch(0.78 0.15 75);
+  --warning-foreground: oklch(0.18 0.03 75);
+  --accent-danger: oklch(0.68 0.2 25);
+  --danger-foreground: oklch(0.15 0.03 25);
+  --accent-info: oklch(0.7 0.15 250);
+  --info-foreground: oklch(0.15 0.03 250);
+
+  /* Chart colors - Dark mode */
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+}
+
+/*
+ * Atlassian Design System tokens, themed with the MySafari palette
+ * (navy #242a37, yellow #ffd428). Components follow ADS structure — type
+ * scale, spacing, radii, elevation, interaction states — while the colours
+ * stay on-brand. Names match @atlaskit/tokens' CSS custom properties.
+ */
+:root {
+  --ds-font-family-body: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Ubuntu, "Helvetica Neue", sans-serif;
+
+  /* Radii (ADS radius.small / medium / large / xlarge) */
+  --ds-radius-small: 4px;
+  --ds-radius-medium: 6px;
+  --ds-radius-large: 8px;
+  --ds-radius-xlarge: 12px;
+
+  --ds-surface: #FFFFFF;
+  --ds-surface-sunken: #F8FAFC;
+  --ds-surface-raised: #FFFFFF;
+  --ds-surface-overlay: #FFFFFF;
+  --ds-shadow-raised: 0px 1px 1px #242A3740, 0px 0px 1px #242A374F;
+  --ds-shadow-overlay: 0px 8px 12px #242A3726, 0px 0px 1px #242A374F;
+
+  --ds-text: #242A37;
+  --ds-text-subtle: #475569;
+  --ds-text-subtlest: #64748B;
+  --ds-text-selected: #242A37;
+  --ds-text-inverse: #FFFFFF;
+  --ds-text-brand: #B38F00;
+
+  --ds-icon: #242A37;
+  --ds-icon-subtle: #475569;
+  --ds-icon-selected: #242A37;
+
+  --ds-border: #E2E8F0;
+  --ds-border-input: #CBD5E1;
+  --ds-border-selected: #FFD428;
+  --ds-border-focused: #242A37;
+
+  --ds-background-input: #FFFFFF;
+  --ds-background-neutral-subtle-hovered: #242A370F;
+  --ds-background-neutral-subtle-pressed: #242A3724;
+  --ds-background-neutral-bold: #242A37;
+  --ds-background-selected: #FFD42833;
+  --ds-background-selected-hovered: #FFD4284D;
+  --ds-background-selected-pressed: #FFD42866;
+  --ds-background-brand-bold: #FFD428;
+  --ds-background-brand-bold-hovered: #FFDB4D;
+  --ds-background-brand-bold-pressed: #E6BC00;
+}
+
+.dark {
+  --ds-surface: #242A37;
+  --ds-surface-sunken: #1A1F2B;
+  --ds-surface-raised: #242A37;
+  --ds-surface-overlay: #2D3545;
+  --ds-shadow-raised: 0px 0px 0px 1px #FFFFFF0F, 0px 1px 1px #0104048F;
+  --ds-shadow-overlay: 0px 0px 0px 1px #FFFFFF14, 0px 8px 12px #0104048F, 0px 0px 1px #01040480;
+
+  --ds-text: #F1F5F9;
+  --ds-text-subtle: #94A3B8;
+  --ds-text-subtlest: #64748B;
+  --ds-text-selected: #FFD428;
+  --ds-text-inverse: #242A37;
+  --ds-text-brand: #FFD428;
+
+  --ds-icon: #F1F5F9;
+  --ds-icon-subtle: #94A3B8;
+  --ds-icon-selected: #FFD428;
+
+  --ds-border: #FFFFFF14;
+  --ds-border-input: #FFFFFF26;
+  --ds-border-selected: #FFD428;
+  --ds-border-focused: #FFD428;
+
+  --ds-background-input: #1A1F2B;
+  --ds-background-neutral-subtle-hovered: #FFFFFF0F;
+  --ds-background-neutral-subtle-pressed: #FFFFFF1F;
+  --ds-background-neutral-bold: #F1F5F9;
+  --ds-background-selected: #FFD4281F;
+  --ds-background-selected-hovered: #FFD4282E;
+  --ds-background-selected-pressed: #FFD4283D;
+}
+
+/* The sidebar is always the navy brand surface, in both themes. */
+.ds-theme-nav {
+  --ds-surface: #242A37;
+  --ds-text: #FFFFFF;
+  --ds-text-subtle: #94A3B8;
+  --ds-text-subtlest: #64748B;
+  --ds-text-selected: #FFFFFF;
+  --ds-icon-subtle: #94A3B8;
+  --ds-icon-selected: #FFD428;
+  --ds-border: #FFFFFF0D;
+  --ds-border-selected: #FFD428;
+  --ds-border-focused: #FFD428;
+  --ds-background-neutral-subtle-hovered: #FFFFFF0D;
+  --ds-background-neutral-subtle-pressed: #FFFFFF1A;
+  --ds-background-selected: #FFD4281A;
+  --ds-background-selected-hovered: #FFD42826;
+  --ds-background-selected-pressed: #FFD42833;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  /* Tailwind v4 no longer sets cursor:pointer on interactive elements — restore it app-wide. */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [role="tab"]:not([aria-disabled="true"]),
+  [role="menuitem"]:not([aria-disabled="true"]),
+  [role="option"]:not([aria-disabled="true"]),
+  a[href],
+  label[for],
+  summary,
+  select:not(:disabled) {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  [aria-disabled="true"] {
+    cursor: not-allowed;
+  }
+}
+
+/* HUD System Animations */
+@keyframes shimmer {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.33);
+  }
+  80%, 100% {
+    opacity: 0;
+  }
+}
+
+@keyframes pulse-red {
+  0% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
+}
+
+.pulse-red-glow {
+  animation: pulse-red 2s infinite;
+}
+
+.animate-shimmer {
+  animation: shimmer 3s linear infinite;
+}
+
+/* Clean UI Utilities */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  @apply bg-slate-200 dark:bg-white/10 rounded-full;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  @apply bg-slate-300 dark:bg-white/20;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Portal tables — the "All Companies" design, applied to every
+   table built on components/ui/table (and raw tables that carry
+   the same data-slot attributes). Unlayered on purpose, so it
+   wins over older per-table header colours.
+   ───────────────────────────────────────────────────────────── */
+[data-slot="table-header"] tr,
+[data-slot="table-header"] tr:hover {
+  background-color: #242a37;
+  border-bottom-color: transparent;
+}
+[data-slot="table-header"] th {
+  color: #ffd428;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+}
+[data-slot="table-header"] th:first-child,
+[data-slot="table-body"] td:first-child {
+  padding-left: 1.5rem;
+}
+[data-slot="table-header"] th:last-child,
+[data-slot="table-body"] td:last-child {
+  padding-right: 1.5rem;
+}
+[data-slot="table-body"] tr {
+  border-bottom: 1px solid rgb(226 232 240 / 0.6);
+  transition: background-color 150ms;
+}
+[data-slot="table-body"] tr:hover {
+  background-color: #fff;
+}
+.dark [data-slot="table-body"] tr {
+  border-bottom-color: rgb(255 255 255 / 0.05);
+}
+.dark [data-slot="table-body"] tr:hover {
+  background-color: rgb(255 255 255 / 0.04);
+}
+[data-slot="table-body"] td {
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+}
+/* Rows that only hold an empty/loading message keep their own look */
+[data-slot="table-body"] tr:has(> td[colspan]):hover {
+  background-color: transparent;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Tabs — Atlassian design system: plain text tabs on a 2px
+   divider, the selected tab marked by a 2px underline. Unlayered
+   so it wins over the older per-page "pill" tab classes.
+   ───────────────────────────────────────────────────────────── */
+[data-slot="tabs-list"] {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 0.25rem;
+  width: 100%;
+  max-width: none;
+  height: auto;
+  padding: 0;
+  margin: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid var(--ds-border);
+  border-radius: 0;
+  box-shadow: none;
+}
+[data-slot="tabs-list"]::-webkit-scrollbar {
+  display: none;
+}
+[data-slot="tabs-trigger"] {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: auto;
+  min-height: 2.5rem;
+  width: auto;
+  margin: 0 0 -2px;
+  padding: 0.5rem 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.25rem;
+  color: var(--ds-text-subtle);
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  box-shadow: none;
+  transition: color 100ms, border-color 100ms;
+}
+[data-slot="tabs-trigger"]::after {
+  content: none;
+}
+[data-slot="tabs-trigger"]:hover {
+  color: var(--ds-text);
+  border-bottom-color: var(--ds-border-input);
+}
+[data-slot="tabs-trigger"][data-state="active"] {
+  color: var(--ds-text-selected);
+  border-bottom-color: var(--ds-border-selected);
+  background: transparent;
+  box-shadow: none;
+}
+[data-slot="tabs-trigger"]:focus-visible {
+  outline: 2px solid var(--ds-border-focused);
+  outline-offset: -2px;
+  border-radius: 3px;
+}
+[data-slot="tabs-trigger"] svg {
+  width: 1rem;
+  height: 1rem;
+  margin: 0;
+}
+/* Count badges inside a tab: Atlassian "badge" (small neutral pill) */
+[data-slot="tabs-trigger"] [data-slot="badge"] {
+  height: 1.25rem;
+  min-width: 1.5rem;
+  padding: 0 0.375rem;
+  font-size: 0.75rem;
+  border-radius: 2rem;
+}
+[data-slot="tabs-trigger"] {
+  flex-direction: row;
+}
+/* Tabs on the navy header surface (sheets/modals): inverse colours */
+.bg-\[\#242a37\] [data-slot="tabs-list"],
+.ds-theme-nav [data-slot="tabs-list"] {
+  border-bottom-color: rgb(255 255 255 / 0.1);
+}
+.bg-\[\#242a37\] [data-slot="tabs-trigger"],
+.ds-theme-nav [data-slot="tabs-trigger"] {
+  color: rgb(255 255 255 / 0.6);
+}
+.bg-\[\#242a37\] [data-slot="tabs-trigger"]:hover,
+.ds-theme-nav [data-slot="tabs-trigger"]:hover {
+  color: #fff;
+  border-bottom-color: rgb(255 255 255 / 0.3);
+}
+.bg-\[\#242a37\] [data-slot="tabs-trigger"][data-state="active"],
+.ds-theme-nav [data-slot="tabs-trigger"][data-state="active"] {
+  color: #fff;
+  border-bottom-color: #ffd428;
+}
+
+
+/* Page tab bars stay under the portal header while the page scrolls.
+   --portal-header-h is set by each portal layout. */
+.portal-sticky-tabs {
+    position: sticky;
+    top: var(--portal-header-h, 4rem);
+    z-index: 20;
+    background-color: #f1f5f9;
+    box-shadow: 0 6px 12px -10px rgba(15, 23, 42, 0.35);
+}
+.dark .portal-sticky-tabs {
+    background-color: #151922;
+}
+/* When the tabs don't fit (phones, narrow windows) the bar scrolls sideways
+   instead of squashing them; the scrollbar stays out of the way */
+.portal-sticky-tabs {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+}
+.portal-sticky-tabs::-webkit-scrollbar {
+    display: none;
+}
+.portal-sticky-tabs > [role="tab"] {
+    flex-shrink: 0;
+    min-width: max-content;
+    scroll-snap-align: start;
+}
+
+/* Toast countdown bar (see components/ui/toaster.tsx) */
+@keyframes toast-countdown {
+    from { transform: scaleX(1); }
+    to { transform: scaleX(0); }
+}
+.toast-countdown {
+    animation-name: toast-countdown;
+    animation-timing-function: linear;
+    animation-fill-mode: forwards;
+    opacity: 0.85;
+}
+/* Radix pauses every toast while the pointer is over the stack */
+.toast-viewport:hover .toast-countdown,
+.toast-viewport:focus-within .toast-countdown {
+    animation-play-state: paused;
+}
+@media (prefers-reduced-motion: reduce) {
+    .toast-countdown { animation: none; opacity: 0; }
+}
+
+/* Tables scroll inside their card, with the heading row pinned to the top.
+   A page can set --table-max-h on a wrapper to change the height. */
+[data-slot="table-container"] {
+    max-height: var(--table-max-h, min(70vh, 44rem));
+    overflow: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(148, 163, 184, 0.5) transparent;
+}
+[data-slot="table-header"] th {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    /* Same fill as the heading row (the navy header rows set it on the <tr>) */
+    background: inherit;
+}
+[data-slot="table-header"] tr:not([class*="bg-"]) th {
+    background: var(--background);
+}
+/* A soft edge under the pinned heading while rows pass beneath it */
+[data-slot="table-header"] th::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -6px;
+    height: 6px;
+    pointer-events: none;
+    background: linear-gradient(to bottom, rgba(15, 23, 42, 0.12), transparent);
+}
+
+/* Tab bars that sit in a row with other controls: the whole row sticks
+   (a sticky element can't leave its parent, so the inner bar can't) */
+.portal-sticky-wrap {
+    position: sticky;
+    top: var(--portal-header-h, 4rem);
+    z-index: 20;
+    background-color: var(--background);
+    padding-block: 0.25rem;
+}
+.portal-sticky-wrap > .portal-sticky-tabs {
+    position: static;
+    box-shadow: none;
+}
