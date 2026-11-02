@@ -1,0 +1,14 @@
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: tuma_postgres
+    environment:
+      POSTGRES_USER: tuma
+      POSTGRES_PASSWORD: tuma
+      POSTGRES_DB: tuma
+    ports:
+      - "5544:5432"
+    volumes:
+      - tuma_pg:/var/lib/postgresql/data
+volumes:
+  tuma_pg:

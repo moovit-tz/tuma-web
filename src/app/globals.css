@@ -1,26 +1,238 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* Dark mode follows the OS, or [data-theme] when the user picks one. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-gsf);
+  --font-mono: var(--font-plex-mono);
+  --font-heading: var(--font-gsf);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-muted: var(--sidebar-muted);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-brand-red: var(--brand-red);
+  --color-brand-tan: var(--brand-tan);
+  --color-parcel: var(--parcel);
+  --color-cargo: var(--cargo);
+  --color-ok: var(--ok);
+  --color-warn: var(--warn);
+  --color-sunken: var(--sunken);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+}
+
+/* Tokens from the Tuma SRS: warm paper, ink, red marks Parcel, tan marks Cargo. Priority uses ink, not red. */
+:root {
+  --background: #f3f3f0;
+  --foreground: #16171b;
+  --card: #ffffff;
+  --card-foreground: #16171b;
+  --popover: #ffffff;
+  --popover-foreground: #16171b;
+  --primary: #16171b;
+  --primary-foreground: #f2f0ea;
+  --secondary: #eaeae5;
+  --secondary-foreground: #16171b;
+  --muted: #eaeae5;
+  --muted-foreground: #5c5e66;
+  --accent: #eaeae5;
+  --accent-foreground: #16171b;
+  --destructive: #b42318;
+  --border: #d8d8d1;
+  --input: #cfcfc7;
+  --ring: #cf2a2a;
+  --radius: 0.5rem;
+  --sunken: #eaeae5;
+  --sidebar: #000000;
+  --sidebar-foreground: #f2f0ea;
+  --sidebar-muted: #a59b87;
+  --sidebar-border: #2e2e2e;
+  --sidebar-accent: #161616;
+  --brand-red: #ff4545;
+  --brand-tan: #a59b87;
+  --parcel: #cf2a2a;
+  --cargo: #6a604c;
+  --ok: #1f7a4d;
+  --warn: #a15c00;
+  color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  :root:not([data-theme="light"]) {
+    --background: #0b0b0c;
+    --foreground: #eceae4;
+    --card: #141416;
+    --card-foreground: #eceae4;
+    --popover: #141416;
+    --popover-foreground: #eceae4;
+    --primary: #eceae4;
+    --primary-foreground: #0b0b0c;
+    --secondary: #1c1c1f;
+    --secondary-foreground: #eceae4;
+    --muted: #1c1c1f;
+    --muted-foreground: #a19e96;
+    --accent: #1c1c1f;
+    --accent-foreground: #eceae4;
+    --destructive: #ff6b5e;
+    --border: #2c2c30;
+    --input: #36363b;
+    --ring: #ff5757;
+    --sunken: #1c1c1f;
+    --sidebar-accent: #121212;
+    --parcel: #ff5757;
+    --cargo: #b8ae99;
+    --ok: #4cc38a;
+    --warn: #f0a83a;
+    color-scheme: dark;
   }
 }
 
-body {
+/* Force the dark palette on a subtree (dark map pages: track, contact, report lost item, legal header). */
+.theme-dark {
+  --background: #000000;
+  --foreground: #eceae4;
+  --card: rgba(14, 14, 14, 0.82);
+  --card-foreground: #eceae4;
+  --popover: #141416;
+  --popover-foreground: #eceae4;
+  --primary: #eceae4;
+  --primary-foreground: #0b0b0c;
+  --secondary: #1c1c1f;
+  --secondary-foreground: #eceae4;
+  --muted: #1c1c1f;
+  --muted-foreground: #a19e96;
+  --accent: #1c1c1f;
+  --accent-foreground: #eceae4;
+  --destructive: #ff6b5e;
+  --border: #2c2c30;
+  --input: #36363b;
+  --ring: #ff5757;
+  --sunken: #161618;
+  --parcel: #ff5757;
+  --cargo: #b8ae99;
+  --ok: #4cc38a;
+  --warn: #f0a83a;
+  color-scheme: dark;
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "ss01", "cv11";
+  }
+  html {
+    @apply font-sans;
+    -webkit-text-size-adjust: 100%;
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+}
+
+@layer utilities {
+  /* Scrolls, but without a visible scrollbar (legal and band pages). */
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .font-display {
+    font-family: var(--font-gsf);
+  }
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+  .eyebrow {
+    font-family: var(--font-plex-mono);
+    font-size: 11.5px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+  }
+}
+
+/* ---- Portal (after the MySafari parcel portal) ---- */
+
+/* Tab bars stay under the top bar while the page scrolls (the page scrolls inside <main>, below the bar). */
+.portal-sticky-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 15;
+  background: var(--background);
+  box-shadow: 0 0 0 0.5rem var(--background);
+}
+
+/* Tables scroll inside their card with the heading row pinned. A page can set --table-max-h to change the height. */
+.table-scroll {
+  max-height: var(--table-max-h, min(68vh, 44rem));
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, var(--muted-foreground) 45%, transparent) transparent;
+}
+.table-scroll thead th {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--sidebar);
+  color: var(--sidebar-muted);
+  font-weight: 600;
+}
+.table-scroll thead tr {
+  border-bottom-color: transparent;
+}
+/* Soft edge under the pinned heading while rows pass beneath it */
+.table-scroll thead th::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: -6px;
+  height: 6px;
+  pointer-events: none;
+  background: linear-gradient(to bottom, rgb(0 0 0 / 0.12), transparent);
+}
+
+/* A table inside a panel that fills the dashboard: the panel body scrolls, so the table doesn't cap its own height. */
+.panel-fill .table-scroll {
+  max-height: none;
+  overflow: visible;
+}
+/* ...and its rows share the panel's height, so a short list leaves no blank space below it (a table's height is a
+   minimum, so a long list still grows and the panel scrolls). The heading row keeps its own height. */
+.panel-fill > .table-scroll,
+.panel-fill > .table-scroll > table {
+  height: 100%;
+}
+.panel-fill > .table-scroll thead tr {
+  height: 2.5rem;
 }
