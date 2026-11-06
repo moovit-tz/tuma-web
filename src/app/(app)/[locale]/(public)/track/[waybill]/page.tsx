@@ -16,6 +16,7 @@ import { normaliseWaybill } from "@/domain/waybill-number";
 import { DEFAULT_COUNTRY } from "@/domain/countries";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { StateIcon, stateColor } from "@/components/shipments/state-icon";
 
 export const metadata = { robots: { index: false } };
 
@@ -67,7 +68,12 @@ async function Result({ params }: { params: PageProps<"/[locale]/track/[waybill]
       locale={locale}
       country={DEFAULT_COUNTRY /* shipments currently originate in Tanzania */}
       eyebrow={<span className="font-mono tracking-[0.1em]">{r.waybill}</span>}
-      title={<span className={cn(state === "DELIVERED" && "text-ok")}>{t.states[r.state]}</span>}
+      title={
+        <span className="inline-flex items-center gap-3" style={{ color: stateColor(state) }}>
+          <StateIcon state={state} solid className="size-8 sm:size-9" />
+          {t.states[r.state]}
+        </span>
+      }
       meta={when}
       bandAside={<TrackAnother current={r.waybill} />}
       sidebar={
@@ -111,12 +117,20 @@ async function Result({ params }: { params: PageProps<"/[locale]/track/[waybill]
           {!offLine && (
             <ol className="grid grid-cols-6 gap-1.5" aria-label={t.detail.timeline}>
               {PARCEL_MAIN_LINE.map((s) => {
-                const done = reached.has(s) || (s === "CREATED" && reached.size > 0);
+                const done = reached.has(s) || (s === "CREATED" && reached.size > 0) || s === state;
                 const current = s === state;
                 return (
-                  <li key={s} className="min-w-0">
-                    <span className={cn("block h-1.5 rounded-full", done ? (current ? "bg-parcel" : "bg-foreground") : "bg-border")} />
-                    <span className={cn("mt-2 block truncate text-[11px] sm:text-xs", current ? "font-medium" : done ? "" : "text-muted-foreground")}>{t.states[s]}</span>
+                  <li key={s} className="min-w-0" aria-current={current ? "step" : undefined}>
+                    <span
+                      className={cn("mb-2 grid size-7 place-items-center rounded-full sm:size-8", !done && "bg-muted text-muted-foreground")}
+                      style={done ? (current ? { background: stateColor(s), color: "white" } : { background: `color-mix(in srgb, ${stateColor(s)} 14%, transparent)`, color: stateColor(s) }) : undefined}
+                    >
+                      <StateIcon state={s} solid={current} className="size-3.5 sm:size-4" />
+                    </span>
+                    <span className="block h-1.5 rounded-full" style={{ background: done ? stateColor(state) : "var(--border)" }} />
+                    <span className={cn("mt-2 block truncate text-[11px] sm:text-xs", current ? "font-semibold" : done ? "" : "text-muted-foreground")} style={current ? { color: stateColor(s) } : undefined}>
+                      {t.states[s]}
+                    </span>
                   </li>
                 );
               })}
@@ -149,15 +163,30 @@ async function Result({ params }: { params: PageProps<"/[locale]/track/[waybill]
           <h2 className="font-semibold">{t.detail.timeline}</h2>
           <ol className="mt-5">
             {[...r.timeline].reverse().map((e, i, all) => (
-              <li key={i} className="relative grid grid-cols-[16px_minmax(0,1fr)] gap-3 pb-5 last:pb-0">
-                {i < all.length - 1 && <span aria-hidden className="bg-border absolute top-3 bottom-0 left-[7px] w-px" />}
+              <li key={i} className="relative grid grid-cols-[32px_minmax(0,1fr)] gap-3 pb-5 last:pb-0">
+                {i < all.length - 1 && (
+                  <span
+                    aria-hidden
+                    className="absolute top-9 bottom-1 left-[15px] w-0.5 rounded-full"
+                    style={{ background: `linear-gradient(${stateColor(e.stateAfter)}, color-mix(in srgb, ${stateColor(all[i + 1].stateAfter)} 40%, transparent))`, opacity: 0.45 }}
+                  />
+                )}
                 <span
                   aria-hidden
-                  className={cn("bg-card relative mt-1.5 size-[11px] justify-self-center rounded-full border-2", e.estimated ? "border-muted-foreground border-dashed" : i === 0 ? "border-parcel bg-parcel" : "border-foreground/40")}
-                />
-                <div className="min-w-0">
+                  className={cn("relative grid size-8 place-items-center rounded-full", e.estimated && "border-muted-foreground border border-dashed")}
+                  style={
+                    e.estimated
+                      ? { color: "var(--muted-foreground)" }
+                      : i === 0
+                        ? { background: stateColor(e.stateAfter), color: "white", boxShadow: `0 0 0 4px color-mix(in srgb, ${stateColor(e.stateAfter)} 18%, transparent)` }
+                        : { background: `color-mix(in srgb, ${stateColor(e.stateAfter)} 14%, transparent)`, color: stateColor(e.stateAfter) }
+                  }
+                >
+                  <StateIcon state={e.stateAfter} solid={i === 0 && !e.estimated} />
+                </span>
+                <div className="min-w-0 pt-1">
                   <div className="flex flex-wrap justify-between gap-x-3">
-                    <span className={cn(i === 0 && "font-medium", e.estimated && "text-muted-foreground italic")}>
+                    <span className={cn(i === 0 && "font-semibold", e.estimated && "text-muted-foreground italic")} style={i === 0 && !e.estimated ? { color: stateColor(e.stateAfter) } : undefined}>
                       {e.stateAfter ? t.states[e.stateAfter] : (t.track.milestones[e.type] ?? e.type)}
                     </span>
                     <time className="text-muted-foreground tabular text-[12.5px]">{dateTime(e.occurredAt, locale)}</time>

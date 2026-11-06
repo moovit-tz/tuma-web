@@ -41,16 +41,16 @@ export function Stat({
       <div className="relative">
         <div className="flex items-center justify-between gap-3">
           <div className="text-sidebar-foreground/60 flex min-w-0 items-center gap-2 text-sm font-medium">
-            <span className="truncate">{label}</span>
+            <span className="line-clamp-2 leading-snug sm:truncate">{label}</span>
             {(tone === "bad" || tone === "warn") && <span aria-hidden className={cn("size-2 shrink-0 rounded-full", tone === "bad" ? "bg-brand-red" : "bg-amber-400")} />}
           </div>
           {Icon && (
-            <span className="grid size-10 shrink-0 place-items-center rounded-md bg-white/[0.07]">
+            <span className="hidden size-10 shrink-0 place-items-center rounded-md bg-white/[0.07] sm:grid">
               <Icon aria-hidden className="text-brand-red size-5" />
             </span>
           )}
         </div>
-        <div className="font-display tabular mt-3 text-[32px] leading-none font-semibold tracking-tight text-white">{value}</div>
+        <div className="font-display tabular mt-3 text-[clamp(22px,6.4vw,32px)] leading-none font-semibold tracking-tight break-words text-white">{value}</div>
         {hint && <div className="mt-2.5 truncate text-[13px] text-white/45" title={hint}>{hint}</div>}
       </div>
     </>

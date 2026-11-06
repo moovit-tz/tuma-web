@@ -14,7 +14,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
 /** The panels area: takes what the window leaves on large screens; panels in a row share the same height. */
 export function DashboardBody({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <div className={cn("grid gap-5 lg:min-h-0 lg:flex-1", className)}>{children}</div>;
+  return <div className={cn("grid grid-cols-[minmax(0,1fr)] gap-5 lg:min-h-0 lg:flex-1", className)}>{children}</div>;
 }
 
 /** Period switch from the parcel portal (Today · 7 days · 30 days · All time). Links, so each period has a URL. */

@@ -2,35 +2,14 @@
 import { useMemo, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  Boxes,
-  Building,
-  Building2,
-  ChevronDown,
-  ChevronsLeft,
-  HandCoins,
-  LayoutDashboard,
-  LogOut,
-  Menu,
-  Package,
-  PackagePlus,
-  RadioTower,
-  Receipt,
-  Search,
-  ShieldCheck,
-  TriangleAlert,
-  Truck,
-  Users,
-  Wallet,
-  X,
-  type LucideIcon,
-} from "lucide-react";
+import { Boxes, Building, Building2, ChevronDown, ChevronsLeft, HandCoins, LayoutDashboard, LogOut, Menu, Package, PackagePlus, RadioTower, Receipt, Search, ShieldCheck, TriangleAlert, Truck, Users, Wallet, X, type LucideIcon, Send, Bike, Settings2 } from "lucide-react";
 import { useI18n } from "@/i18n/client";
 import { TumaMark, TumaWordmark } from "@/components/brand/logo";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { HeaderActions, type QuickAction } from "./header-actions";
 import { UserMenu, type ShellUser } from "./user-menu";
+import { LocaleSwitch } from "./locale-switch";
 
 export const NAV_ICONS = {
   dashboard: LayoutDashboard,
@@ -48,6 +27,9 @@ export const NAV_ICONS = {
   clients: Building2,
   invoices: Receipt,
   payments: HandCoins,
+  dispatch: Send,
+  drivers: Bike,
+  settings: Settings2,
 } satisfies Record<string, LucideIcon>;
 
 export type NavItem = { href: string; label: string; icon: keyof typeof NAV_ICONS; exact?: boolean; group?: string };
@@ -329,6 +311,8 @@ function Sidebar({
               <p className="text-sidebar-muted truncate text-xs">{user.company ?? user.roleLabel}</p>
             </div>
           )}
+          {/* Phones keep the language switch here so the top bar stays uncluttered. */}
+          {mobile && <LocaleSwitch dark />}
           <form action={`/api/auth/logout?locale=${locale}`} method="post">
             <button
               title={t.common.signOut}

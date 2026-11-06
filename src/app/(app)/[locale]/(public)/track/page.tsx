@@ -11,8 +11,8 @@ import { WhereToFind } from "@/components/shipments/where-to-find";
 
 export const metadata = { title: "Track a parcel" };
 
-/** Example used in the hints. A real, check-valid number so copying it gives "not found", not "invalid". */
-const EXAMPLE = "TMP-2611-4F7K2QR";
+/** Example used in the hints: a well-formed reference, so copying it gives "not found", not "invalid". */
+const EXAMPLE = "AAB204";
 
 type L = AppLocale;
 type SP = PageProps<"/[locale]/track">["searchParams"];
@@ -57,7 +57,7 @@ function TrackPage({ locale, country, form }: { locale: L; country: string; form
         </label>
         <div className="mt-2">{form}</div>
         <p className="text-muted-foreground mt-2.5 font-mono text-[11px] tracking-wide">
-          {t.track.format}: TMP-YYMM-XXXXXXX
+          {t.track.format}: ABC123
         </p>
       </section>
     </BandLayout>

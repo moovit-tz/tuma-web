@@ -131,7 +131,7 @@ describe("lifecycle (FR-WB-04, FR-TRK-01)", () => {
     const s = (await getShipment(tower, shipment.waybill))!;
     expect(s.state).toBe("RETURNING");
     expect(s.attempts).toBe(3);
-    expect(s.returnWaybill).toMatch(/^TMP-/);
+    expect(s.returnWaybill).toMatch(/^[A-Z]{3}\d{3}$/);
     const ret = (await getShipment(tower, s.returnWaybill!))!;
     expect(ret.consignee.name).toBe(s.shipper.name);
     expect(ret.codAmount).toBeNull();

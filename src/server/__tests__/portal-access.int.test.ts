@@ -79,7 +79,7 @@ describe("portal search respects access", () => {
     const r = await searchPortal(kfAdmin, "overdue invoices", "en");
     expect(r.suggestions[0]).toMatchObject({ href: "/en/portal/invoices?tab=overdue" });
     const v = await searchPortal(kfAdmin, "malori yenye bima iliyoisha", "sw");
-    expect(v.suggestions[0].href).toBe("/sw/portal/vehicles?status=expired");
+    expect(v.suggestions[0].href).toBe("/sw/portal/vehicles?tab=all&status=expired");
   });
 
   it("does not offer partner finance to a merchant, or another company's cargo to a partner", async () => {
@@ -89,7 +89,7 @@ describe("portal search respects access", () => {
     const r = await searchPortal(mz, "unpaid invoices", "en");
     expect(r.suggestions).toHaveLength(0); // ops role has no finance
     const cargo = await searchPortal(mz, "delivered cargo", "en");
-    expect(cargo.suggestions[0].href).toContain("/portal/cargo/all?view=delivered");
+    expect(cargo.suggestions[0].href).toContain("/portal/cargo?tab=all&view=delivered");
   });
 });
 

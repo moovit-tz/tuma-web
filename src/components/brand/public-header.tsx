@@ -1,10 +1,9 @@
 import { Suspense } from "react";
-import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { PublicNavLinks } from "./public-nav-links";
 import { TumaWordmark } from "./logo";
 import { LocaleSwitch } from "@/components/shell/locale-switch";
-import { PublicMobileMenu } from "./public-mobile-menu";
+import { AccountCorner, PublicAccount } from "./public-account";
 import { getDict } from "@/i18n";
 
 export function publicNav(locale: string) {
@@ -38,21 +37,10 @@ export function PublicHeader({ locale }: { locale: string }) {
         </nav>
         <div className="ml-auto flex items-center gap-3">
           <LocaleSwitch dark className="hidden sm:inline-flex" />
-          <Link
-            suppressHydrationWarning
-            href={`/${locale}/signin`}
-            className="group bg-sidebar-foreground hidden h-9 items-center gap-2 rounded-full pr-1 pl-4 text-sm font-medium text-black transition-colors hover:bg-white sm:inline-flex"
-          >
-            {t.common.signIn}
-            <span className="grid size-7 place-items-center rounded-full bg-black text-white transition-transform group-hover:translate-x-0.5">
-              <ArrowRight className="size-3.5" aria-hidden />
-            </span>
-          </Link>
-          <PublicMobileMenu
-            items={[...nav, { href: `/${locale}/signin`, label: t.common.signIn }]}
-            menuLabel={t.site.menu}
-            by={t.brand.by}
-          />
+          {/* The session is a dynamic hole: pages stay static and show Sign in until it's read. */}
+          <Suspense fallback={<AccountCorner locale={locale} nav={nav} user={null} />}>
+            <PublicAccount locale={locale} nav={nav} />
+          </Suspense>
         </div>
       </div>
     </header>
@@ -68,10 +56,10 @@ export function PublicFooter({ locale, className }: { locale: string; className?
   ];
   return (
     <footer className={"border-sidebar-border bg-sidebar text-sidebar-muted shrink-0 border-t " + (className ?? "")}>
-      <div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 pt-4 pb-20 text-[13px] sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:pb-4 sm:pr-40">
-        <nav aria-label="Legal" className="flex flex-wrap gap-x-5 gap-y-1">
+      <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 pt-5 pb-[calc(6rem+env(safe-area-inset-bottom))] text-[14px] sm:flex-row sm:items-center sm:justify-between sm:gap-2 sm:px-6 sm:pt-4 sm:pb-4 sm:pr-40 sm:text-[13px]">
+        <nav aria-label="Legal" className="grid grid-cols-2 gap-x-4 sm:flex sm:flex-wrap sm:gap-x-5 sm:gap-y-1">
           {links.map((l) => (
-            <Link suppressHydrationWarning key={l.href} href={l.href} className="hover:text-sidebar-foreground transition-colors">
+            <Link suppressHydrationWarning key={l.href} href={l.href} className="hover:text-sidebar-foreground py-2 transition-colors sm:py-0">
               {l.label}
             </Link>
           ))}

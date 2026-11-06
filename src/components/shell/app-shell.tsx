@@ -6,6 +6,7 @@ import { db } from "@/server/db/client";
 import { accounts, roles } from "@/server/db/schema";
 import { Skeleton } from "@/components/ui/skeleton";
 import { NoAccess } from "./no-access";
+import { canSetUp, canUseConsole, canUsePartner, canUsePortal } from "@/domain/roles";
 import { PortalFrame, type NavItem } from "./portal-frame";
 import type { QuickAction } from "./header-actions";
 import type { Permission } from "@/domain/roles";
@@ -44,6 +45,9 @@ export function AppShell(props: Props) {
 async function Shell({ locale, nav, systemGroup, quickActions, gate, search, children }: Props) {
   const user = await getCurrentUser();
   if (!user) redirect(`/${locale}/signin`);
+  // Signed in but nothing to open here yet (no business, or one under review whose people can't set up): the
+  // onboarding page. People in a business under review who can set up (team, offices) get the set-up pages.
+  if (!canUseConsole(user.permissions) && !canUsePartner(user.permissions) && !canUsePortal(user.permissions) && !canSetUp(user.permissions)) redirect(`/${locale}/onboarding`);
 
   const [roleRows, account] = await Promise.all([
     user.roles.length ? db.select({ key: roles.key, name: roles.name }).from(roles).where(inArray(roles.key, user.roles)) : Promise.resolve([]),

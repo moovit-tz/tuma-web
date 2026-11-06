@@ -16,7 +16,7 @@ export function StateBars({ states, locale, basePath }: { states: Record<string,
         const warn = s === "ATTEMPT_FAILED" || s === "RETURNING";
         return (
           <li key={s}>
-            <Link href={`${basePath}?state=${s}`} className="group grid grid-cols-[150px_1fr_40px] items-center gap-3 rounded py-1 text-sm">
+            <Link href={`${basePath}${basePath.includes("?") ? "&" : "?"}state=${s}`} className="group grid grid-cols-[150px_1fr_40px] items-center gap-3 rounded py-1 text-sm">
               <span className="truncate group-hover:underline">{t.states[s]}</span>
               <span className="bg-sunken h-2.5 overflow-hidden rounded-full">
                 <span

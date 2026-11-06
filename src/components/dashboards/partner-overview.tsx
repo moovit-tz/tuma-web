@@ -44,18 +44,18 @@ export async function PartnerOverview({ locale, range, branch: asked }: { locale
       </DashboardGreeting>
 
       <div className="grid shrink-0 grid-cols-2 gap-4 lg:grid-cols-4">
-        <Stat icon={PackageCheck} label={p.dash.received} value={num(d.received, locale)} hint={p.dash.receivedHint} href={`${base}/cargo/all?view=received${branchQs}`} />
-        <Stat icon={Truck} label={p.dash.inTransit} value={num(d.inTransit, locale)} hint={p.dash.inTransitHint} href={`${base}/cargo/all?view=transit${branchQs}`} />
-        <Stat icon={Hourglass} label={p.dash.awaiting} value={num(d.awaiting, locale)} hint={p.dash.awaitingHint} href={`${base}/cargo/all?view=expected${branchQs}`} />
-        <Stat icon={CheckCircle2} label={p.dash.delivered30} value={num(d.delivered, locale)} hint={period} href={`${base}/cargo/all?view=delivered${branchQs}`} />
+        <Stat icon={PackageCheck} label={p.dash.received} value={num(d.received, locale)} hint={p.dash.receivedHint} href={`${base}/cargo?tab=all&view=received${branchQs}`} />
+        <Stat icon={Truck} label={p.dash.inTransit} value={num(d.inTransit, locale)} hint={p.dash.inTransitHint} href={`${base}/cargo?tab=all&view=transit${branchQs}`} />
+        <Stat icon={Hourglass} label={p.dash.awaiting} value={num(d.awaiting, locale)} hint={p.dash.awaitingHint} href={`${base}/cargo?tab=all&view=expected${branchQs}`} />
+        <Stat icon={CheckCircle2} label={p.dash.delivered30} value={num(d.delivered, locale)} hint={period} href={`${base}/cargo?tab=all&view=delivered${branchQs}`} />
       </div>
 
       <DashboardBody className="xl:grid-cols-[minmax(0,1fr)_340px]">
-        <Panel fill banner icon={PackageCheck} title={p.dash.recent} description={period} action={<BannerLink href={`${base}/cargo/all?view=all${branchQs}`}>{t.dashboard.viewAll}</BannerLink>}>
+        <Panel fill banner icon={PackageCheck} title={p.dash.recent} description={period} action={<BannerLink href={`${base}/cargo?tab=all${branchQs}`}>{t.dashboard.viewAll}</BannerLink>}>
           <RecentCargo rows={recent} locale={locale} />
         </Panel>
 
-        <div className="flex min-h-0 flex-col gap-5 [&>section:last-child]:flex-1">
+        <div className="flex min-h-0 min-w-0 flex-col gap-5 [&>section:last-child]:flex-1">
           <Panel banner icon={Truck} title={p.dash.fleet} description={t.dashboard.asOfNow} action={<BannerLink href={`${base}/vehicles`}>{t.dashboard.viewAll}</BannerLink>} className="shrink-0">
             <dl className="grid grid-cols-3 divide-x">
               {(
@@ -65,7 +65,7 @@ export async function PartnerOverview({ locale, range, branch: asked }: { locale
                   [p.dash.maintenance, d.fleet.maintenance, "text-warn", "maintenance"],
                 ] as const
               ).map(([label, n, tone, status]) => (
-                <Link key={label} href={`${base}/vehicles?status=${status}`} className="hover:bg-muted/50 flex flex-col-reverse items-center px-2 py-3 text-center">
+                <Link key={label} href={`${base}/vehicles?tab=all&status=${status}`} className="hover:bg-muted/50 flex flex-col-reverse items-center px-2 py-3 text-center">
                   <dt className="text-muted-foreground mt-0.5 text-xs">{label}</dt>
                   <dd className={cn("font-display tabular text-2xl font-semibold", tone)}>{n}</dd>
                 </Link>

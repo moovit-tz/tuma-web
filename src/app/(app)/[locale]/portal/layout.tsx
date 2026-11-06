@@ -19,15 +19,17 @@ export default async function PortalLayout({ children, params }: LayoutProps<"/[
     { href: `${base}/shipments`, label: t.nav.shipments, icon: "shipments", permission: ["shipment.read.own_account", "shipment.read.all"], group: t.nav.shipping },
     { href: `${base}/shipments/new`, label: t.nav.newShipment, icon: "new", permission: "shipment.create", group: t.nav.shipping },
     { href: `${base}/exceptions`, label: t.nav.exceptions, icon: "exceptions", permission: "exception.manage", group: t.nav.shipping },
-    { href: `${base}/cargo`, label: p.cargo.overview, icon: "cargo", exact: true, permission: "partner.cargo.read", group: p.nav.cargo },
-    { href: `${base}/cargo/all`, label: p.cargo.allTitle, icon: "cargo", permission: "partner.cargo.read", group: p.nav.cargo },
-    { href: `${base}/branches`, label: t.branches.title, icon: "branches", permission: "partner.cargo.read", group: p.nav.operations },
+    { href: `${base}/dispatch`, label: t.dispatch.title, icon: "dispatch", permission: ["dispatch.manage", "partner.dispatch.manage"], group: p.nav.operations },
+    { href: `${base}/drivers`, label: t.drivers.title, icon: "drivers", permission: ["drivers.manage", "partner.dispatch.manage"], group: p.nav.operations },
+    { href: `${base}/cargo`, label: p.cargo.title, icon: "cargo", permission: "partner.cargo.read", group: p.nav.operations },
+    { href: `${base}/branches`, label: t.branches.title, icon: "branches", permission: ["partner.cargo.read", "partner.branches.manage"], group: p.nav.operations },
     { href: `${base}/vehicles`, label: p.nav.vehicles, icon: "vehicles", permission: "partner.cargo.read", group: p.nav.operations },
     { href: `${base}/clients`, label: p.nav.clients, icon: "clients", permission: "partner.clients.manage", group: p.nav.crm },
     { href: `${base}/invoices`, label: p.nav.invoices, icon: "invoices", permission: "partner.finance.manage", group: p.nav.finance },
     { href: `${base}/payments`, label: p.nav.payments, icon: "payments", permission: "partner.finance.manage", group: p.nav.finance },
     { href: `${base}/settings/roles`, label: t.nav.roles, icon: "roles", permission: ["roles.manage", "team.manage"], group: t.nav.settingsGroup },
     { href: `${base}/settings/users`, label: t.nav.team, icon: "users", permission: ["users.manage", "team.manage"], group: t.nav.settingsGroup },
+    { href: `${base}/settings/platform`, label: t.platformSettings.title, icon: "settings", permission: "settings.manage", group: t.nav.settingsGroup },
   ];
   return (
     <AppShell
@@ -37,7 +39,7 @@ export default async function PortalLayout({ children, params }: LayoutProps<"/[
       quickActions={[
         { key: "newShipment", href: `${base}/shipments/new`, permission: "shipment.create" },
         { key: "exceptions", href: `${base}/exceptions`, permission: "exception.manage" },
-        { key: "cargo", href: `${base}/cargo/all?view=received`, permission: "partner.cargo.read" },
+        { key: "cargo", href: `${base}/cargo?tab=all&view=received`, permission: "partner.cargo.read" },
         { key: "vehicles", href: `${base}/vehicles`, permission: "partner.vehicles.manage" },
         { key: "newInvoice", href: `${base}/invoices/new`, permission: "partner.finance.manage" },
         { key: "payments", href: `${base}/payments`, permission: "partner.finance.manage" },
@@ -45,7 +47,7 @@ export default async function PortalLayout({ children, params }: LayoutProps<"/[
         { key: "team", href: `${base}/settings/users`, permission: ["users.manage", "team.manage"] },
         { key: "roles", href: `${base}/settings/roles`, permission: ["roles.manage", "team.manage"] },
       ]}
-      gate={["shipment.read.own_account", "shipment.read.all", "partner.cargo.read"]}
+      gate={["shipment.read.own_account", "shipment.read.all", "partner.cargo.read", "team.manage", "partner.branches.manage"]}
       search={<PortalSearch />}
     >
       {children}

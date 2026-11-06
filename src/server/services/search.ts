@@ -82,9 +82,9 @@ export async function searchPortal(user: CurrentUser, raw: string, locale: strin
     view(parts([t.nav.shipments, ...filters.map(fLabel), it.place]), `${base}/shipments${params.size ? `?${params}` : ""}`);
   }
   if (entity === "cargo" && partner) {
-    const params = new URLSearchParams({ view: filters.map((f) => CARGO_VIEW[f]).find(Boolean) ?? "all" });
+    const params = new URLSearchParams({ tab: "all", view: filters.map((f) => CARGO_VIEW[f]).find(Boolean) ?? "all" });
     if (it.place) params.set("q", it.place);
-    view(parts([p.nav.cargo, ...filters.map(fLabel), it.place]), `${base}/cargo/all?${params}`);
+    view(parts([p.nav.cargo, ...filters.map(fLabel), it.place]), `${base}/cargo?${params}`);
   }
   if (entity === "invoices" && has("partner.finance.manage")) {
     const tab = filters.includes("overdue") ? "overdue" : filters.includes("paid") ? "paid" : filters.includes("unpaid") ? "open" : "all";
@@ -96,7 +96,7 @@ export async function searchPortal(user: CurrentUser, raw: string, locale: strin
   }
   if (entity === "vehicles" && partner) {
     const status = (["expired", "maintenance", "available", "on_trip"] as Filter[]).find((f) => filters.includes(f));
-    view(parts([p.nav.vehicles, status ? fLabel(status) : undefined]), `${base}/vehicles${status ? `?status=${status}` : ""}`);
+    view(parts([p.nav.vehicles, status ? fLabel(status) : undefined]), `${base}/vehicles?tab=all${status ? `&status=${status}` : ""}`);
   }
   if (entity === "clients" && has("partner.clients.manage")) view(p.nav.clients, `${base}/clients`);
   if (entity === "exceptions" && has("exception.manage")) view(t.nav.exceptions, `${base}/exceptions`);
@@ -177,7 +177,7 @@ export async function searchPortal(user: CurrentUser, raw: string, locale: strin
         .from(vehicles)
         .where(and(eq(vehicles.accountId, acc), user.branchId ? eq(vehicles.branchId, user.branchId) : undefined, or(ilike(vehicles.plate, like), ilike(sql`replace(${vehicles.plate}, ' ', '')`, `%${term.replace(/\s/g, "")}%`), ilike(vehicles.driverName, like), ilike(vehicles.make, like))))
         .limit(5)
-        .then((rows) => add("vehicles", p.nav.vehicles, rows.map((r) => ({ title: r.plate, subtitle: [r.make, r.driver].filter(Boolean).join(" · "), badge: p.vehicles.statuses[r.status], href: `${base}/vehicles` })))),
+        .then((rows) => add("vehicles", p.nav.vehicles, rows.map((r) => ({ title: r.plate, subtitle: [r.make, r.driver].filter(Boolean).join(" · "), badge: p.vehicles.statuses[r.status], href: `${base}/vehicles?tab=all&q=${encodeURIComponent(r.plate)}` })))),
     );
     if (has("partner.finance.manage")) {
       lookups.push(

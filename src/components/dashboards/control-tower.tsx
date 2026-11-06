@@ -37,7 +37,7 @@ export async function ControlTowerDashboard({ locale, range }: { locale: string;
         <Stat icon={Wallet} label={t.console.cashHeld} value={money(stats.codHeld, locale)} hint={t.dashboard.asOfNow} />
       </div>
       <DashboardBody className="xl:grid-cols-[minmax(0,1fr)_360px]">
-        <div className="flex min-h-0 flex-col gap-5">
+        <div className="flex min-h-0 min-w-0 flex-col gap-5">
           <Panel fill banner icon={AlarmClock} title={t.dashboard.atRisk} description={t.dashboard.atRiskHint} action={<BannerLink href={`${base}?risk=1`}>{t.dashboard.viewAll}</BannerLink>} className="lg:flex-1 lg:basis-0">
             <ShipmentTable rows={atRisk.items} locale={locale} basePath={base} showAccount />
           </Panel>

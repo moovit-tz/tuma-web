@@ -20,16 +20,17 @@ export function Hero({ locale, country, source }: { locale: AppLocale; country: 
   );
 
   return (
-    <section className="relative grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1.08fr)_minmax(0,1fr)]">
-      {/* Map: its own column on large screens (hover for country details), a quiet backdrop on small ones */}
-      <div className="pointer-events-none absolute inset-0 opacity-45 lg:pointer-events-auto lg:relative lg:order-2 lg:opacity-100">
+    <section className="relative grid min-h-0 flex-1 content-center lg:content-stretch lg:grid-cols-[minmax(0,1.08fr)_minmax(0,1fr)]">
+      {/* Map: its own column on large screens (hover for country details). Not shown on phones and tablets,
+          where the copy and the tracking box are the whole page. */}
+      <div className="relative order-2 hidden lg:block">
         <MapHover countries={hoverData}>
           <RegionMap selected={country} locale={locale} corridors="all" simulate className="absolute inset-0 h-full w-full" />
         </MapHover>
-        <div className="pointer-events-none absolute inset-y-0 left-0 hidden w-24 bg-gradient-to-r from-black to-transparent lg:block" />
+        <div className="pointer-events-none absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-black to-transparent" />
       </div>
 
-      <div className="relative z-10 flex min-h-0 flex-col justify-center gap-[clamp(14px,2.6vh,26px)] py-[clamp(20px,4vh,48px)] pr-4 pl-[max(1rem,calc((100vw-72rem)/2+1.5rem))] sm:pr-8 lg:order-1">
+      <div className="relative z-10 flex min-h-0 flex-col justify-center gap-[clamp(14px,2.6vh,26px)] py-[clamp(24px,5vh,48px)] pr-4 pl-[max(1rem,calc((100vw-72rem)/2+1.5rem))] sm:pr-8 lg:order-1 lg:py-[clamp(20px,4vh,48px)]">
         <CountrySwitcher selected={country} locale={locale} sourceLabel={t.hero.detected[source]} />
 
         <h1 className="font-display max-w-[19ch] text-[clamp(32px,min(3.9vw,6.4vh),56px)] leading-[1.02] font-bold tracking-[-0.03em] text-balance">

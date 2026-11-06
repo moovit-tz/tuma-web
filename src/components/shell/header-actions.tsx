@@ -30,7 +30,7 @@ export function HeaderActions({ actions }: { actions: QuickAction[] }) {
   const [trackOpen, setTrackOpen] = useState(false);
   return (
     <>
-      <LocaleSwitch />
+      <LocaleSwitch className="hidden sm:inline-flex" />
       <button
         type="button"
         onClick={() => setTrackOpen(true)}
@@ -127,7 +127,7 @@ function TrackDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: 
             aria-invalid={!!error}
             aria-describedby={error ? "track-err" : undefined}
             aria-label={t.shell.trackTitle}
-            placeholder="TMP-2611-7K3QX9A"
+            placeholder="AAB204"
             className="bg-background focus-visible:border-ring aria-[invalid=true]:border-destructive h-12 w-full rounded-md border px-3 font-mono text-[16px] tracking-wider uppercase outline-none"
           />
           {error && (

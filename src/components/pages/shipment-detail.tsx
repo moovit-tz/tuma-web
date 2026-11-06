@@ -10,6 +10,7 @@ import { pieceLabel } from "@/domain/waybill-number";
 import { maskPhone } from "@/domain/phone";
 import { Panel } from "@/components/shell/page-header";
 import { StateBadge } from "@/components/shipments/state-badge";
+import { StateIcon, stateColor } from "@/components/shipments/state-icon";
 import { MerchantActions, StaffActions, ResolveException } from "@/components/shipments/shipment-actions";
 import { cn } from "@/lib/utils";
 
@@ -224,18 +225,28 @@ function Timeline({ s, t, locale }: { s: ShipmentDetail; t: Dict; locale: string
           const label = e.stateAfter ? t.states[e.stateAfter] : e.type.replace(/[._]/g, " ");
           const first = i === 0;
           return (
-            <li key={e.id} className="relative grid grid-cols-[20px_minmax(0,1fr)] gap-3 pb-5 last:pb-0">
-              {i < evts.length - 1 && <span aria-hidden className="bg-border absolute top-4 bottom-0 left-[9px] w-px" />}
+            <li key={e.id} className="relative grid grid-cols-[30px_minmax(0,1fr)] gap-3 pb-5 last:pb-0">
+              {i < evts.length - 1 && (
+                <span aria-hidden className="absolute top-8 bottom-1 left-[14px] w-0.5 rounded-full opacity-40" style={{ background: stateColor(e.stateAfter) }} />
+              )}
               <span
                 aria-hidden
-                className={cn(
-                  "relative mt-1 size-[11px] justify-self-center rounded-full border-2",
-                  e.estimated ? "border-muted-foreground border-dashed bg-transparent" : first ? "border-parcel bg-parcel" : "border-foreground bg-card",
-                )}
-              />
-              <div className="min-w-0">
+                className={cn("relative grid size-[30px] place-items-center rounded-full", e.estimated && "border-muted-foreground border border-dashed")}
+                style={
+                  e.estimated
+                    ? { color: "var(--muted-foreground)" }
+                    : first
+                      ? { background: stateColor(e.stateAfter), color: "white" }
+                      : { background: `color-mix(in srgb, ${stateColor(e.stateAfter)} 14%, transparent)`, color: stateColor(e.stateAfter) }
+                }
+              >
+                <StateIcon state={e.stateAfter} solid={first && !e.estimated} className="size-[15px]" />
+              </span>
+              <div className="min-w-0 pt-1">
                 <div className="flex flex-wrap items-baseline justify-between gap-x-3">
-                  <span className={cn("font-medium", first && "text-[15px]")}>{label}</span>
+                  <span className={cn("font-medium", first && "text-[15px]")} style={first && !e.estimated ? { color: stateColor(e.stateAfter) } : undefined}>
+                    {label}
+                  </span>
                   <time className="text-muted-foreground tabular text-xs" dateTime={e.occurredAt.toISOString()}>
                     {dateTime(e.occurredAt, locale)}
                   </time>
