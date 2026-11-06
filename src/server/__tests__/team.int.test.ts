@@ -53,7 +53,7 @@ async function cleanup() {
   await db.delete(kybApplications).where(inArray(kybApplications.userId, SUBS));
   if (accts.length) {
     const ids = sql`(select id from shipments where account_id in (${sql.join(accts.map((a) => sql`${a}`), sql`, `)}))`;
-    for (const t of ["pieces", "events", "charge_snapshots", "cod_records", "exceptions", "notifications", "job_shipments"]) {
+    for (const t of ["pieces", "events", "charge_snapshots", "cod_records", "exceptions", "notifications", "job_shipments", "parcel_ratings"]) {
       await db.execute(sql`delete from ${sql.identifier(t)} where shipment_id in ${ids}`);
     }
     await db.delete(shipments).where(inArray(shipments.accountId, accts));

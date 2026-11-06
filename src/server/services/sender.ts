@@ -11,6 +11,7 @@ import { amountToCollect } from "@/domain/payments";
 import { normaliseWaybill } from "@/domain/waybill-number";
 import { createParcel, DomainError, transition } from "./shipments";
 import { liveFor } from "./live-tracking";
+import { ratingScores } from "./ratings";
 import { agentMove, agentParcel } from "./agent-parcels";
 import { companyOf } from "./corporate";
 import { rememberCustomers } from "./customers";
@@ -77,9 +78,20 @@ export async function tumaPoints(raw: unknown) {
     );
   const here = f.lat != null && f.lng != null ? { lat: f.lat, lng: f.lng } : null;
   // businessId: a parcel collected at a point must go to one of the same business.
-  const points = rows.map(({ accountId, ...p }) => ({ ...p, businessId: accountId, km: here ? Math.round(km(here, { lat: p.lat!, lng: p.lng! }) * 10) / 10 : null }));
+  // How receivers rate each business (null until it has enough ratings).
+  const scores = await ratingScores([...new Set(rows.map((r) => r.accountId))]);
+  const points = rows.map(({ accountId, ...p }) => ({
+    ...p,
+    businessId: accountId,
+    km: here ? Math.round(km(here, { lat: p.lat!, lng: p.lng! }) * 10) / 10 : null,
+    rating: scores.get(accountId)?.score ?? null,
+    ratings: scores.get(accountId)?.count ?? 0,
+  }));
+  // Nearest first; without a location, the region's best rated first.
   points.sort((a, b) =>
-    here ? a.km! - b.km! : Number(b.region === f.region) - Number(a.region === f.region) || a.region.localeCompare(b.region) || a.name.localeCompare(b.name),
+    here
+      ? a.km! - b.km!
+      : Number(b.region === f.region) - Number(a.region === f.region) || a.region.localeCompare(b.region) || (b.rating ?? 0) - (a.rating ?? 0) || a.name.localeCompare(b.name),
   );
   return { points: points.slice(0, 50) };
 }

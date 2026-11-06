@@ -1,11 +1,14 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createHash, randomBytes } from "node:crypto";
-import { eq, inArray, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { db } from "../db/client";
-import { accounts, agents, branches, customers, events, invoices, kybApplications, outbox, parcelPayments, paymentSettings, platformSettings, rolePermissions, roles, shipments, users } from "../db/schema";
+import { accounts, agents, branches, customers, events, invoices, kybApplications, outbox, parcelPayments, parcelRatings, paymentSettings, platformSettings, rolePermissions, roles, shipments, users } from "../db/schema";
 import { driverContext, finishDriverLogin, swapHandoff, type DriverCtx } from "../services/drivers";
 import { submitKyb } from "../services/kyb";
-import { agentBook, agentCancel, agentParcel, agentParcels } from "../services/agent-parcels";
+import { agentBook, agentCancel, agentMove, agentParcel, agentParcels } from "../services/agent-parcels";
+import { agentRatings, ratingByToken, ratingScore, ratingScores, submitRating } from "../services/ratings";
+import { tumaPoints } from "../services/sender";
+import { devReceiverCode } from "../services/tracking";
 import { createManifest, dispatchOptions, listManifests, manifestDetail, offloadParcel } from "../services/manifests";
 import { verifyDriverToken } from "../auth/driver-token";
 import { DEFAULT_ROLES } from "@/domain/roles";
@@ -39,7 +42,7 @@ async function cleanup() {
     await db.execute(sql`delete from manifests where account_id in (${list(accts)}) or to_account_id in (${list(accts)})`);
     if (ids.length) await db.execute(sql`delete from jobs where id in (${list(ids.map((i) => i.job_id))})`);
     const sh = sql`(select id from shipments where account_id in (${list(accts)}))`;
-    for (const t of ["pieces", "events", "charge_snapshots", "cod_records", "exceptions", "notifications", "job_shipments"]) {
+    for (const t of ["pieces", "events", "charge_snapshots", "cod_records", "exceptions", "notifications", "job_shipments", "parcel_ratings"]) {
       await db.execute(sql`delete from ${sql.identifier(t)} where shipment_id in ${sh}`);
     }
     await db.delete(parcelPayments).where(inArray(parcelPayments.accountId, accts));
@@ -246,5 +249,43 @@ describe("sending parcels on from an office under a manifest", () => {
   it("won't cancel a parcel that's on its way with a courier", async () => {
     expect((await agentParcel(owner.user, wbs[4])).canCancel).toBe(false);
     await expect(agentCancel(owner.user, wbs[4], { reasonCode: "CN01" })).rejects.toMatchObject({ code: "ON_ITS_WAY" });
+  });
+
+  it("delivered by the point: the receiver gets one SMS to rate it, and rates it once", async () => {
+    const code = (await devReceiverCode(wbs[0]))!;
+    await agentMove(owner.user, wbs[0], { to: "DELIVERED", receiverName: "Baraka Receiver", code, collectMethod: "cash" });
+    const [msg] = await db
+      .select({ payload: outbox.payload })
+      .from(outbox)
+      .where(and(eq(outbox.waybill, wbs[0]), sql`${outbox.payload}->>'template' = 'parcel.rate'`));
+    expect(msg.payload).toMatchObject({ channel: "sms", to: "+255754333444", variables: { waybill: wbs[0], business: "Amina Sender Parcels" } });
+    const token = String((msg.payload as { variables: { link: string } }).variables.link).split("/rate/")[1];
+    expect(await ratingByToken(token)).toMatchObject({ status: "open", waybill: wbs[0], business: "Amina Sender Parcels", stars: null });
+    expect(await ratingByToken("not-a-real-token-at-all")).toEqual({ status: "not_found" });
+    await expect(submitRating(token, { stars: 7 })).rejects.toThrow();
+    const r = await submitRating(token, { stars: 2, issue: "late", comment: "Waited two days" });
+    expect(r).toMatchObject({ status: "rated", stars: 2 });
+    await expect(submitRating(token, { stars: 5 })).rejects.toMatchObject({ code: "ALREADY_RATED" });
+  });
+
+  it("scores points: hidden under three ratings, then a Bayesian average the agent and senders see", async () => {
+    expect(ratingScore(15, 3)).toBe(4.4);
+    expect(ratingScore(500, 100)).toBe(5);
+    const acct = owner.user.accountId!;
+    let mine = await agentRatings(owner.user);
+    expect(mine).toMatchObject({ score: null, count: 1, average: 2, stars: { 2: 1 }, issues: { late: 1 } });
+    expect(mine.recent[0]).toMatchObject({ waybill: wbs[0], stars: 2, comment: "Waited two days" });
+    // Two more five-star ratings on the other door parcel's record make three.
+    const [s1] = await db.select({ id: shipments.id }).from(shipments).where(eq(shipments.waybill, wbs[1]));
+    const [s2] = await db.select({ id: shipments.id }).from(shipments).where(eq(shipments.waybill, wbs[2]));
+    await db.insert(parcelRatings).values([
+      { shipmentId: s1.id, accountId: acct, tokenHash: "t-test-1", phone: "+255754000001", stars: 5, ratedAt: new Date() },
+      { shipmentId: s2.id, accountId: acct, tokenHash: "t-test-2", phone: "+255754000002", stars: 5, ratedAt: new Date() },
+    ]);
+    mine = await agentRatings(owner.user);
+    expect(mine).toMatchObject({ count: 3, average: 4, score: ratingScore(12, 3) });
+    expect((await ratingScores([acct])).get(acct)).toEqual({ score: ratingScore(12, 3), count: 3 });
+    const { points } = await tumaPoints({ region: "Dar es Salaam" });
+    expect(points.find((p) => p.businessId === acct)).toMatchObject({ rating: ratingScore(12, 3), ratings: 3 });
   });
 });

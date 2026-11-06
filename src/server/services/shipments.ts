@@ -19,6 +19,7 @@ import { eventId } from "../ids";
 import { enqueue } from "../adapters/outbox";
 import { checkStanding } from "../adapters/finops";
 import { notifyOnState } from "../adapters/notify";
+import { requestRating } from "./ratings";
 import { issueReceiverCode } from "./tracking";
 import type { CurrentUser } from "../auth/current-user";
 import { normaliseWaybill } from "@/domain/waybill-number";
@@ -353,6 +354,8 @@ export async function transition(user: CurrentUser | "system", waybill: string, 
       }
     }
     await notifyOnState(tx, s, to, evtId);
+    // Delivered by a Tuma point: the receiver is asked to rate it.
+    if (to === "DELIVERED") await requestRating(tx, s);
     await audit(tx, { actorId, action: `shipment.${to.toLowerCase()}`, entity: "shipment", entityId: waybill, before: { state: s.state }, after: { state: to, reasonCode: opts.reasonCode, source: opts.source } });
 
     // FR-PCL-10/11: after the configured attempts, start the return automatically.
