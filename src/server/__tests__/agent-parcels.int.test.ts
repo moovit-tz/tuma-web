@@ -9,6 +9,7 @@ import { submitKyb } from "../services/kyb";
 import { invoiceDetail, paymentDetail, paymentRecords, paymentSettingsFor, updatePaymentSettings } from "../services/agent-payments";
 import { agentBook, agentMove, agentNotifications, agentParcel, agentParcels, agentPaymentStatus, agentReport, agentRequestPayment, agentSummary, collectionPoints } from "../services/agent-parcels";
 import { verifyDriverToken } from "../auth/driver-token";
+import { devReceiverCode } from "../services/tracking";
 import { DEFAULT_ROLES } from "@/domain/roles";
 import { getSetting } from "../settings";
 import { agentCustomers, customerProfile, deleteCustomer, dismissDuplicates, reportCustomer, updateCustomer, duplicateCustomers, mergeCustomers, rememberCustomers } from "../services/customers";
@@ -119,10 +120,15 @@ describe("parcel work at the agent counter (app)", () => {
     expect((await agentParcels(me.user, { view: "done" })).parcels).toHaveLength(0);
   });
 
-  it("hands a parcel over at the counter, collecting what's due, and needs the receiver's name", async () => {
+  it("hands a parcel over at the counter with the receiver's SMS code as signature, an optional photo, collecting what's due", async () => {
     await agentMove(me.user, waybill, { to: "READY_FOR_COLLECTION" });
     await expect(agentMove(me.user, waybill, { to: "DELIVERED", collectMethod: "cash" })).rejects.toMatchObject({ code: "RECEIVER_REQUIRED" });
-    const r = await agentMove(me.user, waybill, { to: "DELIVERED", receiverName: "Baraka Receiver", collectMethod: "mobile_money" });
+    await expect(agentMove(me.user, waybill, { to: "DELIVERED", receiverName: "Baraka Receiver" })).rejects.toMatchObject({ code: "CODE_REQUIRED" });
+    const code = (await devReceiverCode(waybill))!;
+    await expect(agentMove(me.user, waybill, { to: "DELIVERED", receiverName: "Baraka Receiver", code: code === "000000" ? "111111" : "000000" })).rejects.toMatchObject({ code: "BAD_CODE" });
+    const r = await agentMove(me.user, waybill, { to: "DELIVERED", receiverName: "Baraka Receiver", collectMethod: "mobile_money", code, photo: "pod/2026/11/handover.jpg" });
+    const [pod] = await db.select({ data: events.data }).from(events).where(and(eq(events.stateAfter, "DELIVERED"), sql`${events.shipmentId} = (select id from shipments where waybill = ${waybill})`));
+    expect(pod.data).toMatchObject({ pod: { method: "otp", receiverName: "Baraka Receiver", photo: "pod/2026/11/handover.jpg" } });
     expect(r.parcel.state).toBe("DELIVERED");
     expect(r.parcel.toCollect.collected).toBe(true);
     expect(r.moves).toEqual([]);

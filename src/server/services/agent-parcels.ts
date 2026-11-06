@@ -8,6 +8,7 @@ import { issueCompanyInvoice, markPaid, receiveOnceFor, settlePayment } from "./
 import { momoEnabled } from "./agent-payments";
 import { toE164 } from "@/domain/phone";
 import { createParcel, DomainError, transition } from "./shipments";
+import { verifyTrackingOtp } from "./tracking";
 import { trialFor } from "../rbac";
 import type { CurrentUser } from "../auth/current-user";
 import { normaliseWaybill } from "@/domain/waybill-number";
@@ -256,13 +257,29 @@ export const moveSchema = z.object({
   /** Who took the parcel at handover. */
   receiverName: z.string().trim().max(120).optional(),
   collectMethod: z.enum(["cash", "mobile_money"]).optional(),
+  /** The receiver's code from their SMS: their signature that they got it. */
+  code: z.string().trim().max(12).optional(),
+  /** An optional proof-of-delivery photo, uploaded first (POST /api/driver/uploads kind=pod). */
+  photo: z.string().regex(/^pod\/[\w/.-]+$/).max(200).optional(),
 });
+
+const CODE_ERRORS = {
+  invalid: "That's not the receiver's code. Check the SMS with them, or send a new one.",
+  expired: "The receiver's code has expired. Send them a new one.",
+  locked: "Too many wrong codes. Send the receiver a new one.",
+} as const;
 
 export async function agentMove(user: CurrentUser, rawWaybill: string, raw: unknown) {
   const s = await load(user, rawWaybill);
   const m = moveSchema.parse(raw);
   if (m.to === "ATTEMPT_FAILED" && !m.reasonCode) throw new DomainError("REASON_REQUIRED", "Choose why the handover didn't happen.");
   if (m.to === "DELIVERED" && !m.receiverName) throw new DomainError("RECEIVER_REQUIRED", "Enter the name of the person who took the parcel.");
+  // Handing over: the receiver's code is their signature.
+  if (m.to === "DELIVERED") {
+    if (!m.code) throw new DomainError("CODE_REQUIRED", "Enter the code the receiver got by SMS.");
+    const v = await verifyTrackingOtp(s.waybill, m.code);
+    if (!v.ok) throw new DomainError(v.error === "invalid" ? "BAD_CODE" : v.error === "expired" ? "CODE_EXPIRED" : "CODE_LOCKED", CODE_ERRORS[v.error]);
+  }
   // Taking a parcel in at this office makes it this office's to handle.
   if (m.to === "RECEIVED" && !s.handlingPartnerId) {
     await db.update(shipments).set({ handlingPartnerId: user.accountId, handlingBranchId: user.branchId ?? null }).where(eq(shipments.id, s.id));
@@ -272,7 +289,7 @@ export async function agentMove(user: CurrentUser, rawWaybill: string, raw: unkn
     reasonCode: m.reasonCode,
     note: m.note,
     collectMethod: m.collectMethod,
-    pod: m.to === "DELIVERED" ? { method: "counter", receiverName: m.receiverName } : undefined,
+    pod: m.to === "DELIVERED" ? { method: "otp", receiverName: m.receiverName, photo: m.photo } : undefined,
   });
   return agentParcel(user, s.waybill);
 }
