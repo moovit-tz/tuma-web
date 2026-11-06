@@ -236,3 +236,40 @@
 .panel-fill > .table-scroll thead tr {
   height: 2.5rem;
 }
+
+/* Parcel stages, one colour each (the app uses the same: tuma_x parcelStateColor). */
+:root {
+  --st-created: #3a5bd9;
+  --st-received: #0e8577;
+  --st-hub: #6a4fd8;
+  --st-transit: #b4700f;
+  --st-ready: #cf2a2a;
+  --st-delivered: #1f7a4d;
+  --st-problem: #c2410c;
+  --st-cancelled: #7a776f;
+  --st-other: #3d3b36;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --st-created: #8da2ff;
+    --st-received: #4fd1c0;
+    --st-hub: #b9a4ff;
+    --st-transit: #f2b65a;
+    --st-ready: #ff5757;
+    --st-delivered: #4cc38a;
+    --st-problem: #ff8a4c;
+    --st-cancelled: #8f8c85;
+    --st-other: #d6d3cc;
+  }
+}
+[data-theme="dark"] {
+  --st-created: #8da2ff;
+  --st-received: #4fd1c0;
+  --st-hub: #b9a4ff;
+  --st-transit: #f2b65a;
+  --st-ready: #ff5757;
+  --st-delivered: #4cc38a;
+  --st-problem: #ff8a4c;
+  --st-cancelled: #8f8c85;
+  --st-other: #d6d3cc;
+}

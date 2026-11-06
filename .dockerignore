@@ -1,0 +1,9 @@
+node_modules
+.next
+.git
+uploads
+coverage
+.env*
+!.env.example
+*.log
+src/**/__tests__

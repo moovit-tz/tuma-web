@@ -2,7 +2,7 @@ import "server-only";
 import { outbox } from "../db/schema";
 import type { Tx } from "../db/client";
 
-export type OutboxTarget = "finops" | "hudufeed" | "bliss" | "crm" | "engine";
+export type OutboxTarget = "finops" | "hudufeed" | "bliss" | "crm" | "engine" | "complyos" | "seal";
 
 /**
  * Queue an integration message in the same transaction as the change that caused it (section 9.1).

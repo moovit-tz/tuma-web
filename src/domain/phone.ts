@@ -1,3 +1,4 @@
+import { BLOC } from "./bloc";
 /** Phone numbers are stored in E.164 (+255…) — FR-WB-07. */
 
 /** Accepts 0712345678, 712345678, 255712345678, +255 712 345 678. Returns null when invalid. */
@@ -10,6 +11,23 @@ export function toE164TZ(input: string): string | null {
   else if (/^\d{9}$/.test(digits)) national = digits;
   if (!national || !/^[67]\d{8}$/.test(national)) return null; // mobile ranges 6x/7x
   return `+255${national}`;
+}
+
+/**
+ * A mobile number from Tanzania (the usual local forms) or another SADC/EAC country written with its code
+ * (+254 712 345 678, 00254…). Anything else, including a +255 number that isn't a Tanzanian mobile, is null.
+ */
+export function toE164(input: string): string | null {
+  const tz = toE164TZ(input);
+  if (tz) return tz;
+  let digits = input.replace(/[^\d+]/g, "");
+  if (digits.startsWith("00")) digits = `+${digits.slice(2)}`;
+  if (!digits.startsWith("+")) return null;
+  const c = [...BLOC].sort((a, b) => b.dial.length - a.dial.length).find((x) => digits.startsWith(`+${x.dial}`));
+  if (!c || c.dial === "255") return null;
+  let national = digits.slice(1 + c.dial.length);
+  if (national.length === c.digits + 1 && national.startsWith("0")) national = national.slice(1);
+  return national.length === c.digits ? `+${c.dial}${national}` : null;
 }
 
 /** +255712345678 → +255 7•• ••• 678 (section 10.3: masked in logs, public pages and shared links). */

@@ -1,5 +1,11 @@
 /**
- * Waybill numbers — SRS 4.2.
+ * Waybill numbers.
+ *
+ * New shipments are numbered by the Hudumika Reference Number Service (see reference-number.ts): AAA001, with
+ * piece labels AAA001-02/03. The legacy TransX format below is still read, validated and tracked, because labels
+ * already printed with it stay in circulation; nothing issues it any more.
+ *
+ * Legacy format — SRS 4.2:
  *
  *   TM{P|C}-{YYMM}-{6 random chars}{check}
  *   TMP-2611-4F7K2QX        parcel waybill issued November 2026
@@ -11,6 +17,8 @@
  *   It stays inside the same alphabet, catches every single-character error and almost every
  *   adjacent transposition. (SRS: "the algorithm is fixed in design" — this is that decision.)
  */
+
+import { isReference, normaliseReference } from "./reference-number";
 
 export const ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"; // Crockford base32
 const N = ALPHABET.length; // 32
@@ -53,6 +61,7 @@ function randomChars(count: number): string {
   return Array.from(bytes, (b) => ALPHABET[b & 31]).join("");
 }
 
+/** Legacy format generator. Kept for fixtures and old-label tests; shipments get global references now. */
 export function generateWaybill(kind: WaybillKind, now = new Date()): string {
   const type = kind === "parcel" ? "P" : "C";
   const period = yymm(now);
@@ -73,6 +82,8 @@ export function normaliseWaybill(input: string): { waybill: string; piece?: { se
     piece = { seq: Number(pieceMatch[1]), of: Number(pieceMatch[2]) };
     s = s.slice(0, -pieceMatch[0].length);
   }
+  const ref = normaliseReference(s);
+  if (isReference(ref)) return { waybill: ref, piece };
   // Only the variable parts get look-alike mapping; the TM prefix is fixed.
   const m = s.match(/^TM([PC])-?(\w{4})-?(\w{7})$/);
   if (m) {
@@ -83,15 +94,18 @@ export function normaliseWaybill(input: string): { waybill: string; piece?: { se
 }
 
 export function isValidWaybill(waybill: string): boolean {
+  // Parcels (AAA001) and cargo (CG-AAA001); a case number (CS-…) is never a waybill.
+  if (isReference(waybill)) return !waybill.startsWith("CS-");
   const m = waybill.match(PATTERN);
   if (!m) return false;
   const [, type, period, random, check] = m;
   return checkChar(`TM${type}${period}${random}`) === check;
 }
 
+/** A waybill's kind when its number says so (legacy TMP-/TMC-, cargo CG-); otherwise the shipment record does. */
 export function waybillKind(waybill: string): WaybillKind | null {
   if (waybill.startsWith("TMP-")) return "parcel";
-  if (waybill.startsWith("TMC-")) return "cargo";
+  if (waybill.startsWith("TMC-") || waybill.startsWith("CG-")) return "cargo";
   return null;
 }
 

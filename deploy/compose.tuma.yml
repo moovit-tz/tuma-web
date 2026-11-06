@@ -1,0 +1,48 @@
+# Tuma on the Hudumika box. The portal source is synced to /root/newapps-deploy/tuma (this file: tuma/deploy/) (own database, so a Tuma mistake
+# can't touch other products' data). Joins the network hudumika-nginx is on, so nginx proxies tuma.hudumika.tz to it.
+#   docker compose -f compose.tuma.yml run --rm tuma-tools   # migrations + platform seed
+#   docker compose -f compose.tuma.yml up -d tuma-portal
+name: tuma
+
+services:
+  tuma-portal:
+    image: tuma-portal:prod   # built on a dev machine and loaded with `docker load` (the box is short on memory)
+    build: { context: .., target: runner }
+    container_name: tuma-portal
+    restart: unless-stopped
+    env_file: [../../infra/tuma.env]
+    depends_on: { tuma-postgres: { condition: service_started }, tuma-redis: { condition: service_started } }
+    volumes: [tuma-uploads:/data/uploads]
+    networks: [default, edge]
+
+  # One-off jobs: migrations, platform seed, grant-role. Not started by `up`.
+  tuma-tools:
+    image: tuma-tools:prod
+    build: { context: .., target: tools }
+    profiles: [tools]
+    env_file: [../../infra/tuma.env]
+    depends_on: { tuma-postgres: { condition: service_started } }
+
+  tuma-postgres:
+    image: postgres:16-alpine
+    container_name: tuma-postgres
+    restart: unless-stopped
+    env_file: [../../infra/tuma-postgres.env]
+    volumes: [tuma-pgdata:/var/lib/postgresql/data]
+    # No healthcheck: docker-exec healthchecks fail on this host (libseccomp), same as the suite's postgres.
+
+  # Cache for Google Maps answers (place search, addresses, routes). Losing it only costs fresh lookups.
+  tuma-redis:
+    image: redis:7-alpine
+    container_name: tuma-redis
+    restart: unless-stopped
+    command: ["redis-server", "--maxmemory", "128mb", "--maxmemory-policy", "allkeys-lru", "--save", ""]
+
+volumes:
+  tuma-pgdata:
+  tuma-uploads:
+
+networks:
+  edge:
+    external: true
+    name: hudumika   # the network hudumika-nginx is on

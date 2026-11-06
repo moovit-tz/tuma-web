@@ -15,7 +15,8 @@
     "db:migrate": "drizzle-kit migrate",
     "db:seed": "tsx scripts/seed.ts",
     "db:studio": "drizzle-kit studio",
-    "map:build": "tsx scripts/build-region-map.ts"
+    "map:build": "tsx scripts/build-region-map.ts",
+    "map:app": "tsx scripts/build-app-map.ts"
   },
   "dependencies": {
     "bwip-js": "^4.11.4",
@@ -24,6 +25,7 @@
     "cmdk": "^1.1.1",
     "cn": "^0.5.1",
     "drizzle-orm": "^0.45.4",
+    "ioredis": "5.4.1",
     "jose": "^6.2.14",
     "lucide-react": "^1.66.0",
     "next": "16.4.3",
