@@ -199,7 +199,12 @@ export async function agentParcel(user: CurrentUser, rawWaybill: string) {
     db.select({ number: invoices.number, status: invoices.status, total: invoices.total, tax: invoices.tax }).from(invoices).where(eq(invoices.shipmentId, s.id)),
   ]);
   const due = amountToCollect(s);
-  const moves = movesFor(user, s.state as ShipmentState);
+  // Booked ahead from someone's phone (not by this business's staff): the counter prices it when it arrives.
+  const [by] = s.createdBy ? await db.select({ accountId: users.accountId }).from(users).where(eq(users.id, s.createdBy)) : [];
+  const bookedAhead = (EXPECTED as readonly string[]).includes(s.state) && by?.accountId !== s.handlingPartnerId;
+  const needsPrice = bookedAhead && !s.receiveOnPayment && s.totalCharge === 0;
+  // It comes in through pricing (priceDropOff), not straight to received.
+  const moves = movesFor(user, s.state as ShipmentState).filter((m) => !(needsPrice && m === "RECEIVED"));
   const failReasons = moves.includes("ATTEMPT_FAILED")
     ? await db.select({ code: reasonCodes.code, en: reasonCodes.labelEn, sw: reasonCodes.labelSw }).from(reasonCodes).where(and(eq(reasonCodes.active, true), eq(reasonCodes.kind, "failed_delivery"))).orderBy(asc(reasonCodes.code))
     : [];
@@ -213,6 +218,10 @@ export async function agentParcel(user: CurrentUser, rawWaybill: string) {
       paidAt: s.paidAt,
       /** Booked, but only received once it's paid. */
       awaitingPayment: s.receiveOnPayment && !s.paidAt && s.state === "AWAITING_HANDOVER",
+      /** Booked ahead by the sender on their phone; true until the counter accepts it. */
+      bookedAhead,
+      /** A parcel booked ahead the counter hasn't priced yet. */
+      needsPrice,
       declaredValue: s.declaredValue,
       extras: s.extras,
       invoice: inv[0] ?? null,

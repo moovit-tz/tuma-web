@@ -304,6 +304,8 @@ async function openWorkspace(tx: Tx, a: App): Promise<string> {
     district: a.office.district,
     address: [a.office.street, a.office.landmark].filter(Boolean).join(", "),
     phone: a.office.phone,
+    // The pin from the application: the office is a Tuma point customers find on the map.
+    ...(a.office.lat != null && a.office.lng != null ? { lat: a.office.lat, lng: a.office.lng } : {}),
   };
   let accountId = a.accountId;
   if (accountId) {
