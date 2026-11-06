@@ -23,6 +23,7 @@ import {
   timestamp,
   uniqueIndex,
   uuid,
+  varchar,
 } from "drizzle-orm/pg-core";
 
 export type { ChargeLine };
@@ -36,8 +37,9 @@ const ts = (name: string) => timestamp(name, { withTimezone: true, mode: "date" 
  * partner = Partners (warehouses, freight forwarders, parcel companies, transporters). "carrier" is legacy.
  */
 export const accountType = pgEnum("account_type", ["merchant", "shipper", "carrier", "internal", "partner"]);
-export const partnerKind = pgEnum("partner_kind", ["warehouse", "freight_forwarder", "parcel_company", "transporter"]);
-export const accountStatus = pgEnum("account_status", ["active", "suspended", "closed"]);
+export const partnerKind = pgEnum("partner_kind", ["warehouse", "freight_forwarder", "parcel_company", "transporter", "parcel_agent"]);
+/** pending = a self-onboarded business whose application is still being reviewed: it can set up, not transact. */
+export const accountStatus = pgEnum("account_status", ["active", "suspended", "closed", "pending"]);
 export const waybillType = pgEnum("waybill_type", ["parcel", "cargo"]);
 export const shipmentState = pgEnum("shipment_state", [
   "DRAFT",
@@ -72,7 +74,8 @@ export const serviceLevel = pgEnum("service_level", ["same_day", "next_day", "st
 export const paymentTerms = pgEnum("payment_terms", ["prepaid", "account", "pay_on_delivery", "cod", "to_pay", "advance_balance"]);
 export const handoverMode = pgEnum("handover_mode", ["pickup", "wakala_dropoff", "hub_bulk"]);
 export const deliveryMode = pgEnum("delivery_mode", ["door", "wakala_collect"]);
-export const locationType = pgEnum("location_type", ["hub", "wakala", "yard"]);
+/** collection_point: a common collection point any business can route a parcel to for pickup. */
+export const locationType = pgEnum("location_type", ["hub", "wakala", "yard", "collection_point"]);
 export const eventSource = pgEnum("event_source", [
   "scan",
   "field_app",
@@ -102,6 +105,10 @@ export const accounts = pgTable("accounts", {
   rateCardRef: text("rate_card_ref"),
   paymentPolicy: text("payment_policy").notNull().default("warn"), // warn | block (FR-FIN-03)
   podPolicy: text("pod_policy").notNull().default("otp_or_signature"),
+  /** Add-on: this business may book counter parcels the receiver pays for on delivery (collected later). */
+  payOnDelivery: boolean("pay_on_delivery").notNull().default(false),
+  /** Short code in this business's invoice numbers (INV-KPL-2611-0001), so no two invoices in Tuma share a number. */
+  invoiceCode: varchar("invoice_code", { length: 6 }).unique(),
   syncedAt: ts("synced_at").notNull().defaultNow(),
 });
 
@@ -139,15 +146,24 @@ export const users = pgTable("users", {
   name: text("name").notNull(),
   email: text("email"),
   phone: text("phone"),
+  /** Profile photo from Ondi (OIDC `picture`), refreshed at every sign-in; null = show initials. */
+  avatarUrl: text("avatar_url"),
   accountId: text("account_id").references(() => accounts.id),
   /** Set when the person works at one branch: they then see only that branch's cargo and vehicles. */
   branchId: uuid("branch_id"),
   /** Role keys from the Ondi claim. While Ondi is stubbed, admins assign them in the console. */
   roles: jsonb("roles").$type<string[]>().notNull(),
+  /**
+   * Roles Tuma itself granted (KYB approval, driver registration). They are merged back into `roles` at every
+   * sign-in, so a fresh Ondi claim doesn't take them away.
+   */
+  grantedRoles: jsonb("granted_roles").$type<string[]>().notNull().default([]),
   scope: jsonb("scope").$type<{ region?: string; hubId?: string; wakalaId?: string }>().notNull().default({}),
   locale: text("locale").notNull().default("en"),
   timeZone: text("time_zone").notNull().default("Africa/Dar_es_Salaam"),
   active: boolean("active").notNull().default(true),
+  /** The person deleted their Tuma account: details wiped, signed out. Signing in with Ondi again starts afresh. */
+  deletedAt: ts("deleted_at"),
   lastSeenAt: ts("last_seen_at"),
 });
 
@@ -155,6 +171,7 @@ export const locations = pgTable("locations", {
   id: text("id").primaryKey(), // e.g. DAR-ILA-01
   type: locationType("type").notNull(),
   name: text("name").notNull(),
+  country: text("country").notNull().default("TZ"), // ISO 3166-1 alpha-2
   region: text("region").notNull(),
   district: text("district").notNull(),
   ward: text("ward"),
@@ -194,6 +211,7 @@ export type Party = {
   email?: string;
   language?: AppLocale;
   address: Address;
+  company?: { tin?: string; regNo?: string; contactName?: string };
 };
 
 export const shipments = pgTable(
@@ -227,14 +245,27 @@ export const shipments = pgTable(
     consignee: jsonb("consignee").$type<Party>().notNull(),
     pickupLocationId: text("pickup_location_id").references(() => locations.id),
     deliveryLocationId: text("delivery_location_id").references(() => locations.id),
+    /** Collected at one of the booking company's own offices instead of a Wakala point. */
+    deliveryBranchId: uuid("delivery_branch_id").references(() => branches.id),
     deliveryInstructions: text("delivery_instructions"),
     goodsDescription: text("goods_description").notNull(),
     goodsCategory: text("goods_category").notNull(),
+    /** A photo of the goods taken at the counter (storage key), when there is one. */
+    goodsPhoto: text("goods_photo"),
+    /** The sender and receiver in the booking company's customer list. */
+    shipperCustomerId: uuid("shipper_customer_id"),
+    consigneeCustomerId: uuid("consignee_customer_id"),
     declaredValue: integer("declared_value"),
     /** Goods value to collect from the receiver (COD). Independent of who pays delivery. */
     codAmount: integer("cod_amount"),
-    /** How the sender prepays (when paymentTerms = prepaid): mobile_money | card | bank_transfer */
+    /** How the sender prepays (when paymentTerms = prepaid): cash | mobile_money */
     prepayMethod: text("prepay_method"),
+    /** When the sender's counter payment was confirmed: at booking for cash, when HuduPay says so for mobile money. */
+    paidAt: ts("paid_at"),
+    /** Booked at the counter but only received once paid (a person paying by mobile money): no payment, no parcel. */
+    receiveOnPayment: boolean("receive_on_payment").notNull().default(false),
+    /** Extra services sold with it at the counter (insurance, packaging), already in totalCharge. */
+    extras: jsonb("extras").$type<{ code: string; label: string; amount: number }[]>().notNull().default([]),
     /** Methods the receiver may use at delivery: cash | mobile_money | card */
     collectMethods: jsonb("collect_methods").$type<string[]>().notNull().default(["cash", "mobile_money"]),
     specialHandling: jsonb("special_handling").$type<string[]>().notNull().default([]),
@@ -407,7 +438,7 @@ export const outbox = pgTable(
   "outbox",
   {
     id: bigserial("id", { mode: "number" }).primaryKey(),
-    target: text("target").notNull(), // finops | hudufeed | bliss | crm | engine
+    target: text("target").notNull(), // finops | hudufeed | bliss | crm | engine | complyos | seal
     topic: text("topic").notNull(),
     idempotencyKey: text("idempotency_key").notNull(),
     waybill: text("waybill"),
@@ -462,6 +493,26 @@ export const supportRequests = pgTable(
 );
 
 /**
+ * Customer-visible history of a support case (lost item, contact). Tuma writes the first entry; Bliss, which owns
+ * the case, sends the rest through /api/hooks/bliss. `externalId` makes a redelivered Bliss event a no-op.
+ */
+export const supportUpdates = pgTable(
+  "support_updates",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    requestId: uuid("request_id")
+      .notNull()
+      .references(() => supportRequests.id),
+    status: text("status").notNull(),
+    note: text("note"),
+    source: text("source").notNull(), // tuma | bliss
+    externalId: text("external_id"),
+    occurredAt: ts("occurred_at").notNull().defaultNow(),
+  },
+  (t) => [index("support_updates_request_idx").on(t.requestId, t.occurredAt), uniqueIndex("support_updates_ext_uq").on(t.externalId)],
+);
+
+/**
  * Receiver codes for seeing full tracking details (receiver name, phone, address).
  * Issued when the parcel is booked and sent in the receiver's first SMS (HuduFeed); reusable until it
  * expires or is replaced by a resend. Only a hash of the code is stored.
@@ -501,9 +552,13 @@ export const branches = pgTable(
       .references(() => accounts.id),
     name: text("name").notNull(),
     code: text("code").notNull(), // short label for lists and labels, e.g. ARK
+    country: text("country").notNull().default("TZ"), // ISO 3166-1 alpha-2, SADC/EAC
     region: text("region").notNull(),
     district: text("district"),
     address: text("address"),
+    /** Where the office is, pinned on the map in the app: receivers get directions to it. */
+    lat: doublePrecision("lat"),
+    lng: doublePrecision("lng"),
     phone: text("phone"),
     isHead: boolean("is_head").notNull().default(false),
     active: boolean("active").notNull().default(true),
@@ -609,4 +664,524 @@ export const partnerPayments = pgTable(
     createdAt: ts("created_at").notNull().defaultNow(),
   },
   (t) => [index("partner_payments_partner_idx").on(t.partnerAccountId, t.invoiceId)],
+);
+
+/* ------------------------------------------------------------ Tuma-X drivers */
+
+/**
+ * A rider or truck driver who works through the Tuma-X app. One row per user with the rider or truck_driver role.
+ * accountId is the fleet the driver works for: Tuma's own pool (internal account) or a partner's fleet.
+ * Jobs are offered only from that fleet, in the driver's region, for their vehicle.
+ */
+export const drivers = pgTable(
+  "drivers",
+  {
+    userId: text("user_id")
+      .primaryKey()
+      .references(() => users.id),
+    accountId: text("account_id")
+      .notNull()
+      .references(() => accounts.id),
+    phone: text("phone").notNull(),
+    region: text("region").notNull(),
+    /** Tuma-X vehicle kind: boda | bajaji | van | pickup | lorry | trailer */
+    vehicleKind: text("vehicle_kind").notNull(),
+    plate: text("plate").notNull().default(""),
+    /** pending (registered, waiting for review) | approved | suspended */
+    status: text("status").notNull().default("pending"),
+    /** Registration details the app collects (licence, ID, vehicle make, payout account …). */
+    profile: jsonb("profile").$type<Record<string, unknown>>().notNull().default({}),
+    online: boolean("online").notNull().default(false),
+    lat: doublePrecision("lat"),
+    lng: doublePrecision("lng"),
+    lastSeenAt: ts("last_seen_at"),
+    reviewedBy: text("reviewed_by"),
+    reviewedAt: ts("reviewed_at"),
+    createdAt: ts("created_at").notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("drivers_phone_uq").on(t.phone), index("drivers_pool_idx").on(t.accountId, t.region, t.status)],
+);
+
+/**
+ * One-time hand-off from the Ondi sign-in (done in the browser) to the Tuma-X app. The app gets the code on its
+ * redirect URI and swaps it, with its PKCE verifier, for a token. Only hashes are stored.
+ */
+export const driverHandoffs = pgTable("driver_handoffs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  codeHash: text("code_hash").notNull(),
+  /** The app's PKCE challenge (S256) for the swap. */
+  challenge: text("challenge").notNull(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id),
+  expiresAt: ts("expires_at").notNull(),
+  usedAt: ts("used_at"),
+  createdAt: ts("created_at").notNull().defaultNow(),
+}, (t) => [uniqueIndex("driver_handoffs_code_uq").on(t.codeHash)]);
+
+/**
+ * A run a dispatcher hands to one driver: a pickup and one or more waybills to deliver.
+ * open (offered to eligible drivers) → assigned (a driver accepted) → in_progress → completed | cancelled.
+ */
+export const jobs = pgTable(
+  "jobs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    ref: text("ref").notNull(),
+    /** Fleet whose drivers see the job: Tuma's internal account or a partner. */
+    accountId: text("account_id")
+      .notNull()
+      .references(() => accounts.id),
+    kind: waybillType("kind").notNull(),
+    /** Delivery area the job is offered in (the pickup's region). */
+    region: text("region").notNull(),
+    status: text("status").notNull().default("open"),
+    /** Tuma-X vehicle kind the job needs, or null for any vehicle that fits. */
+    requiredVehicle: text("required_vehicle"),
+    pickup: jsonb("pickup").$type<{ name: string; address: string; phone?: string; lat: number; lng: number; instructions?: string }>().notNull(),
+    weightG: integer("weight_g").notNull().default(0),
+    /** What the driver earns for the job (TZS). */
+    payout: integer("payout").notNull(),
+    currency: text("currency").notNull().default("TZS"),
+    slaAt: ts("sla_at"),
+    driverId: text("driver_id").references(() => users.id),
+    /** Last phase the app reported (toPickup, atPickup, inTransit …). */
+    phase: text("phase"),
+    distanceM: integer("distance_m"),
+    trail: jsonb("trail").$type<[number, number][]>(),
+    note: text("note"),
+    cancelReason: text("cancel_reason"),
+    createdBy: text("created_by").notNull(),
+    createdAt: ts("created_at").notNull().defaultNow(),
+    acceptedAt: ts("accepted_at"),
+    completedAt: ts("completed_at"),
+  },
+  (t) => [uniqueIndex("jobs_ref_uq").on(t.ref), index("jobs_pool_idx").on(t.accountId, t.status, t.region), index("jobs_driver_idx").on(t.driverId, t.status)],
+);
+
+export const jobShipments = pgTable(
+  "job_shipments",
+  {
+    jobId: uuid("job_id")
+      .notNull()
+      .references(() => jobs.id, { onDelete: "cascade" }),
+    shipmentId: uuid("shipment_id")
+      .notNull()
+      .references(() => shipments.id),
+    seq: smallint("seq").notNull(),
+    /** pending | delivered | failed */
+    outcome: text("outcome").notNull().default("pending"),
+  },
+  (t) => [primaryKey({ columns: [t.jobId, t.shipmentId] }), index("job_shipments_shipment_idx").on(t.shipmentId)],
+);
+
+/* ------------------------------------------------------------ KYB and agents */
+
+export const kybStatus = pgEnum("kyb_status", ["submitted", "in_review", "needs_info", "approved", "rejected"]);
+
+/**
+ * A business applying to work on Tuma (for now: parcel agents), filled in by the owner in the Tuma app and checked by
+ * ComplyOS. One per Ondi user. The applicant can correct and resubmit while ComplyOS asks for more information.
+ */
+export const kybApplications = pgTable(
+  "kyb_applications",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    ref: text("ref").notNull(), // KYB-2611-XXXXX, shown to the applicant
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id),
+    /** What the business will be on Tuma. Only parcel_agent is open today. */
+    accountKind: text("account_kind").notNull().default("parcel_agent"),
+    status: kybStatus("status").notNull().default("submitted"),
+    businessName: text("business_name").notNull(),
+    businessType: text("business_type").notNull(), // sole_trader | partnership | company
+    tin: text("tin").notNull(),
+    licenceNumber: text("licence_number"),
+    /** Upload key of the business licence photo or PDF. */
+    licenceFile: text("licence_file"),
+    /** The BRELA record the applicant picked to fill the form (number, registered name, kind, status, address). */
+    registration: jsonb("registration").$type<KybRegistration>(),
+    /** Office: region, district, street, landmark, phone, lat/lng, hours. */
+    office: jsonb("office").$type<KybOffice>().notNull(),
+    contact: jsonb("contact").$type<{ name: string; phone: string; email?: string; role?: string }>().notNull(),
+    /** The parcel operation steps this office runs, in order (receive, dispatch, offload, deliver). */
+    workflow: jsonb("workflow").$type<string[]>().notNull(),
+    /** Bumped on each resubmission; part of the ComplyOS idempotency key. */
+    version: smallint("version").notNull().default(1),
+    complyRef: text("comply_ref"),
+    /** What ComplyOS told the applicant (needs info / rejected). */
+    decisionNote: text("decision_note"),
+    /** Set on approval. */
+    accountId: text("account_id").references(() => accounts.id),
+    submittedAt: ts("submitted_at").notNull().defaultNow(),
+    decidedAt: ts("decided_at"),
+    createdAt: ts("created_at").notNull().defaultNow(),
+    updatedAt: ts("updated_at").notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("kyb_user_uq").on(t.userId), uniqueIndex("kyb_ref_uq").on(t.ref), index("kyb_status_idx").on(t.status, t.submittedAt)],
+);
+
+export type KybRegistration = {
+  source: "brela";
+  number: string;
+  name: string;
+  kind: "company" | "business_name";
+  subtype?: string | null;
+  status?: string | null;
+  registeredOn?: string | null;
+  address?: string | null;
+};
+
+export type KybOffice = {
+  region: string;
+  district: string;
+  street: string;
+  landmark?: string;
+  phone: string;
+  hours?: string;
+  lat?: number;
+  lng?: number;
+};
+
+/** Status history of an application. ComplyOS events carry an id so a redelivery is applied once. */
+export const kybEvents = pgTable(
+  "kyb_events",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    applicationId: uuid("application_id")
+      .notNull()
+      .references(() => kybApplications.id),
+    status: kybStatus("status").notNull(),
+    note: text("note"),
+    source: text("source").notNull(), // tuma | complyos
+    externalId: text("external_id"),
+    occurredAt: ts("occurred_at").notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("kyb_events_ext_uq").on(t.externalId), index("kyb_events_app_idx").on(t.applicationId, t.occurredAt)],
+);
+
+/**
+ * A parcel agent business, created when its KYB is approved. The float wallet lives in FinOps (walletRef);
+ * parcels on the office floor are tracked in SEAL (sealSiteRef).
+ */
+export const agents = pgTable("agents", {
+  accountId: text("account_id")
+    .primaryKey()
+    .references(() => accounts.id),
+  ownerId: text("owner_id")
+    .notNull()
+    .references(() => users.id),
+  kybId: uuid("kyb_id")
+    .notNull()
+    .references(() => kybApplications.id),
+  /** Head office branch. */
+  branchId: uuid("branch_id")
+    .notNull()
+    .references(() => branches.id),
+  workflow: jsonb("workflow").$type<string[]>().notNull(),
+  /** Tuma's commission on each parcel the agent handles, in basis points. PLACEHOLDER rate until pricing is agreed. */
+  commissionBps: integer("commission_bps").notNull(),
+  walletRef: text("wallet_ref"),
+  sealSiteRef: text("seal_site_ref"),
+  status: text("status").notNull().default("active"), // active | suspended
+  createdAt: ts("created_at").notNull().defaultNow(),
+});
+
+/**
+ * An invitation to join a company on Tuma. The owner (or anyone with team.manage) invites by phone; Tuma texts a link,
+ * the person signs in with Ondi and accepts, and gets the roles and office chosen here. Only a hash of the link's
+ * token is stored. Someone who signs in with the invited phone or email also sees the invitation in the app.
+ */
+export const teamInvites = pgTable(
+  "team_invites",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    accountId: text("account_id")
+      .notNull()
+      .references(() => accounts.id),
+    name: text("name").notNull(),
+    phone: text("phone").notNull(), // E.164
+    email: text("email"),
+    roles: jsonb("roles").$type<string[]>().notNull(),
+    branchId: uuid("branch_id").references(() => branches.id),
+    tokenHash: text("token_hash").notNull(),
+    status: text("status").notNull().default("pending"), // pending | accepted | revoked | declined
+    locale: text("locale").notNull().default("sw"),
+    invitedBy: text("invited_by")
+      .notNull()
+      .references(() => users.id),
+    acceptedBy: text("accepted_by").references(() => users.id),
+    expiresAt: ts("expires_at").notNull(),
+    respondedAt: ts("responded_at"),
+    createdAt: ts("created_at").notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("team_invites_token_uq").on(t.tokenHash), index("team_invites_account_idx").on(t.accountId, t.status), index("team_invites_phone_idx").on(t.phone, t.status)],
+);
+
+/* ------------------------------------------------------------------ Hudumika global references
+ * The Reference Number Service's registry (spec §4). In production the shared service owns these tables and Tuma
+ * calls it (REFERENCE_MODE=http); in development, tests, and until that service is live, Tuma runs the same
+ * allocator against these tables in its own database (REFERENCE_MODE=local). Append-only: database triggers
+ * (drizzle/0001_references.sql) refuse updates and deletes of issued references and reactivation of prefixes.
+ */
+
+export const referenceTypes = pgTable("reference_types", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  code: varchar("code", { length: 30 }).notNull().unique(), // PARCEL | CARGO | CASE
+  description: varchar("description", { length: 150 }).notNull(),
+  sourceSystem: varchar("source_system", { length: 30 }).notNull(), // owning product: TRANSX | BLISS
+  active: boolean("active").notNull().default(true),
+  createdAt: ts("created_at").notNull().defaultNow(),
+});
+
+export const referencePrefixes = pgTable(
+  "reference_prefixes",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    /** Whose sequence: PARCEL | CARGO | CASE (each kind counts on its own). */
+    series: varchar("series", { length: 10 }).notNull().default("PARCEL"),
+    prefix: varchar("prefix", { length: 3 }).notNull(),
+    prefixOrder: integer("prefix_order").notNull(),
+    status: varchar("status", { length: 20 }).notNull(), // ACTIVE | EXHAUSTED | RETIRED
+    allocatedAt: ts("allocated_at").notNull().defaultNow(),
+    exhaustedAt: ts("exhausted_at"),
+  },
+  // One active prefix per sequence.
+  (t) => [
+    uniqueIndex("reference_prefixes_series_prefix_uq").on(t.series, t.prefix),
+    uniqueIndex("reference_prefixes_series_order_uq").on(t.series, t.prefixOrder),
+    uniqueIndex("reference_prefixes_one_active").on(t.series).where(sql`status = 'ACTIVE'`),
+  ],
+);
+
+/**
+ * One cursor per sequence (id = REF_SERIES[type].cursor: 1 parcels, 2 cargo, 3 cases): the active prefix and the
+ * next number to hand out. Locked for every allocation of that kind.
+ */
+export const referenceAllocator = pgTable("reference_allocator", {
+  id: smallint("id").primaryKey(),
+  series: varchar("series", { length: 10 }).notNull().default("PARCEL").unique(),
+  activePrefixId: uuid("active_prefix_id")
+    .notNull()
+    .references(() => referencePrefixes.id),
+  nextSequence: integer("next_sequence").notNull(),
+  formatVersion: smallint("format_version").notNull().default(1),
+  updatedAt: ts("updated_at").notNull().defaultNow(),
+});
+
+export const generatedReferences = pgTable(
+  "generated_references",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    referenceNumber: varchar("reference_number", { length: 12 }).notNull().unique(),
+    referenceTypeId: uuid("reference_type_id")
+      .notNull()
+      .references(() => referenceTypes.id),
+    entityId: uuid("entity_id").notNull(),
+    sourceSystem: varchar("source_system", { length: 30 }).notNull(), // the product that asked
+    tenantId: text("tenant_id"),
+    prefixId: uuid("prefix_id")
+      .notNull()
+      .references(() => referencePrefixes.id),
+    sequenceNumber: integer("sequence_number").notNull(),
+    formatVersion: smallint("format_version").notNull(),
+    issuedAt: ts("issued_at").notNull().defaultNow(),
+    createdBy: varchar("created_by", { length: 100 }).notNull(),
+  },
+  (t) => [
+    uniqueIndex("generated_references_entity_uq").on(t.sourceSystem, t.referenceTypeId, t.entityId),
+    uniqueIndex("generated_references_prefix_seq_uq").on(t.prefixId, t.sequenceNumber),
+    index("generated_references_issued_idx").on(t.issuedAt),
+  ],
+);
+
+export const referenceIdempotency = pgTable(
+  "reference_idempotency",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    sourceSystem: varchar("source_system", { length: 30 }).notNull(),
+    idempotencyKey: varchar("idempotency_key", { length: 150 }).notNull(),
+    requestHash: varchar("request_hash", { length: 64 }).notNull(),
+    generatedReferenceId: uuid("generated_reference_id")
+      .notNull()
+      .references(() => generatedReferences.id),
+    createdAt: ts("created_at").notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("reference_idempotency_uq").on(t.sourceSystem, t.idempotencyKey)],
+);
+
+/** Platform-wide settings Tuma staff change from the portal (settings.manage). One row per key; values are JSON. */
+export const platformSettings = pgTable("platform_settings", {
+  key: text("key").primaryKey(),
+  value: jsonb("value").notNull(),
+  updatedBy: text("updated_by"),
+  updatedAt: ts("updated_at").notNull().defaultNow(),
+});
+
+/**
+ * A business's customers: everyone who sent or received a parcel through its counters, saved as they are booked so
+ * the next booking is a pick, not typing. People and companies (with their TIN and BRELA number).
+ */
+export const customers = pgTable(
+  "customers",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    accountId: text("account_id")
+      .notNull()
+      .references(() => accounts.id),
+    kind: text("kind").notNull(), // individual | company
+    name: text("name").notNull(),
+    phone: text("phone").notNull(), // E.164
+    email: text("email"),
+    tin: text("tin"),
+    regNo: text("reg_no"),
+    contactName: text("contact_name"),
+    /** Where parcels to them last went. */
+    region: text("region"),
+    district: text("district"),
+    landmark: text("landmark"),
+    lat: doublePrecision("lat"),
+    lng: doublePrecision("lng"),
+    sent: integer("sent").notNull().default(0),
+    received: integer("received").notNull().default(0),
+    /** Numbers of customers merged into this one: a booking with one of them counts here. */
+    otherPhones: jsonb("other_phones").$type<string[]>().notNull().default([]),
+    /** Told "not the same person" when offered a merge with others of the same name. */
+    dupDismissed: boolean("dup_dismissed").notNull().default(false),
+    lastSeenAt: ts("last_seen_at").notNull().defaultNow(),
+    createdAt: ts("created_at").notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("customers_account_kind_phone_uq").on(t.accountId, t.kind, t.phone), index("customers_account_seen_idx").on(t.accountId, t.lastSeenAt)],
+);
+
+/**
+ * A mobile-money request for a counter parcel: HuduPay pushes a prompt to the payer's phone, and the outcome comes
+ * back on its callback (or a status poll). One parcel may have several tries; the first success pays it.
+ */
+export const parcelPayments = pgTable(
+  "parcel_payments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    shipmentId: uuid("shipment_id")
+      .notNull()
+      .references(() => shipments.id),
+    accountId: text("account_id")
+      .notNull()
+      .references(() => accounts.id),
+    /** Our reference to HuduPay (idempotent there), and its payment id. */
+    reference: text("reference").notNull(),
+    providerId: text("provider_id"),
+    msisdn: text("msisdn").notNull(), // 255XXXXXXXXX
+    amount: integer("amount").notNull(),
+    currency: text("currency").notNull().default("TZS"),
+    status: text("status").notNull().default("pending"), // pending | paid | failed
+    failureMessage: text("failure_message"),
+    requestedBy: text("requested_by").notNull(),
+    createdAt: ts("created_at").notNull().defaultNow(),
+    completedAt: ts("completed_at"),
+  },
+  (t) => [uniqueIndex("parcel_payments_reference_uq").on(t.reference), index("parcel_payments_shipment_idx").on(t.shipmentId)],
+);
+
+/**
+ * Invoices a business issues to its company customers, made automatically when a company sends a parcel at the
+ * counter. Tuma keeps the operational record; the ledger entries go to Hudumika FinOps through the outbox.
+ */
+/**
+ * How a business takes money in the app. Mobile money is opt-in: once on, customers pay by a push to their phone and
+ * the takings are paid out to the business (its wallet or bank) with Tuma's commission taken off first, so those
+ * parcels don't draw on the float. Pay on delivery itself lives on accounts.payOnDelivery.
+ */
+export const paymentSettings = pgTable("payment_settings", {
+  accountId: text("account_id").primaryKey(),
+  momoEnabled: boolean("momo_enabled").notNull().default(false),
+  /** Where mobile-money takings go: { method: "mobile_money", phone, name } | { method: "bank", bank, accountName, accountNumber, branch? } */
+  payout: jsonb("payout").$type<Record<string, string>>(),
+  /** instant | daily | weekly */
+  payoutSchedule: text("payout_schedule").notNull().default("daily"),
+  updatedBy: text("updated_by"),
+  updatedAt: ts("updated_at").notNull().defaultNow(),
+});
+
+export const invoices = pgTable(
+  "invoices",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    accountId: text("account_id")
+      .notNull()
+      .references(() => accounts.id),
+    customerId: uuid("customer_id").references(() => customers.id),
+    shipmentId: uuid("shipment_id").references(() => shipments.id),
+    number: text("number").notNull(),
+    /** Who is billed, as on the day: name, TIN, phone, contact. */
+    billTo: jsonb("bill_to").$type<{ name: string; tin?: string; phone: string; contactName?: string; email?: string }>().notNull(),
+    issueDate: ts("issue_date").notNull(),
+    dueDate: ts("due_date").notNull(),
+    currency: text("currency").notNull().default("TZS"),
+    lines: jsonb("lines").$type<{ waybill?: string; description: string; amount: number }[]>().notNull(),
+    subtotal: integer("subtotal").notNull(),
+    tax: integer("tax").notNull(),
+    total: integer("total").notNull(),
+    amountPaid: integer("amount_paid").notNull().default(0),
+    paidWith: text("paid_with"),
+    status: invoiceStatus("status").notNull().default("issued"),
+    createdBy: text("created_by").notNull(),
+    createdAt: ts("created_at").notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("invoices_number_uq").on(t.accountId, t.number), uniqueIndex("invoices_shipment_uq").on(t.shipmentId), index("invoices_customer_idx").on(t.customerId)],
+);
+
+/**
+ * A business reporting a customer for fraud or abuse (fake payments, prohibited goods, threats…). Shared across
+ * Tuma: another agent booking with the same number is warned. Tuma ops review them; the reporter is never shown.
+ */
+export const customerReports = pgTable(
+  "customer_reports",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    accountId: text("account_id")
+      .notNull()
+      .references(() => accounts.id),
+    customerId: uuid("customer_id").references(() => customers.id, { onDelete: "set null" }),
+    /** The number reported (E.164): how other agents are warned. */
+    phone: text("phone").notNull(),
+    name: text("name").notNull(),
+    reason: text("reason").notNull(), // fake_payment | prohibited_goods | abuse | no_show | identity | other
+    note: text("note"),
+    /** open (counts in warnings) | upheld | dismissed (by Tuma ops). */
+    status: text("status").notNull().default("open"),
+    reportedBy: text("reported_by")
+      .notNull()
+      .references(() => users.id),
+    createdAt: ts("created_at").notNull().defaultNow(),
+  },
+  (t) => [index("customer_reports_phone_idx").on(t.phone), uniqueIndex("customer_reports_once_uq").on(t.accountId, t.phone, t.reason)],
+);
+
+/**
+ * How a receiver rated the agent that handed their parcel over. Texted a link once the parcel is delivered;
+ * one rating per parcel. Feeds the agent's points and Tuma's customer-experience follow-up.
+ */
+export const parcelRatings = pgTable(
+  "parcel_ratings",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    shipmentId: uuid("shipment_id")
+      .notNull()
+      .references(() => shipments.id),
+    /** The business rated: the one that booked or handed the parcel over. */
+    accountId: text("account_id")
+      .notNull()
+      .references(() => accounts.id),
+    tokenHash: text("token_hash").notNull(),
+    phone: text("phone").notNull(),
+    stars: smallint("stars"),
+    /** What went wrong, when something did. */
+    issue: text("issue"), // late | damaged | missing | rude | overcharged | other
+    comment: text("comment"),
+    sentAt: ts("sent_at").notNull().defaultNow(),
+    ratedAt: ts("rated_at"),
+  },
+  (t) => [uniqueIndex("parcel_ratings_shipment_uq").on(t.shipmentId), uniqueIndex("parcel_ratings_token_uq").on(t.tokenHash), index("parcel_ratings_account_idx").on(t.accountId, t.ratedAt)],
 );

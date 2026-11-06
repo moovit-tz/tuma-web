@@ -2,6 +2,7 @@
  * Development seed. Idempotent for reference data; demo shipments are recreated with --reset.
  *   pnpm db:seed           reference data + demo data if there are no shipments yet
  *   pnpm db:seed --reset   wipe shipments and recreate demo data
+ *   pnpm db:seed --platform   production: roles, reason codes, hubs and Tuma's internal account only (no demo data)
  */
 import { config } from "dotenv";
 config({ path: ".env.local", override: false });
@@ -16,11 +17,13 @@ import { generateWaybill } from "../src/domain/waybill-number";
 import { promisedAt, quote, type ServiceLevel } from "../src/domain/pricing";
 import { eventTypeFor, type ParcelState } from "../src/domain/states";
 import { ulid } from "../src/server/ids";
+import collectionPoints from "../drizzle/seed/collection-points.json";
 
 const client = postgres(process.env.DATABASE_URL!, { max: 1 });
 const db = drizzle(client, { schema, casing: "snake_case" });
 const reset = process.argv.includes("--reset");
-const referenceOnly = process.argv.includes("--reference-only");
+const platform = process.argv.includes("--platform");
+const referenceOnly = platform || process.argv.includes("--reference-only");
 
 /* deterministic PRNG so demo data is stable between runs */
 let seed = 20261101;
@@ -36,6 +39,7 @@ const REASONS = [
   ["FD06", "failed_delivery", "Receiver could not pay the COD amount", "Mpokeaji hakuweza kulipa kiasi cha COD"],
   ["FD07", "failed_delivery", "Access restricted", "Ufikiaji umezuiliwa"],
   ["FD08", "failed_delivery", "Weather or road conditions", "Hali ya hewa au barabara"],
+  ["FD09", "failed_delivery", "Other (see the driver's note)", "Nyingine (angalia maelezo ya dereva)"],
   ["EX01", "exception", "Damaged", "Kimeharibika"],
   ["EX02", "exception", "Lost or missing", "Kimepotea au hakipo"],
   ["EX03", "exception", "Held for prohibited or suspect item", "Kimezuiliwa kwa bidhaa iliyokatazwa au inayoshukiwa"],
@@ -134,8 +138,16 @@ async function seedReference() {
     await db.insert(schema.reasonCodes).values({ code, kind, labelEn: en, labelSw: sw }).onConflictDoNothing();
   }
   for (const l of LOCATIONS) await db.insert(schema.locations).values(l).onConflictDoNothing();
-  for (const a of ACCOUNTS) await db.insert(schema.accounts).values(a).onConflictDoNothing();
-  for (const u of USERS) await db.insert(schema.users).values(u).onConflictDoNothing();
+  // Common collection points (Location_Master_Clean.xlsx). Names and places refresh; pins someone set are kept.
+  for (const p of collectionPoints) {
+    await db
+      .insert(schema.locations)
+      .values({ id: p.id, type: "collection_point", name: p.name, country: p.country, region: p.region, district: p.district })
+      .onConflictDoUpdate({ target: schema.locations.id, set: { name: p.name, country: p.country, region: p.region, district: p.district } });
+  }
+  // Production gets Tuma's own account only: demo merchants, partners and personas stay out.
+  for (const a of ACCOUNTS.filter((x) => !platform || x.type === "internal")) await db.insert(schema.accounts).values(a).onConflictDoNothing();
+  if (!platform) for (const u of USERS) await db.insert(schema.users).values(u).onConflictDoNothing();
 }
 
 async function seedShipments() {
@@ -452,6 +464,50 @@ async function seedPartners() {
   console.log(`  partners: ${clients.length} clients, ${fleet.length + 1} vehicles, ${kfShipments.length} shipments to Kilimanjaro Freight, ${invoices.length} invoices`);
 }
 
+/**
+ * Tuma-X demo: drivers in Tuma's pool and Kilimanjaro Freight's fleet, and open jobs for them. Idempotent.
+ * Sign in to the app with any of these numbers; outside production the code is returned by the API (devCode).
+ */
+async function seedDrivers() {
+  const POOL = "acc_moovit_ops";
+  const KFA = "acc_kilimanjaro_freight";
+  const list = [
+    { phone: "+255713400001", name: "Juma Mussa", acc: POOL, region: "Dar es Salaam", vehicle: "boda", plate: "MC 412 DKA", status: "approved" },
+    { phone: "+255713400002", name: "Neema Said", acc: POOL, region: "Dar es Salaam", vehicle: "bajaji", plate: "MC 118 DLB", status: "approved" },
+    { phone: "+255713400003", name: "Hassan Ali", acc: POOL, region: "Dar es Salaam", vehicle: "lorry", plate: "T 509 DQR", status: "approved" },
+    { phone: "+255713400004", name: "Rehema Kweka", acc: POOL, region: "Arusha", vehicle: "van", plate: "T 221 EAA", status: "pending" },
+    { phone: "+255713400005", name: "Baraka Lyimo", acc: KFA, region: "Dar es Salaam", vehicle: "pickup", plate: "T 777 DKF", status: "approved" },
+  ];
+  for (const d of list) {
+    const id = `tumax|${d.phone}`;
+    const role = ["boda", "bajaji", "van"].includes(d.vehicle) ? "rider" : "truck_driver";
+    await db.insert(schema.users).values({ id, name: d.name, phone: d.phone, roles: [role], locale: "sw", accountId: d.acc === POOL ? null : d.acc }).onConflictDoNothing();
+    await db
+      .insert(schema.drivers)
+      .values({ userId: id, accountId: d.acc, phone: d.phone, region: d.region, vehicleKind: d.vehicle, plate: d.plate, status: d.status, profile: { fullName: d.name }, reviewedBy: d.status === "approved" ? "seed" : null })
+      .onConflictDoNothing();
+  }
+
+  const [{ n }] = await db.select({ n: count() }).from(schema.jobs);
+  if (n > 0) return console.log(`  drivers: ${list.length}, jobs already present`);
+  // Two open courier runs from the Ilala hub, built from Tuma-handled waybills that are waiting.
+  const waiting = await db
+    .select({ id: schema.shipments.id, w: schema.shipments.chargeableWeightG })
+    .from(schema.shipments)
+    .where(sql`${schema.shipments.handlingPartnerId} is null and ${schema.shipments.state} in ('AWAITING_HANDOVER','RECEIVED','AT_HUB') and ${schema.shipments.consignee}->'address'->>'region' = 'Dar es Salaam'`)
+    .limit(4);
+  const hub = { name: "Ilala Hub", address: "Gerezani, Ilala, Dar es Salaam (Near Kamata bus stop)", lat: -6.8235, lng: 39.2695 };
+  const groups = [waiting.slice(0, 2), waiting.slice(2, 4)].filter((g) => g.length);
+  for (const [i, g] of groups.entries()) {
+    const [job] = await db
+      .insert(schema.jobs)
+      .values({ ref: `JOB-DEMO000${i + 1}`, accountId: POOL, kind: "parcel", region: "Dar es Salaam", pickup: hub, weightG: g.reduce((a, s) => a + s.w, 0), payout: 4500 + i * 1500, createdBy: "seed" })
+      .returning();
+    await db.insert(schema.jobShipments).values(g.map((s, k) => ({ jobId: job.id, shipmentId: s.id, seq: k + 1 })));
+  }
+  console.log(`  drivers: ${list.length}, open jobs: ${groups.length}`);
+}
+
 (async () => {
   console.log("Seeding reference data…");
   await seedReference();
@@ -462,6 +518,8 @@ async function seedPartners() {
     await seedPartners();
     console.log("Seeding branches…");
     await seedBranches();
+    console.log("Seeding Tuma-X drivers…");
+    await seedDrivers();
   }
   await client.end();
   console.log("Done.");

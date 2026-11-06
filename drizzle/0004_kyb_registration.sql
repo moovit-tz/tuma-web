@@ -1,0 +1,1 @@
+ALTER TABLE "kyb_applications" ADD COLUMN "registration" jsonb;

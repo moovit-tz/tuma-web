@@ -1,0 +1,2234 @@
+[
+ {
+  "id": "CP-0008",
+  "name": "Arusha Stand Kuu",
+  "region": "Arusha",
+  "district": "Arusha City",
+  "country": "TZ",
+  "confidence": "Medium",
+  "note": null
+ },
+ {
+  "id": "CP-0470",
+  "name": "Mianzini",
+  "region": "Arusha",
+  "district": "Arusha City",
+  "country": "TZ",
+  "confidence": "Low",
+  "note": "Not found in NBS ward lists; it may be a street or village. Source location kept."
+ },
+ {
+  "id": "CP-0056",
+  "name": "Seriani Office",
+  "region": "Arusha",
+  "district": "Arusha City",
+  "country": "TZ",
+  "confidence": "Medium",
+  "note": null
+ },
+ {
+  "id": "CP-0401",
+  "name": "Karatu",
+  "region": "Arusha",
+  "district": "Karatu",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0392",
+  "name": "Namanga",
+  "region": "Arusha",
+  "district": "Longido",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0430",
+  "name": "Mto Wa Mbu",
+  "region": "Arusha",
+  "district": "Monduli",
+  "country": "TZ",
+  "confidence": "Medium",
+  "note": null
+ },
+ {
+  "id": "CP-0469",
+  "name": "Ilala Boma",
+  "region": "Dar es Salaam",
+  "district": "Dar es Salaam City",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0040",
+  "name": "Kariakoo",
+  "region": "Dar es Salaam",
+  "district": "Dar es Salaam City",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0026",
+  "name": "Kisutu",
+  "region": "Dar es Salaam",
+  "district": "Dar es Salaam City",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0071",
+  "name": "Mwembe Chai",
+  "region": "Dar es Salaam",
+  "district": "Dar es Salaam City",
+  "country": "TZ",
+  "confidence": "Medium",
+  "note": "Mwembe Chai is commonly placed in Magomeni, Kinondoni. Source says Ilala; source kept."
+ },
+ {
+  "id": "CP-0004",
+  "name": "Kigamboni Office",
+  "region": "Dar es Salaam",
+  "district": "Kigamboni Municipal",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0058",
+  "name": "Mbagala",
+  "region": "Dar es Salaam",
+  "district": "Temeke Municipal",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0337",
+  "name": "Temeke",
+  "region": "Dar es Salaam",
+  "district": "Temeke Municipal",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0001",
+  "name": "Mabibo",
+  "region": "Dar es Salaam",
+  "district": "Ubungo Municipal",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0022",
+  "name": "Magufuli",
+  "region": "Dar es Salaam",
+  "district": "Ubungo Municipal",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0002",
+  "name": "Shekilango",
+  "region": "Dar es Salaam",
+  "district": "Ubungo Municipal",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0042",
+  "name": "Urafiki",
+  "region": "Dar es Salaam",
+  "district": "Ubungo Municipal",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0299",
+  "name": "Cbe",
+  "region": "Dodoma",
+  "district": "Chamwino",
+  "country": "TZ",
+  "confidence": "Low",
+  "note": "Name unclear; may mean the College of Business Education in Dodoma City. Source location kept."
+ },
+ {
+  "id": "CP-0464",
+  "name": "Mpwayungu",
+  "region": "Dodoma",
+  "district": "Chamwino",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0007",
+  "name": "Dodoma Stand",
+  "region": "Dodoma",
+  "district": "Dodoma City",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0240",
+  "name": "Nane Nane Stand",
+  "region": "Dodoma",
+  "district": "Dodoma City",
+  "country": "TZ",
+  "confidence": "Medium",
+  "note": null
+ },
+ {
+  "id": "CP-0343",
+  "name": "Kondoa",
+  "region": "Dodoma",
+  "district": "Kondoa DC",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0301",
+  "name": "Kibaigwa Stand",
+  "region": "Dodoma",
+  "district": "Kongwa",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0019",
+  "name": "Kongwa Bus Stand",
+  "region": "Dodoma",
+  "district": "Kongwa",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0300",
+  "name": "Mbande Stand",
+  "region": "Dodoma",
+  "district": "Kongwa",
+  "country": "TZ",
+  "confidence": "Medium",
+  "note": null
+ },
+ {
+  "id": "CP-0438",
+  "name": "Mlali",
+  "region": "Dodoma",
+  "district": "Kongwa",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0041",
+  "name": "Mpwapwa Stand",
+  "region": "Dodoma",
+  "district": "Mpwapwa",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0049",
+  "name": "Runzewe Stand",
+  "region": "Geita",
+  "district": "Bukombe",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0249",
+  "name": "Ushirombo Stand",
+  "region": "Geita",
+  "district": "Bukombe",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0250",
+  "name": "Buseresere",
+  "region": "Geita",
+  "district": "Chato",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0251",
+  "name": "Bwanga",
+  "region": "Geita",
+  "district": "Chato",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0252",
+  "name": "Chato Stand",
+  "region": "Geita",
+  "district": "Chato",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0253",
+  "name": "Katoro Bus Stand",
+  "region": "Geita",
+  "district": "Geita DC",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0254",
+  "name": "Geita Stand",
+  "region": "Geita",
+  "district": "Geita Town",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0255",
+  "name": "Kakola",
+  "region": "Geita",
+  "district": "Geita Town",
+  "country": "TZ",
+  "confidence": "Low",
+  "note": "Not confirmed in the Geita ward list. Kakola is often associated with Msalala DC. Source location kept."
+ },
+ {
+  "id": "CP-0256",
+  "name": "Masumbwe Stand",
+  "region": "Geita",
+  "district": "Mbogwe",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0257",
+  "name": "Nyang'Hwale Bus Stand",
+  "region": "Geita",
+  "district": "Nyang'hwale",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0456",
+  "name": "Tanangozi",
+  "region": "Iringa",
+  "district": "Iringa DC",
+  "country": "TZ",
+  "confidence": "Low",
+  "note": "Tanangozi read as near Ifunda, Iringa DC; not confirmed in NBS ward list. Source said Iringa Municipal."
+ },
+ {
+  "id": "CP-0005",
+  "name": "Gangilonga",
+  "region": "Iringa",
+  "district": "Iringa Municipal",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0024",
+  "name": "Igumbilo",
+  "region": "Iringa",
+  "district": "Iringa Municipal",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0284",
+  "name": "Isele",
+  "region": "Iringa",
+  "district": "Iringa Municipal",
+  "country": "TZ",
+  "confidence": "Low",
+  "note": "Not found in NBS ward lists; it may be a village. Source location kept."
+ },
+ {
+  "id": "CP-0286",
+  "name": "Kihesa",
+  "region": "Iringa",
+  "district": "Iringa Municipal",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0285",
+  "name": "Mshindo",
+  "region": "Iringa",
+  "district": "Iringa Municipal",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0283",
+  "name": "Mtua",
+  "region": "Iringa",
+  "district": "Iringa Municipal",
+  "country": "TZ",
+  "confidence": "Low",
+  "note": "NBS has Mtua only in Lindi Region (Mtama DC, Nachingwea DC), but source files it with Iringa offices. Source region kept."
+ },
+ {
+  "id": "CP-0277",
+  "name": "Ruaha",
+  "region": "Iringa",
+  "district": "Iringa Municipal",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0282",
+  "name": "Ilula",
+  "region": "Iringa",
+  "district": "Kilolo",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0279",
+  "name": "Mahenge",
+  "region": "Iringa",
+  "district": "Kilolo",
+  "country": "TZ",
+  "confidence": "Medium",
+  "note": "Kilolo DC has a Mahenge ward. MAHENGE STAND (id 63) is the different Mahenge town in Ulanga DC."
+ },
+ {
+  "id": "CP-0280",
+  "name": "Mtandika Stand",
+  "region": "Iringa",
+  "district": "Kilolo",
+  "country": "TZ",
+  "confidence": "Medium",
+  "note": null
+ },
+ {
+  "id": "CP-0278",
+  "name": "Ruaha Mbuyuni Stand",
+  "region": "Iringa",
+  "district": "Kilolo",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0441",
+  "name": "Halali",
+  "region": "Iringa",
+  "district": "Mafinga Town",
+  "country": "TZ",
+  "confidence": "Low",
+  "note": "Not found in NBS ward lists; it may be a village. Source location kept."
+ },
+ {
+  "id": "CP-0067",
+  "name": "Mafinga Office",
+  "region": "Iringa",
+  "district": "Mafinga Town",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0043",
+  "name": "Biharamulo Stand",
+  "region": "Kagera",
+  "district": "Biharamulo",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0033",
+  "name": "Nyakanazi Stand",
+  "region": "Kagera",
+  "district": "Biharamulo",
+  "country": "TZ",
+  "confidence": "Medium",
+  "note": null
+ },
+ {
+  "id": "CP-0372",
+  "name": "Rusahunga Stand",
+  "region": "Kagera",
+  "district": "Biharamulo",
+  "country": "TZ",
+  "confidence": "Medium",
+  "note": null
+ },
+ {
+  "id": "CP-0014",
+  "name": "Bukoba Kibeta Stand",
+  "region": "Kagera",
+  "district": "Bukoba Municipal",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0348",
+  "name": "Karagwe",
+  "region": "Kagera",
+  "district": "Karagwe",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0367",
+  "name": "Kayanga Office",
+  "region": "Kagera",
+  "district": "Karagwe",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0368",
+  "name": "Omurushaka Office",
+  "region": "Kagera",
+  "district": "Karagwe",
+  "country": "TZ",
+  "confidence": "Medium",
+  "note": null
+ },
+ {
+  "id": "CP-0374",
+  "name": "Kyaka",
+  "region": "Kagera",
+  "district": "Missenyi",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0395",
+  "name": "Mutukula",
+  "region": "Kagera",
+  "district": "Missenyi",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0453",
+  "name": "Muhutwe",
+  "region": "Kagera",
+  "district": "Muleba",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0045",
+  "name": "Muleba Stand",
+  "region": "Kagera",
+  "district": "Muleba",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0454",
+  "name": "Benako",
+  "region": "Kagera",
+  "district": "Ngara",
+  "country": "TZ",
+  "confidence": "Medium",
+  "note": null
+ },
+ {
+  "id": "CP-0396",
+  "name": "Kabanga",
+  "region": "Kagera",
+  "district": "Ngara",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0452",
+  "name": "Ngara",
+  "region": "Kagera",
+  "district": "Ngara",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0462",
+  "name": "Buzogwe",
+  "region": "Katavi",
+  "district": "Mlele",
+  "country": "TZ",
+  "confidence": "Low",
+  "note": "Not found in NBS ward lists; it may be a village. Source location kept."
+ },
+ {
+  "id": "CP-0403",
+  "name": "Inyonga",
+  "region": "Katavi",
+  "district": "Mlele",
+  "country": "TZ",
+  "confidence": "Medium",
+  "note": null
+ },
+ {
+  "id": "CP-0010",
+  "name": "Mizengo Pinda",
+  "region": "Katavi",
+  "district": "Mpanda Municipal",
+  "country": "TZ",
+  "confidence": "Medium",
+  "note": null
+ },
+ {
+  "id": "CP-0324",
+  "name": "Mpanda Stand",
+  "region": "Katavi",
+  "district": "Mpanda Municipal",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0028",
+  "name": "Katumba",
+  "region": "Katavi",
+  "district": "Nsimbo",
+  "country": "TZ",
+  "confidence": "Low",
+  "note": "Source record, last updated 2026-09-15, shows Sumbawanga. A Katumba is known in Nsimbo DC, Katavi, on the Mpanda road. Please confirm."
+ },
+ {
+  "id": "CP-0418",
+  "name": "Kakonko",
+  "region": "Kigoma",
+  "district": "Kakonko",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0427",
+  "name": "Makere",
+  "region": "Kigoma",
+  "district": "Kasulu DC",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0291",
+  "name": "Kasulu",
+  "region": "Kigoma",
+  "district": "Kasulu Town",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0419",
+  "name": "Kibondo",
+  "region": "Kigoma",
+  "district": "Kibondo",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0039",
+  "name": "Masanga Terminal",
+  "region": "Kigoma",
+  "district": "Kigoma Municipal",
+  "country": "TZ",
+  "confidence": "Medium",
+  "note": null
+ },
+ {
+  "id": "CP-0268",
+  "name": "Nguruka",
+  "region": "Kigoma",
+  "district": "Uvinza",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0465",
+  "name": "Rugufu",
+  "region": "Kigoma",
+  "district": "Uvinza",
+  "country": "TZ",
+  "confidence": "Low",
+  "note": "Rugufu is associated with Uvinza DC, but this is not confirmed in NBS. Source said Kasulu DC."
+ },
+ {
+  "id": "CP-0288",
+  "name": "Uvinza",
+  "region": "Kigoma",
+  "district": "Uvinza",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0411",
+  "name": "Boma Ng'Ombe",
+  "region": "Kilimanjaro",
+  "district": "Hai",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0357",
+  "name": "Himo",
+  "region": "Kilimanjaro",
+  "district": "Moshi DC",
+  "country": "TZ",
+  "confidence": "Medium",
+  "note": null
+ },
+ {
+  "id": "CP-0361",
+  "name": "Kibaoni",
+  "region": "Kilimanjaro",
+  "district": "Moshi DC",
+  "country": "TZ",
+  "confidence": "Low",
+  "note": "Kibaoni is a common name; NBS has a ward of this name in Ifakara TC. Source location kept."
+ },
+ {
+  "id": "CP-0429",
+  "name": "Kibosho",
+  "region": "Kilimanjaro",
+  "district": "Moshi DC",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0428",
+  "name": "Marangu Mtoni",
+  "region": "Kilimanjaro",
+  "district": "Moshi DC",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0358",
+  "name": "Mwika",
+  "region": "Kilimanjaro",
+  "district": "Moshi DC",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0009",
+  "name": "Moshi Bus Stand",
+  "region": "Kilimanjaro",
+  "district": "Moshi Municipal",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0390",
+  "name": "Mwanga",
+  "region": "Kilimanjaro",
+  "district": "Mwanga",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0388",
+  "name": "Ugweno",
+  "region": "Kilimanjaro",
+  "district": "Mwanga",
+  "country": "TZ",
+  "confidence": "Medium",
+  "note": null
+ },
+ {
+  "id": "CP-0389",
+  "name": "Usangi",
+  "region": "Kilimanjaro",
+  "district": "Mwanga",
+  "country": "TZ",
+  "confidence": "Medium",
+  "note": null
+ },
+ {
+  "id": "CP-0359",
+  "name": "Mamsera",
+  "region": "Kilimanjaro",
+  "district": "Rombo",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0362",
+  "name": "Rombo",
+  "region": "Kilimanjaro",
+  "district": "Rombo",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0356",
+  "name": "Tarakea Stand",
+  "region": "Kilimanjaro",
+  "district": "Rombo",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0360",
+  "name": "Usa",
+  "region": "Kilimanjaro",
+  "district": "Rombo",
+  "country": "TZ",
+  "confidence": "Low",
+  "note": "No USA ward in Rombo. May mean Usa River (Meru DC, Arusha) or Usseri (Rombo). Source location kept."
+ },
+ {
+  "id": "CP-0425",
+  "name": "Gonja",
+  "region": "Kilimanjaro",
+  "district": "Same",
+  "country": "TZ",
+  "confidence": "Medium",
+  "note": null
+ },
+ {
+  "id": "CP-0431",
+  "name": "Hedaru",
+  "region": "Kilimanjaro",
+  "district": "Same",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0038",
+  "name": "Makanya",
+  "region": "Kilimanjaro",
+  "district": "Same",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0414",
+  "name": "Ndungu",
+  "region": "Kilimanjaro",
+  "district": "Same",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0391",
+  "name": "Same",
+  "region": "Kilimanjaro",
+  "district": "Same",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0409",
+  "name": "Lindi",
+  "region": "Lindi",
+  "district": "Lindi Municipal",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0027",
+  "name": "Liwale Stand",
+  "region": "Lindi",
+  "district": "Liwale",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0350",
+  "name": "Nachingwea",
+  "region": "Lindi",
+  "district": "Nachingwea",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0338",
+  "name": "Ruangwa",
+  "region": "Lindi",
+  "district": "Ruangwa",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0417",
+  "name": "Dareda Centre",
+  "region": "Manyara",
+  "district": "Babati DC",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0467",
+  "name": "Magugu",
+  "region": "Manyara",
+  "district": "Babati DC",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0060",
+  "name": "Babati Stand",
+  "region": "Manyara",
+  "district": "Babati Town",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0016",
+  "name": "Babati Stand Ya Zamani",
+  "region": "Manyara",
+  "district": "Babati Town",
+  "country": "TZ",
+  "confidence": "Medium",
+  "note": null
+ },
+ {
+  "id": "CP-0355",
+  "name": "Katesh",
+  "region": "Manyara",
+  "district": "Hanang",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0451",
+  "name": "Dosidosi",
+  "region": "Manyara",
+  "district": "Kiteto",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0347",
+  "name": "Kiteto",
+  "region": "Manyara",
+  "district": "Kiteto",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0422",
+  "name": "Mbulu",
+  "region": "Manyara",
+  "district": "Mbulu Town",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0439",
+  "name": "Simanjiro",
+  "region": "Manyara",
+  "district": "Simanjiro",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0017",
+  "name": "Bunda Stand",
+  "region": "Mara",
+  "district": "Bunda Town",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0246",
+  "name": "Kyabakari Stand",
+  "region": "Mara",
+  "district": "Butiama",
+  "country": "TZ",
+  "confidence": "Medium",
+  "note": null
+ },
+ {
+  "id": "CP-0247",
+  "name": "Mwibagi Stand",
+  "region": "Mara",
+  "district": "Butiama",
+  "country": "TZ",
+  "confidence": "Medium",
+  "note": null
+ },
+ {
+  "id": "CP-0020",
+  "name": "Bweri Stand",
+  "region": "Mara",
+  "district": "Musoma Municipal",
+  "country": "TZ",
+  "confidence": "Medium",
+  "note": null
+ },
+ {
+  "id": "CP-0029",
+  "name": "Iringo Stand",
+  "region": "Mara",
+  "district": "Musoma Municipal",
+  "country": "TZ",
+  "confidence": "Medium",
+  "note": null
+ },
+ {
+  "id": "CP-0053",
+  "name": "Musoma Stand",
+  "region": "Mara",
+  "district": "Musoma Municipal",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0267",
+  "name": "Mugumu",
+  "region": "Mara",
+  "district": "Serengeti",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0460",
+  "name": "Sirari",
+  "region": "Mara",
+  "district": "Tarime DC",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0270",
+  "name": "Tarime Stand",
+  "region": "Mara",
+  "district": "Tarime Town",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0421",
+  "name": "Chunya",
+  "region": "Mbeya",
+  "district": "Chunya",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0048",
+  "name": "Makongorosi",
+  "region": "Mbeya",
+  "district": "Chunya",
+  "country": "TZ",
+  "confidence": "Medium",
+  "note": null
+ },
+ {
+  "id": "CP-0273",
+  "name": "Kasumulu",
+  "region": "Mbeya",
+  "district": "Kyela",
+  "country": "TZ",
+  "confidence": "Medium",
+  "note": null
+ },
+ {
+  "id": "CP-0032",
+  "name": "Kyela Stand",
+  "region": "Mbeya",
+  "district": "Kyela",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0334",
+  "name": "Igawa",
+  "region": "Mbeya",
+  "district": "Mbarali",
+  "country": "TZ",
+  "confidence": "Medium",
+  "note": null
+ },
+ {
+  "id": "CP-0354",
+  "name": "Igurusi",
+  "region": "Mbeya",
+  "district": "Mbarali",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0333",
+  "name": "Rujewa",
+  "region": "Mbeya",
+  "district": "Mbarali",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0332",
+  "name": "Ubaruku",
+  "region": "Mbeya",
+  "district": "Mbarali",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0012",
+  "name": "Mbeya Stand Kuu",
+  "region": "Mbeya",
+  "district": "Mbeya City",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0023",
+  "name": "Nane Nane",
+  "region": "Mbeya",
+  "district": "Mbeya City",
+  "country": "TZ",
+  "confidence": "Medium",
+  "note": null
+ },
+ {
+  "id": "CP-0011",
+  "name": "Tarafani Stand",
+  "region": "Mbeya",
+  "district": "Mbeya City",
+  "country": "TZ",
+  "confidence": "Medium",
+  "note": null
+ },
+ {
+  "id": "CP-0271",
+  "name": "Uyole",
+  "region": "Mbeya",
+  "district": "Mbeya City",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0459",
+  "name": "Mbalizi",
+  "region": "Mbeya",
+  "district": "Mbeya DC",
+  "country": "TZ",
+  "confidence": "Medium",
+  "note": null
+ },
+ {
+  "id": "CP-0272",
+  "name": "Tukuyu",
+  "region": "Mbeya",
+  "district": "Rungwe",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0325",
+  "name": "Zanzibar",
+  "region": "Mjini Magharibi",
+  "district": "Mjini Municipal",
+  "country": "TZ",
+  "confidence": "Medium",
+  "note": "Placed in Mjini Magharibi on the assumption it means Zanzibar City."
+ },
+ {
+  "id": "CP-0295",
+  "name": "Gairo Stand",
+  "region": "Morogoro",
+  "district": "Gairo",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0037",
+  "name": "Ifakara Bus Stand",
+  "region": "Morogoro",
+  "district": "Ifakara Town",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0312",
+  "name": "Kidatu Stand",
+  "region": "Morogoro",
+  "district": "Ifakara Town",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0013",
+  "name": "Kilombero Bus Stand",
+  "region": "Morogoro",
+  "district": "Ifakara Town",
+  "country": "TZ",
+  "confidence": "Medium",
+  "note": null
+ },
+ {
+  "id": "CP-0364",
+  "name": "Kiswago",
+  "region": "Morogoro",
+  "district": "Ifakara Town",
+  "country": "TZ",
+  "confidence": "Low",
+  "note": "Not found in NBS ward lists; it may be a village. Source location kept."
+ },
+ {
+  "id": "CP-0315",
+  "name": "Mang'Ula Stand",
+  "region": "Morogoro",
+  "district": "Ifakara Town",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0410",
+  "name": "Mwaya",
+  "region": "Morogoro",
+  "district": "Ifakara Town",
+  "country": "TZ",
+  "confidence": "Medium",
+  "note": null
+ },
+ {
+  "id": "CP-0294",
+  "name": "Dumila Stand",
+  "region": "Morogoro",
+  "district": "Kilosa",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0461",
+  "name": "Ikule",
+  "region": "Morogoro",
+  "district": "Kilosa",
+  "country": "TZ",
+  "confidence": "Low",
+  "note": "Not found in NBS ward lists; it may be a village. Source location kept."
+ },
+ {
+  "id": "CP-0078",
+  "name": "Kilosa Bus Stand",
+  "region": "Morogoro",
+  "district": "Kilosa",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0306",
+  "name": "Kimamba",
+  "region": "Morogoro",
+  "district": "Kilosa",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0304",
+  "name": "Kitete Stand",
+  "region": "Morogoro",
+  "district": "Kilosa",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0305",
+  "name": "Magole Steti Stand",
+  "region": "Morogoro",
+  "district": "Kilosa",
+  "country": "TZ",
+  "confidence": "Medium",
+  "note": "Read as Magole station (steti), Magole ward, Kilosa DC."
+ },
+ {
+  "id": "CP-0317",
+  "name": "Mikumi",
+  "region": "Morogoro",
+  "district": "Kilosa",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0303",
+  "name": "Msowero Stand",
+  "region": "Morogoro",
+  "district": "Kilosa",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0307",
+  "name": "Rudewa Batini Stand",
+  "region": "Morogoro",
+  "district": "Kilosa",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0275",
+  "name": "Malinyi",
+  "region": "Morogoro",
+  "district": "Malinyi",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0276",
+  "name": "Chita",
+  "region": "Morogoro",
+  "district": "Mlimba",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0274",
+  "name": "Mlimba",
+  "region": "Morogoro",
+  "district": "Mlimba",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0434",
+  "name": "Ngerengere",
+  "region": "Morogoro",
+  "district": "Morogoro DC",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0025",
+  "name": "Msamvu",
+  "region": "Morogoro",
+  "district": "Morogoro Municipal",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0436",
+  "name": "Doma",
+  "region": "Morogoro",
+  "district": "Mvomero",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0344",
+  "name": "Turiani",
+  "region": "Morogoro",
+  "district": "Mvomero",
+  "country": "TZ",
+  "confidence": "Medium",
+  "note": null
+ },
+ {
+  "id": "CP-0063",
+  "name": "Mahenge Stand",
+  "region": "Morogoro",
+  "district": "Ulanga",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0031",
+  "name": "Masasi Bus Stand",
+  "region": "Mtwara",
+  "district": "Masasi Town",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0399",
+  "name": "Mtwara Mjini",
+  "region": "Mtwara",
+  "district": "Mtwara Municipal",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0426",
+  "name": "Mangaka",
+  "region": "Mtwara",
+  "district": "Nanyumbu",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0393",
+  "name": "Mtambaswala",
+  "region": "Mtwara",
+  "district": "Nanyumbu",
+  "country": "TZ",
+  "confidence": "Medium",
+  "note": null
+ },
+ {
+  "id": "CP-0384",
+  "name": "Newala",
+  "region": "Mtwara",
+  "district": "Newala Town",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0351",
+  "name": "Tandahimba",
+  "region": "Mtwara",
+  "district": "Tandahimba",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0018",
+  "name": "Nyamongoro",
+  "region": "Mwanza",
+  "district": "Ilemela Municipal",
+  "country": "TZ",
+  "confidence": "Medium",
+  "note": null
+ },
+ {
+  "id": "CP-0238",
+  "name": "Misungwi",
+  "region": "Mwanza",
+  "district": "Misungwi",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0239",
+  "name": "Usagara",
+  "region": "Mwanza",
+  "district": "Misungwi",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0030",
+  "name": "Nata",
+  "region": "Mwanza",
+  "district": "Mwanza City",
+  "country": "TZ",
+  "confidence": "Low",
+  "note": "NBS has Nata in Nzega DC and Natta in Serengeti DC, but neither is in Mwanza. Source location kept."
+ },
+ {
+  "id": "CP-0015",
+  "name": "Nyegezi",
+  "region": "Mwanza",
+  "district": "Mwanza City",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0323",
+  "name": "Nyegezi - Kamanga",
+  "region": "Mwanza",
+  "district": "Mwanza City",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0394",
+  "name": "Ukerewe",
+  "region": "Mwanza",
+  "district": "Ukerewe",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0298",
+  "name": "Ludewa Stand",
+  "region": "Njombe",
+  "district": "Ludewa",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0445",
+  "name": "Maguvani",
+  "region": "Njombe",
+  "district": "Makambako Town",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0047",
+  "name": "Makambako Stand",
+  "region": "Njombe",
+  "district": "Makambako Town",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0034",
+  "name": "Njombe Stand",
+  "region": "Njombe",
+  "district": "Njombe Town",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0435",
+  "name": "Ilembula",
+  "region": "Njombe",
+  "district": "Wanging'ombe",
+  "country": "TZ",
+  "confidence": "Medium",
+  "note": null
+ },
+ {
+  "id": "CP-0455",
+  "name": "Bagamoyo",
+  "region": "Pwani",
+  "district": "Bagamoyo",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0458",
+  "name": "Chalinze",
+  "region": "Pwani",
+  "district": "Chalinze",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0036",
+  "name": "Kibaha Bus Stand",
+  "region": "Pwani",
+  "district": "Kibaha Town",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0314",
+  "name": "Mkamba Stand",
+  "region": "Pwani",
+  "district": "Mkuranga",
+  "country": "TZ",
+  "confidence": "Low",
+  "note": "Only NBS ward match is Mkamba in Mkuranga DC, Pwani. Source created it alongside Kilombero-area stands, so please confirm."
+ },
+ {
+  "id": "CP-0443",
+  "name": "Namanyere",
+  "region": "Rukwa",
+  "district": "Nkasi",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0335",
+  "name": "Sumbawanga Stand",
+  "region": "Rukwa",
+  "district": "Sumbawanga Municipal",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0433",
+  "name": "Madaba",
+  "region": "Ruvuma",
+  "district": "Madaba",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0269",
+  "name": "Mbinga Stand",
+  "region": "Ruvuma",
+  "district": "Mbinga Town",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0420",
+  "name": "Namtumbo",
+  "region": "Ruvuma",
+  "district": "Namtumbo",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0237",
+  "name": "Songea",
+  "region": "Ruvuma",
+  "district": "Songea Municipal",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0321",
+  "name": "Tunduru",
+  "region": "Ruvuma",
+  "district": "Tunduru",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0069",
+  "name": "Kagongwa",
+  "region": "Shinyanga",
+  "district": "Kahama Municipal",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0046",
+  "name": "Kahama Stand Kuu",
+  "region": "Shinyanga",
+  "district": "Kahama Municipal",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0074",
+  "name": "Lohumbo",
+  "region": "Shinyanga",
+  "district": "Kishapu",
+  "country": "TZ",
+  "confidence": "Medium",
+  "note": null
+ },
+ {
+  "id": "CP-0066",
+  "name": "Isaka",
+  "region": "Shinyanga",
+  "district": "Msalala",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0376",
+  "name": "Tinde Stand",
+  "region": "Shinyanga",
+  "district": "Shinyanga DC",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0044",
+  "name": "Shinyanga Bus Stand",
+  "region": "Shinyanga",
+  "district": "Shinyanga Municipal",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0064",
+  "name": "Bariadi Stand",
+  "region": "Simiyu",
+  "district": "Bariadi Town",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0065",
+  "name": "Somanda",
+  "region": "Simiyu",
+  "district": "Bariadi Town",
+  "country": "TZ",
+  "confidence": "Medium",
+  "note": null
+ },
+ {
+  "id": "CP-0072",
+  "name": "Lamadi",
+  "region": "Simiyu",
+  "district": "Busega",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0061",
+  "name": "Maswa Stand",
+  "region": "Simiyu",
+  "district": "Maswa",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0320",
+  "name": "Kiomboi",
+  "region": "Singida",
+  "district": "Iramba",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0241",
+  "name": "Misigiri",
+  "region": "Singida",
+  "district": "Iramba",
+  "country": "TZ",
+  "confidence": "Medium",
+  "note": null
+ },
+ {
+  "id": "CP-0423",
+  "name": "Shelui",
+  "region": "Singida",
+  "district": "Iramba",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0292",
+  "name": "Itigi Stand",
+  "region": "Singida",
+  "district": "Itigi",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0446",
+  "name": "Mitundu",
+  "region": "Singida",
+  "district": "Itigi",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0293",
+  "name": "Manyoni Stand",
+  "region": "Singida",
+  "district": "Manyoni",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0050",
+  "name": "Misuna Bus Stand",
+  "region": "Singida",
+  "district": "Singida Municipal",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0265",
+  "name": "Ileje",
+  "region": "Songwe",
+  "district": "Ileje",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0259",
+  "name": "Ihanda",
+  "region": "Songwe",
+  "district": "Mbozi",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0266",
+  "name": "Mbozi",
+  "region": "Songwe",
+  "district": "Mbozi",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0260",
+  "name": "Mlowo",
+  "region": "Songwe",
+  "district": "Mbozi",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0263",
+  "name": "Vwawa",
+  "region": "Songwe",
+  "district": "Mbozi",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0264",
+  "name": "Momba",
+  "region": "Songwe",
+  "district": "Momba",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0258",
+  "name": "Songwe Bus Stand",
+  "region": "Songwe",
+  "district": "Songwe",
+  "country": "TZ",
+  "confidence": "Low",
+  "note": "No place of this exact name confirmed. Source district name kept."
+ },
+ {
+  "id": "CP-0261",
+  "name": "Tunduma Stand",
+  "region": "Songwe",
+  "district": "Tunduma Town",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0076",
+  "name": "Iborogelo",
+  "region": "Tabora",
+  "district": "Igunga",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0052",
+  "name": "Igunga",
+  "region": "Tabora",
+  "district": "Igunga",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0073",
+  "name": "Ziba",
+  "region": "Tabora",
+  "district": "Igunga",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0353",
+  "name": "Kaliua",
+  "region": "Tabora",
+  "district": "Kaliua",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0352",
+  "name": "Usinge",
+  "region": "Tabora",
+  "district": "Kaliua",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0055",
+  "name": "Nzega Stand",
+  "region": "Tabora",
+  "district": "Nzega Town",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0385",
+  "name": "Sikonge",
+  "region": "Tabora",
+  "district": "Sikonge",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0079",
+  "name": "Tabora Stand Kuu",
+  "region": "Tabora",
+  "district": "Tabora Municipal",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0316",
+  "name": "Urambo",
+  "region": "Tabora",
+  "district": "Urambo",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0313",
+  "name": "Tura Stand",
+  "region": "Tabora",
+  "district": "Uyui",
+  "country": "TZ",
+  "confidence": "Medium",
+  "note": "NBS ward Tura is in Uyui DC, Tabora. Source created it alongside Kilombero-area stands, so it may mean another place."
+ },
+ {
+  "id": "CP-0327",
+  "name": "Bumbuli",
+  "region": "Tanga",
+  "district": "Bumbuli",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0365",
+  "name": "Mkata",
+  "region": "Tanga",
+  "district": "Handeni DC",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0331",
+  "name": "Handeni",
+  "region": "Tanga",
+  "district": "Handeni Town",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0328",
+  "name": "Kilindi",
+  "region": "Tanga",
+  "district": "Kilindi",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0449",
+  "name": "Kwediboma",
+  "region": "Tanga",
+  "district": "Kilindi",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0440",
+  "name": "Songe",
+  "region": "Tanga",
+  "district": "Kilindi",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0466",
+  "name": "Daruni",
+  "region": "Tanga",
+  "district": "Korogwe DC",
+  "country": "TZ",
+  "confidence": "Low",
+  "note": "Not found in NBS ward lists; it may be a village. Source location kept."
+ },
+ {
+  "id": "CP-0329",
+  "name": "Korogwe",
+  "region": "Tanga",
+  "district": "Korogwe DC",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0416",
+  "name": "Mashewa",
+  "region": "Tanga",
+  "district": "Korogwe DC",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0330",
+  "name": "Lushoto",
+  "region": "Tanga",
+  "district": "Lushoto",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0342",
+  "name": "Muheza",
+  "region": "Tanga",
+  "district": "Muheza",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0386",
+  "name": "Pangani",
+  "region": "Tanga",
+  "district": "Pangani",
+  "country": "TZ",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0021",
+  "name": "Kange Stand",
+  "region": "Tanga",
+  "district": "Tanga City",
+  "country": "TZ",
+  "confidence": "Medium",
+  "note": null
+ },
+ {
+  "id": "CP-0346",
+  "name": "Kwasioni",
+  "region": "Bujumbura Mairie",
+  "district": "Buyenzi (commune)",
+  "country": "BI",
+  "confidence": "Medium",
+  "note": "Source district Buyenzi kept; Kwasioni itself was not verified."
+ },
+ {
+  "id": "CP-0447",
+  "name": "Likasi",
+  "region": "Haut-Katanga",
+  "district": "Likasi",
+  "country": "CD",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0381",
+  "name": "Lubumbashi",
+  "region": "Haut-Katanga",
+  "district": "Lubumbashi",
+  "country": "CD",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0448",
+  "name": "Kolwezi",
+  "region": "Lualaba",
+  "district": "Kolwezi",
+  "country": "CD",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0383",
+  "name": "Goma",
+  "region": "Nord-Kivu",
+  "district": "Goma",
+  "country": "CD",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0415",
+  "name": "Kalemie",
+  "region": "Tanganyika (DRC)",
+  "district": "Kalemie",
+  "country": "CD",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0319",
+  "name": "Mombasa",
+  "region": "Mombasa County",
+  "district": "Mombasa",
+  "country": "KE",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0402",
+  "name": "Nairobi",
+  "region": "Nairobi City",
+  "district": "Nairobi",
+  "country": "KE",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0397",
+  "name": "Lilongwe",
+  "region": "Central Region (Malawi)",
+  "district": "Lilongwe",
+  "country": "MW",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0424",
+  "name": "Kigali",
+  "region": "City of Kigali",
+  "district": "Kigali",
+  "country": "RW",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0336",
+  "name": "Namaiba",
+  "region": "Central Region (Uganda)",
+  "district": "Mukono District",
+  "country": "UG",
+  "confidence": "Medium",
+  "note": "Mukono is an official Ugandan district; Namaiba itself was not verified."
+ },
+ {
+  "id": "CP-0398",
+  "name": "Lusaka",
+  "region": "Lusaka Province",
+  "district": "Lusaka",
+  "country": "ZM",
+  "confidence": "High",
+  "note": null
+ },
+ {
+  "id": "CP-0457",
+  "name": "Harare",
+  "region": "Harare Province",
+  "district": "Harare",
+  "country": "ZW",
+  "confidence": "High",
+  "note": null
+ }
+]
