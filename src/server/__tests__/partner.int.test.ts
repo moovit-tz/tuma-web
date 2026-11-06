@@ -104,7 +104,7 @@ describe("invoicing and reconciliation", () => {
     expect(open.map((o) => o.waybill)).toEqual(expect.arrayContaining([a.waybill, b.waybill]));
 
     const inv = await createInvoice(kfAdmin, clientId, [a.waybill, b.waybill]);
-    expect(inv.number).toMatch(/^INV-\d{4}-0001$/);
+    expect(inv.number).toMatch(/^INV-[A-Z]{3}\d{0,2}-\d{4}-0001$/);
     expect(inv.total).toBe(a.totalCharge + b.totalCharge);
     expect(inv.subtotal + inv.tax).toBe(inv.total);
     await expect(createInvoice(kfAdmin, clientId, [a.waybill])).rejects.toMatchObject({ code: "STALE" });

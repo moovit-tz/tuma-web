@@ -4,6 +4,7 @@ import { z } from "zod";
 import { db } from "../db/client";
 import { branches, partnerClients, partnerInvoices, partnerPayments, shipments, vehicles } from "../db/schema";
 import { effectiveBranch } from "./branches";
+import { nextInvoiceNumber } from "./invoice-numbers";
 import { audit } from "../audit";
 import { enqueue } from "../adapters/outbox";
 import { DomainError } from "./shipments";
@@ -441,9 +442,7 @@ export async function createInvoice(user: CurrentUser, clientId: string, waybill
 
     await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${pid}))`);
     const now = new Date();
-    const yymm = `${String(now.getUTCFullYear()).slice(2)}${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
-    const [{ n }] = await tx.select({ n: count() }).from(partnerInvoices).where(and(eq(partnerInvoices.partnerAccountId, pid), ilike(partnerInvoices.number, `INV-${yymm}-%`)));
-    const number = `INV-${yymm}-${String(n + 1).padStart(4, "0")}`;
+    const number = await nextInvoiceNumber(tx, pid, now);
     const lines = rows.map((r) => ({ waybill: r.waybill, description: r.goodsDescription, amount: r.totalCharge }));
     const total = lines.reduce((a, l) => a + l.amount, 0);
     const tax = Math.round((total * VAT) / (1 + VAT));
