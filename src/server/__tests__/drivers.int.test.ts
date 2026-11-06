@@ -6,6 +6,7 @@ import { codRecords, drivers, events, jobs, shipments } from "../db/schema";
 import { resolvePermissions } from "../rbac";
 import { createParcel } from "../services/shipments";
 import { issueReceiverCode } from "../services/tracking";
+import { encodeFeed, gtfsFeed, liveFor } from "../services/live-tracking";
 import { verifyDriverToken } from "../auth/driver-token";
 import { verifySession } from "../auth/session-token";
 import {
@@ -205,6 +206,22 @@ describe("a job from dispatch to delivery", () => {
     const [j] = await db.select().from(jobs).where(eq(jobs.id, jobId));
     expect(j).toMatchObject({ status: "in_progress", phase: "outForDelivery" });
     await expect(completeJob(juma, jobId, {})).rejects.toMatchObject({ code: "STOPS_PENDING" });
+  });
+
+  it("tracks the parcel live while the courier carries it, and publishes it as GTFS-Realtime", async () => {
+    const [a] = await db.select({ id: shipments.id }).from(shipments).where(eq(shipments.waybill, wbA));
+    const open = await liveFor(a.id, false);
+    expect(open).toMatchObject({ stage: "on_the_way", position: { lat: -6.8, lng: 39.25, exact: false }, stale: false, destination: null });
+    expect((await liveFor(a.id, true))!.position.exact).toBe(true);
+    const feed = await gtfsFeed({ shipmentId: a.id, exact: false });
+    expect(feed.entity).toHaveLength(1);
+    expect(feed.entity[0].vehicle).toMatchObject({ stopId: wbA, position: { latitude: -6.8, longitude: 39.25 } });
+    expect(feed.entity[0].vehicle!.vehicle!.id).toMatch(/^v-[0-9a-f]{12}$/);
+    // The wire format round-trips.
+    const { body, type } = encodeFeed(feed, false);
+    expect(type).toBe("application/x-protobuf");
+    expect((body as Uint8Array).length).toBeGreaterThan(20);
+    expect(JSON.parse(encodeFeed(feed, true).body as string).entity[0].vehicle.trip.tripId).toBe(feed.entity[0].vehicle!.trip!.tripId);
   });
 
   it("needs proof and the full COD to deliver, then records who holds the cash", async () => {

@@ -1,4 +1,5 @@
 import "server-only";
+import { liveFor } from "./live-tracking";
 import { asc, eq } from "drizzle-orm";
 import { createHash, randomInt, timingSafeEqual } from "node:crypto";
 import { and, desc, gte, sql } from "drizzle-orm";
@@ -74,6 +75,8 @@ export async function publicTracking(raw: string, verified = false) {
       : { name: maskName(s.consignee.name), phone: maskPhone(s.consignee.phone), address: { region: s.consignee.address.region, district: s.consignee.address.district } },
     // Public timeline: state changes plus estimated milestones (FR-TRK-03), never internal notes or actors.
     timeline: evts.filter((e) => e.stateAfter || e.estimated),
+    // A Tuma courier carrying it right now: where they are (exact once verified) and a rough ETA.
+    live: await liveFor(s.id, verified),
   };
 }
 
