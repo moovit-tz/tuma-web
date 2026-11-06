@@ -36,6 +36,8 @@ export const pointsSchema = z.object({
   lng: z.coerce.number().min(29).max(41).optional(),
   region: z.string().trim().max(60).optional(),
   q: z.string().trim().max(60).optional(),
+  /** Only this business's points (where a parcel dropped at one of its offices can be collected). */
+  business: z.string().trim().max(80).optional(),
 });
 
 /**
@@ -56,6 +58,7 @@ export async function tumaPoints(raw: unknown) {
       phone: branches.phone,
       lat: branches.lat,
       lng: branches.lng,
+      payOnDelivery: accounts.payOnDelivery,
     })
     .from(branches)
     .innerJoin(accounts, eq(accounts.id, branches.accountId))
@@ -65,11 +68,13 @@ export async function tumaPoints(raw: unknown) {
         eq(accounts.partnerKind, "parcel_agent"),
         inArray(accounts.status, ["active", "pending"]),
         isNotNull(branches.lat),
+        f.business ? eq(accounts.id, f.business) : undefined,
         f.q ? or(sql`${branches.name} ilike ${"%" + f.q + "%"}`, sql`${accounts.name} ilike ${"%" + f.q + "%"}`, sql`${branches.district} ilike ${"%" + f.q + "%"}`) : undefined,
       ),
     );
   const here = f.lat != null && f.lng != null ? { lat: f.lat, lng: f.lng } : null;
-  const points = rows.map(({ accountId: _a, ...p }) => ({ ...p, km: here ? Math.round(km(here, { lat: p.lat!, lng: p.lng! }) * 10) / 10 : null }));
+  // businessId: a parcel collected at a point must go to one of the same business.
+  const points = rows.map(({ accountId, ...p }) => ({ ...p, businessId: accountId, km: here ? Math.round(km(here, { lat: p.lat!, lng: p.lng! }) * 10) / 10 : null }));
   points.sort((a, b) =>
     here ? a.km! - b.km! : Number(b.region === f.region) - Number(a.region === f.region) || a.region.localeCompare(b.region) || a.name.localeCompare(b.name),
   );
