@@ -1,0 +1,198 @@
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { createHash, randomBytes } from "node:crypto";
+import { eq, inArray, sql } from "drizzle-orm";
+import { db } from "../db/client";
+import { accounts, agents, branches, customers, events, invoices, kybApplications, parcelPayments, paymentSettings, platformSettings, rolePermissions, roles, shipments, users } from "../db/schema";
+import { driverContext, finishDriverLogin, swapHandoff, type DriverCtx } from "../services/drivers";
+import { submitKyb } from "../services/kyb";
+import { agentBook } from "../services/agent-parcels";
+import { createManifest, dispatchOptions, listManifests, manifestDetail } from "../services/manifests";
+import { verifyDriverToken } from "../auth/driver-token";
+import { DEFAULT_ROLES } from "@/domain/roles";
+
+const OWNER = "ondi|manifest.test.owner";
+const RIDER = "ondi|manifest.test.rider";
+const OTHER = "ondi|manifest.test.point";
+const SUBS = [OWNER, RIDER, OTHER];
+
+async function signIn(sub: string, name: string, phone: string): Promise<DriverCtx> {
+  const verifier = randomBytes(32).toString("base64url");
+  const challenge = createHash("sha256").update(verifier).digest("base64url");
+  const code = await finishDriverLogin({ sub, name, email: `${sub.split("|")[1]}@example.test`, phone, roles: [] }, challenge);
+  const { token } = await swapHandoff(code, verifier);
+  return (await driverContext(await verifyDriverToken(token)))!;
+}
+
+const list = (xs: string[]) => sql.join(xs.map((x) => sql`${x}`), sql`, `);
+
+async function cleanup() {
+  const apps = await db.select({ accountId: kybApplications.accountId }).from(kybApplications).where(inArray(kybApplications.userId, SUBS));
+  const mine = await db.select({ accountId: users.accountId }).from(users).where(inArray(users.id, SUBS));
+  const accts = [...new Set([...apps, ...mine].map((r) => r.accountId).filter((a): a is string => !!a))];
+  await db.execute(sql`delete from kyb_events where application_id in (select id from kyb_applications where user_id in (${list(SUBS)}))`);
+  await db.update(users).set({ accountId: null, branchId: null }).where(inArray(users.id, SUBS));
+  await db.delete(kybApplications).where(inArray(kybApplications.userId, SUBS));
+  if (accts.length) {
+    const jobIds = sql`(select job_id from manifests where account_id in (${list(accts)}) and job_id is not null)`;
+    await db.execute(sql`delete from job_shipments where job_id in ${jobIds}`);
+    const ids = (await db.execute(sql`select job_id from manifests where account_id in (${list(accts)}) and job_id is not null`)) as unknown as { job_id: string }[];
+    await db.execute(sql`delete from manifests where account_id in (${list(accts)}) or to_account_id in (${list(accts)})`);
+    if (ids.length) await db.execute(sql`delete from jobs where id in (${list(ids.map((i) => i.job_id))})`);
+    const sh = sql`(select id from shipments where account_id in (${list(accts)}))`;
+    for (const t of ["pieces", "events", "charge_snapshots", "cod_records", "exceptions", "notifications", "job_shipments"]) {
+      await db.execute(sql`delete from ${sql.identifier(t)} where shipment_id in ${sh}`);
+    }
+    await db.delete(parcelPayments).where(inArray(parcelPayments.accountId, accts));
+    await db.delete(invoices).where(inArray(invoices.accountId, accts));
+    await db.delete(paymentSettings).where(inArray(paymentSettings.accountId, accts));
+    await db.delete(shipments).where(inArray(shipments.accountId, accts));
+    await db.delete(customers).where(inArray(customers.accountId, accts));
+    await db.delete(agents).where(inArray(agents.accountId, accts));
+    await db.delete(branches).where(inArray(branches.accountId, accts));
+    await db.delete(accounts).where(inArray(accounts.id, accts));
+  }
+  await db.execute(sql`delete from driver_handoffs where user_id in (${list(SUBS)})`);
+  await db.delete(users).where(inArray(users.id, SUBS));
+}
+
+beforeAll(async () => {
+  delete process.env.HUDUPAY_URL;
+  for (const key of ["parcel_agent", "agent_rider"]) {
+    const r = DEFAULT_ROLES.find((x) => x.key === key)!;
+    await db.insert(roles).values({ key: r.key, name: r.name, description: r.description, surface: r.surface, system: true }).onConflictDoNothing();
+    await db.insert(rolePermissions).values(r.permissions.map((p) => ({ roleKey: r.key, permission: p }))).onConflictDoNothing();
+  }
+  await db.insert(platformSettings).values({ key: "pendingParcelAllowance", value: 20 }).onConflictDoUpdate({ target: platformSettings.key, set: { value: 20 } });
+  await cleanup();
+});
+afterAll(async () => {
+  await cleanup();
+  await db.$client.end();
+});
+
+async function agentOffice(sub: string, name: string, phone: string, tin: string, region: string, district: string) {
+  const ctx = await signIn(sub, name, phone);
+  await submitKyb(ctx, {
+    businessName: `${name} Parcels`,
+    businessType: "sole_trader",
+    tin,
+    office: { region, district, street: "Main Rd", phone, lat: region === "Mwanza" ? -2.52 : -6.8, lng: region === "Mwanza" ? 32.9 : 39.27 },
+    contact: { name, phone },
+    workflow: ["receive", "deliver"],
+    declaration: true,
+  });
+  // Approved: dispatch waits for approval.
+  const [k] = await db.select({ accountId: kybApplications.accountId }).from(kybApplications).where(eq(kybApplications.userId, sub));
+  await db.update(accounts).set({ status: "active", payOnDelivery: true }).where(eq(accounts.id, k.accountId!));
+  const me = (await driverContext(sub))!;
+  const [b] = await db.select({ id: branches.id }).from(branches).where(eq(branches.accountId, me.user.accountId!));
+  return { ctx: me, branchId: b.id };
+}
+
+const booking = (over: Record<string, unknown> = {}) => ({
+  sender: { name: "Rehema Sender", phone: "0712 111 222" },
+  receiver: { name: "Baraka Receiver", phone: "0754 333 444", region: "Dar es Salaam", district: "Ilala", landmark: "Near Kariakoo market" },
+  goods: "Two pairs of shoes",
+  weightKg: 2,
+  size: "small",
+  payer: "receiver",
+  price: 7000,
+  declaredValue: 50000,
+  noProhibited: true,
+  ...over,
+});
+
+describe("sending parcels on from an office under a manifest", () => {
+  let owner: DriverCtx;
+  let riderId: string;
+  let mwanza: string;
+  const wbs: string[] = [];
+
+  it("lists who can carry: the office's people with dispatch, and Tuma couriers", async () => {
+    const a = await agentOffice(OWNER, "Amina Sender", "+255713400500", "717-272-636", "Dar es Salaam", "Ilala");
+    owner = a.ctx;
+    const b = await agentOffice(OTHER, "Mussa Point", "+255713400600", "727-272-636", "Mwanza", "Ilemela");
+    mwanza = b.branchId;
+    const rider = await signIn(RIDER, "Juma Rider", "+255713400700");
+    riderId = rider.user.id;
+    await db.update(users).set({ accountId: owner.user.accountId, branchId: null, roles: ["agent_rider"] }).where(eq(users.id, riderId));
+    for (let i = 0; i < 5; i++) wbs.push((await agentBook(owner.user, booking())).parcel.waybill);
+    const o = await dispatchOptions(owner.user);
+    expect(o.couriers.map((c) => c.name)).toEqual(expect.arrayContaining(["Juma Rider", "Amina Sender"]));
+    expect(o.couriers.find((c) => c.id === owner.user.id)?.you).toBe(true);
+    expect(typeof o.tumaCourier).toBe("boolean");
+  });
+
+  it("sends two to the door with the office's rider: out for delivery, on one manifest", async () => {
+    const m = await createManifest(owner.user, { waybills: [wbs[0], wbs[1]], mode: "door", carrier: { kind: "staff", userId: riderId } });
+    expect(m).toMatchObject({ mode: "door", status: "on_the_way", outgoing: true, to: null, carrier: { kind: "staff", name: "Juma Rider" }, totals: { parcels: 2, arrived: 0 } });
+    expect(m.ref).toMatch(/^MAN-/);
+    expect(m.parcels.map((p) => [p.seq, p.waybill, p.state])).toEqual([
+      [1, wbs[0], "OUT_FOR_DELIVERY"],
+      [2, wbs[1], "OUT_FOR_DELIVERY"],
+    ]);
+    const [ev] = await db
+      .select({ data: events.data })
+      .from(events)
+      .innerJoin(shipments, eq(shipments.id, events.shipmentId))
+      .where(sql`${shipments.waybill} = ${wbs[0]} and ${events.stateAfter} = 'OUT_FOR_DELIVERY'`);
+    expect(ev.data).toMatchObject({ manifest: m.ref });
+  });
+
+  it("won't put a parcel on a second manifest, or send one that isn't in hand", async () => {
+    await expect(createManifest(owner.user, { waybills: [wbs[0]], mode: "door", carrier: { kind: "staff", userId: riderId } })).rejects.toMatchObject({ code: "NOT_SENDABLE" });
+    await expect(createManifest(owner.user, { waybills: ["TUM000000000"], mode: "door", carrier: { kind: "staff", userId: riderId } })).rejects.toMatchObject({ code: "NOT_FOUND" });
+  });
+
+  it("refuses carriers that don't fit the run, and a point run with nowhere to go", async () => {
+    await expect(createManifest(owner.user, { waybills: [wbs[2]], mode: "door", carrier: { kind: "transporter", name: "Abood Bus" } })).rejects.toMatchObject({ code: "BAD_CARRIER" });
+    await expect(createManifest(owner.user, { waybills: [wbs[2]], mode: "point", carrier: { kind: "tuma" } })).rejects.toMatchObject({ code: "BAD_CARRIER" });
+    await expect(createManifest(owner.user, { waybills: [wbs[2]], mode: "point", carrier: { kind: "transporter", name: "Abood Bus" } })).rejects.toMatchObject({ code: "DESTINATION_REQUIRED" });
+    await expect(createManifest(owner.user, { waybills: [wbs[2]], mode: "door", carrier: { kind: "staff", userId: OTHER } })).rejects.toMatchObject({ code: "BAD_CARRIER" });
+  });
+
+  it("sends two to another Tuma point by bus: in transit, and the point sees them coming", async () => {
+    const m = await createManifest(owner.user, {
+      waybills: [wbs[2], wbs[3]],
+      mode: "point",
+      toBranchId: mwanza,
+      carrier: { kind: "transporter", name: "Abood Bus", phone: "0713 999 888", plate: "t 123 abc", ref: "Ticket 4471" },
+      note: "Two boxes, top rack",
+    });
+    expect(m).toMatchObject({ mode: "point", to: { id: mwanza, business: "Mussa Point Parcels" }, carrier: { kind: "transporter", name: "Abood Bus", phone: "+255713999888", plate: "T 123 ABC", ref: "Ticket 4471" } });
+    expect(m.parcels.every((p) => p.state === "IN_TRANSIT")).toBe(true);
+    const point = (await driverContext(OTHER))!;
+    const coming = await listManifests(point.user, { dir: "in" });
+    expect(coming.manifests.map((x) => x.ref)).toEqual([m.ref]);
+    expect(coming.manifests[0]).toMatchObject({ parcels: 2, arrived: 0, fromName: expect.any(String), toName: expect.any(String) });
+    expect((await manifestDetail(point.user, m.id)).outgoing).toBe(false);
+    const sent = await listManifests(owner.user, { dir: "out" });
+    expect(sent.manifests.map((s) => s.mode)).toEqual(["point", "door"]);
+  });
+
+  it("sends one to the door with a Tuma courier: a job in Tuma's pool from this office; it moves when picked up", async () => {
+    const m = await createManifest(owner.user, { waybills: [wbs[4]], mode: "door", carrier: { kind: "tuma" } });
+    expect(m).toMatchObject({ carrier: { kind: "tuma" }, job: { status: "open", assigned: false } });
+    expect(m.parcels[0].state).toBe("RECEIVED");
+    const [j] = (await db.execute(sql`select j.account_id, j.pickup, j.payout from jobs j join manifests m on m.job_id = j.id where m.id = ${m.id}`)) as unknown as {
+      account_id: string;
+      pickup: { name: string; lat: number };
+      payout: number;
+    }[];
+    const [pool] = await db.select({ id: accounts.id }).from(accounts).where(eq(accounts.type, "internal")).orderBy(accounts.id).limit(1);
+    expect(j.account_id).toBe(pool.id);
+    expect(j.pickup.name).toContain("Amina Sender Parcels");
+    expect(j.payout).toBeGreaterThan(0);
+    await expect(createManifest(owner.user, { waybills: [wbs[4]], mode: "door", carrier: { kind: "staff", userId: riderId } })).rejects.toMatchObject({ code: "ON_MANIFEST" });
+  });
+
+  it("keeps manifests to the two offices on them", async () => {
+    const sent = await listManifests(owner.user, { dir: "out" });
+    expect(sent.manifests.length).toBeGreaterThan(0);
+    const rider = (await driverContext(RIDER))!;
+    await expect(dispatchOptions({ ...rider.user, permissions: new Set(["agent.workspace"]) })).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await db.update(users).set({ accountId: null, roles: [] }).where(eq(users.id, RIDER));
+    const outsider = (await driverContext(RIDER))!;
+    await expect(manifestDetail({ ...outsider.user, accountId: "acc_nobody" }, sent.manifests[0].id)).rejects.toMatchObject({ code: "NOT_FOUND" });
+  });
+});

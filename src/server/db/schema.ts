@@ -775,6 +775,57 @@ export const jobShipments = pgTable(
   (t) => [primaryKey({ columns: [t.jobId, t.shipmentId] }), index("job_shipments_shipment_idx").on(t.shipmentId)],
 );
 
+/**
+ * A dispatch manifest: parcels an office sends out together, who carries them and where they go. A door run goes to
+ * receivers' doors (the office's own courier, or a Tuma courier job); a point run takes them to another Tuma point,
+ * which offloads them against this list. on_the_way → arrived (point run, everything scanned in) | done (door run).
+ */
+export const manifests = pgTable(
+  "manifests",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    ref: text("ref").notNull(),
+    accountId: text("account_id")
+      .notNull()
+      .references(() => accounts.id),
+    fromBranchId: uuid("from_branch_id").references(() => branches.id),
+    /** door | point */
+    mode: text("mode").notNull(),
+    toAccountId: text("to_account_id").references(() => accounts.id),
+    toBranchId: uuid("to_branch_id").references(() => branches.id),
+    /** staff (one of the office's people) | tuma (a Tuma courier, see jobId) | transporter (a bus, lorry or boda). */
+    carrier: jsonb("carrier")
+      .$type<{ kind: "staff" | "tuma" | "transporter"; userId?: string; name: string; phone?: string; company?: string; plate?: string; ref?: string }>()
+      .notNull(),
+    jobId: uuid("job_id").references(() => jobs.id),
+    status: text("status").notNull().default("on_the_way"),
+    note: text("note"),
+    createdBy: text("created_by")
+      .notNull()
+      .references(() => users.id),
+    createdAt: ts("created_at").notNull().defaultNow(),
+    arrivedAt: ts("arrived_at"),
+  },
+  (t) => [uniqueIndex("manifests_ref_uq").on(t.ref), index("manifests_from_idx").on(t.accountId, t.createdAt), index("manifests_to_idx").on(t.toBranchId, t.status)],
+);
+
+export const manifestItems = pgTable(
+  "manifest_items",
+  {
+    manifestId: uuid("manifest_id")
+      .notNull()
+      .references(() => manifests.id, { onDelete: "cascade" }),
+    shipmentId: uuid("shipment_id")
+      .notNull()
+      .references(() => shipments.id),
+    seq: smallint("seq").notNull(),
+    /** When the receiving point scanned it in. */
+    arrivedAt: ts("arrived_at"),
+    arrivedBy: text("arrived_by"),
+  },
+  (t) => [primaryKey({ columns: [t.manifestId, t.shipmentId] }), index("manifest_items_shipment_idx").on(t.shipmentId)],
+);
+
 /* ------------------------------------------------------------ KYB and agents */
 
 export const kybStatus = pgEnum("kyb_status", ["submitted", "in_review", "needs_info", "approved", "rejected"]);
