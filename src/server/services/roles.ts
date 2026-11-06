@@ -39,7 +39,7 @@ export function roleScope(user: CurrentUser, need: "roles" | "users" = "roles"):
   return null;
 }
 
-function requireScope(user: CurrentUser, need: "roles" | "users" = "roles"): RoleScope {
+export function requireScope(user: CurrentUser, need: "roles" | "users" = "roles"): RoleScope {
   const scope = roleScope(user, need);
   if (!scope) throw new DomainError("FORBIDDEN", need === "roles" ? "You cannot manage roles." : "You cannot manage your team.", 403);
   return scope;
@@ -216,7 +216,7 @@ export async function listUsers(user: CurrentUser) {
 }
 
 /** Role keys a scope may assign. */
-async function assignableKeys(tx: Tx, scope: RoleScope) {
+export async function assignableKeys(tx: Tx, scope: RoleScope) {
   const rows = await tx.select({ key: roles.key }).from(roles).where(visibleRoles(scope));
   return rows.map((r) => r.key);
 }
@@ -236,7 +236,10 @@ export async function setUserRoles(user: CurrentUser, userId: string, roleKeys: 
     // An account admin may not strip Tuma-assigned roles it cannot see; keep them.
     const hidden = scope.kind === "account" ? target.roles.filter((k) => !allowed.includes(k)) : [];
     const clean = [...new Set([...roleKeys, ...hidden])].sort();
-    await tx.update(users).set({ roles: clean }).where(eq(users.id, userId));
+    // Record them as Tuma's grants too: with real Ondi, roles are rebuilt from the claim plus these at every sign-in,
+    // so a role assigned here would otherwise vanish the next time the person signs in.
+    const granted = [...new Set([...target.grantedRoles.filter((k) => clean.includes(k)), ...roleKeys])].sort();
+    await tx.update(users).set({ roles: clean, grantedRoles: granted }).where(eq(users.id, userId));
     await assertAdminRemains(tx, scope);
     await audit(tx, { actorId: user.id, action: "user.roles", entity: "user", entityId: userId, before: { roles: target.roles }, after: { roles: clean } });
   });

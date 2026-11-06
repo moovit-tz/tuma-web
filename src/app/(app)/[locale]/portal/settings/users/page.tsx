@@ -8,6 +8,9 @@ import { PageHeader, Panel } from "@/components/shell/page-header";
 import { NoAccess } from "@/components/shell/no-access";
 import { UserRoles } from "@/components/admin/user-roles";
 import { AddMember } from "@/components/admin/add-member";
+import { InviteStaff } from "@/components/team/invite-staff";
+import { PendingInvites } from "@/components/team/pending-invites";
+import { teamOverview } from "@/server/services/team-invites";
 
 export const instant = false;
 
@@ -23,11 +26,21 @@ export default async function UsersPage({ params }: PageProps<"/[locale]/portal/
   const roleOptions = roles.map((r) => ({ key: r.key, name: r.name, active: r.active }));
   const visible = new Set(roles.map((r) => r.key));
   const company = scope.kind === "account" ? accountName.get(scope.accountId) : undefined;
+  // Inviting is for a company's own team (a Tuma admin's company is Tuma's internal account).
+  const team = user.accountId ? await teamOverview(user) : null;
   return (
     <>
       <PageHeader eyebrow={company ?? t.nav.settings} title={scope.kind === "account" ? t.nav.team : t.roles.assignTitle} description={t.roles.assignSub}>
-        {process.env.ONDI_MODE === "stub" && <AddMember roles={roleOptions.filter((r) => r.active)} />}
+        <div className="flex flex-wrap gap-2">
+          {process.env.ONDI_MODE === "stub" && <AddMember roles={roleOptions.filter((r) => r.active)} />}
+          {team && <InviteStaff roles={team.roles} offices={team.branches} business={company ?? accountName.get(user.accountId!) ?? ""} lockedOffice={user.branchId} />}
+        </div>
       </PageHeader>
+      {team && team.invites.length > 0 && (
+        <div className="mb-6">
+          <PendingInvites invites={team.invites} locale={locale} />
+        </div>
+      )}
       <Panel>
         <div className="table-scroll">
           <table className="w-full min-w-[640px] text-sm">
