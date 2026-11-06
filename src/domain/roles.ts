@@ -159,7 +159,7 @@ export const DEFAULT_ROLES: RoleSeed[] = [
     name: "Parcel agent",
     description: "Owner of a self-onboarded parcel agent office: parcel operations, float wallet, invoices and customers.",
     surface: "field",
-    permissions: ["agent.workspace", "agent.wallet.manage", "agent.workflow.manage", "team.manage", "partner.branches.manage", "partner.cargo.read", "partner.cargo.operate", "partner.clients.manage", "partner.finance.manage", "shipment.create", "shipment.receive", "shipment.hub_scan", "shipment.dispatch", "shipment.collection", "shipment.deliver", "shipment.fail_attempt", "label.print", "report.view"],
+    permissions: ["agent.workspace", "agent.wallet.manage", "agent.workflow.manage", "team.manage", "partner.branches.manage", "partner.cargo.read", "partner.cargo.operate", "partner.clients.manage", "partner.finance.manage", "shipment.create", "shipment.receive", "shipment.hub_scan", "shipment.dispatch", "shipment.collection", "shipment.deliver", "shipment.fail_attempt", "shipment.cancel", "label.print", "report.view"],
   },
   {
     key: "corporate_admin",

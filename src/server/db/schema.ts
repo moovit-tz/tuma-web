@@ -187,7 +187,7 @@ export const locations = pgTable("locations", {
 /** Appendix B. Admins can add codes (FR-PLT-08). */
 export const reasonCodes = pgTable("reason_codes", {
   code: text("code").primaryKey(),
-  kind: text("kind").notNull(), // failed_delivery | exception
+  kind: text("kind").notNull(), // failed_delivery | exception | override | cancellation
   labelEn: text("label_en").notNull(),
   labelSw: text("label_sw").notNull(),
   active: boolean("active").notNull().default(true),

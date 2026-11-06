@@ -2,12 +2,13 @@ import "server-only";
 import { and, asc, count, desc, eq, gte, ilike, inArray, ne, or, sql, type SQL } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "../db/client";
-import { accounts, branches, codRecords, events, invoices, kybApplications, kybEvents, locations, manifests, parcelPayments, reasonCodes, shipments, users } from "../db/schema";
+import { accounts, branches, codRecords, events, invoices, jobShipments, jobs, kybApplications, kybEvents, locations, manifestItems, manifests, parcelPayments, reasonCodes, shipments, users } from "../db/schema";
 import { collect, collection } from "../adapters/hudupay";
 import { issueCompanyInvoice, markPaid, receiveOnceFor, settlePayment } from "./counter-payments";
 import { momoEnabled } from "./agent-payments";
 import { toE164 } from "@/domain/phone";
 import { createParcel, DomainError, transition } from "./shipments";
+import { enqueue } from "../adapters/outbox";
 import { verifyTrackingOtp } from "./tracking";
 import { trialFor } from "../rbac";
 import type { CurrentUser } from "../auth/current-user";
@@ -211,6 +212,11 @@ export async function agentParcel(user: CurrentUser, rawWaybill: string) {
   const needsPrice = bookedAhead && !s.receiveOnPayment && s.totalCharge === 0;
   // It comes in through pricing (priceDropOff), not straight to received.
   const moves = movesFor(user, s.state as ShipmentState).filter((m) => !(needsPrice && m === "RECEIVED"));
+  // Cancelling one in hand here: the owner (shipment.cancel), with a reason, before it's on its way with anyone.
+  const canCancel = user.permissions.has("shipment.cancel") && CANCEL_FROM.includes(s.state) && !(await onItsWay(s.id));
+  const cancelReasons = canCancel
+    ? await db.select({ code: reasonCodes.code, en: reasonCodes.labelEn, sw: reasonCodes.labelSw }).from(reasonCodes).where(and(eq(reasonCodes.active, true), eq(reasonCodes.kind, "cancellation"))).orderBy(asc(reasonCodes.code))
+    : [];
   const failReasons = moves.includes("ATTEMPT_FAILED")
     ? await db.select({ code: reasonCodes.code, en: reasonCodes.labelEn, sw: reasonCodes.labelSw }).from(reasonCodes).where(and(eq(reasonCodes.active, true), eq(reasonCodes.kind, "failed_delivery"))).orderBy(asc(reasonCodes.code))
     : [];
@@ -250,7 +256,60 @@ export async function agentParcel(user: CurrentUser, rawWaybill: string) {
     },
     moves,
     failReasons,
+    canCancel,
+    cancelReasons,
   };
+}
+
+const CANCEL_FROM: readonly string[] = ["RECEIVED", "AT_HUB"];
+
+/** On a manifest or a Tuma courier job that hasn't finished with it. */
+async function onItsWay(shipmentId: string) {
+  const r = (await db.execute(sql`
+    select 1 from ${manifestItems} mi join ${manifests} mf on mf.id = mi.manifest_id
+      where mi.shipment_id = ${shipmentId} and mf.status = 'on_the_way' and mi.arrived_at is null
+    union all
+    select 1 from ${jobShipments} js join ${jobs} j on j.id = js.job_id
+      where js.shipment_id = ${shipmentId} and js.outcome = 'pending' and j.status in ('open','assigned','in_progress')
+    limit 1`)) as unknown as unknown[];
+  return r.length > 0;
+}
+
+export const cancelSchema = z.object({
+  reasonCode: z.string().trim().regex(/^CN\d{2}$/, "Choose why it's being cancelled"),
+  note: z.string().trim().max(300).optional(),
+});
+
+/**
+ * The office cancels a parcel it holds (the sender changed their mind, a prohibited item, booked by mistake…). A
+ * reason is required, and a note for "other". What the sender already paid is due back to them: the app says how much,
+ * and FinOps gets it to reconcile. Nothing is left to collect from the receiver.
+ */
+export async function agentCancel(user: CurrentUser, rawWaybill: string, raw: unknown) {
+  const s = await load(user, rawWaybill);
+  const c = cancelSchema.parse(raw);
+  if (!user.permissions.has("shipment.cancel")) throw new DomainError("FORBIDDEN", "Only the owner can cancel a parcel. Ask them.", 403);
+  if (!CANCEL_FROM.includes(s.state)) throw new DomainError("CANNOT_CANCEL", "Only a parcel in hand at this office can be cancelled here.", 409);
+  if (await onItsWay(s.id)) throw new DomainError("ON_ITS_WAY", "It's on a manifest on its way. Get it back first.", 409);
+  const [rc] = await db.select({ code: reasonCodes.code, en: reasonCodes.labelEn }).from(reasonCodes).where(and(eq(reasonCodes.code, c.reasonCode), eq(reasonCodes.kind, "cancellation"), eq(reasonCodes.active, true)));
+  if (!rc) throw new DomainError("BAD_REASON", "Choose why it's being cancelled.");
+  if (rc.code === "CN06" && (c.note?.length ?? 0) < 3) throw new DomainError("NOTE_REQUIRED", "Say why it's being cancelled.");
+  // The sender gets back what they paid at the counter.
+  const refundDue = s.paidAt ? s.totalCharge : 0;
+  await transition(user, s.waybill, "CANCELLED", { source: "field_app", reasonCode: rc.code, note: c.note || rc.en, data: { refundDue } });
+  await db.transaction(async (tx) => {
+    await tx.update(codRecords).set({ status: "none" }).where(eq(codRecords.shipmentId, s.id));
+    if (refundDue > 0) {
+      await enqueue(tx, {
+        target: "finops",
+        topic: "shipment.cancelled_refund",
+        idempotencyKey: `cancelrefund:${s.waybill}`,
+        waybill: s.waybill,
+        payload: { waybill: s.waybill, accountId: user.accountId, refund: refundDue, currency: s.currency, reasonCode: rc.code },
+      });
+    }
+  });
+  return { ...(await agentParcel(user, s.waybill)), refundDue };
 }
 
 /* ------------------------------------------------------------------- moves */

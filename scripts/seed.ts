@@ -50,6 +50,12 @@ const REASONS = [
   ["EX08", "exception", "Shortage at offload", "Upungufu wakati wa kupakua"],
   ["OV01", "override", "Scan missed, corrected by operations", "Skani haikufanyika, imesahihishwa na operesheni"],
   ["OV02", "override", "Customer request", "Ombi la mteja"],
+  ["CN01", "cancellation", "Sender asked to cancel", "Mtumaji ameomba kusitisha"],
+  ["CN02", "cancellation", "Prohibited or restricted item found", "Bidhaa iliyokatazwa au yenye masharti imegundulika"],
+  ["CN03", "cancellation", "Damaged or badly packed; sender took it back", "Kimeharibika au kimefungwa vibaya; mtumaji amekichukua"],
+  ["CN04", "cancellation", "Booked by mistake (wrong details or twice)", "Kimesajiliwa kimakosa (taarifa si sahihi au mara mbili)"],
+  ["CN05", "cancellation", "Sender never paid", "Mtumaji hajalipa"],
+  ["CN06", "cancellation", "Other (see the note)", "Nyingine (angalia maelezo)"],
 ] as const;
 
 const LOCATIONS: (typeof schema.locations.$inferInsert)[] = [

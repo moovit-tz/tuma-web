@@ -2,10 +2,10 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createHash, randomBytes } from "node:crypto";
 import { eq, inArray, sql } from "drizzle-orm";
 import { db } from "../db/client";
-import { accounts, agents, branches, customers, events, invoices, kybApplications, parcelPayments, paymentSettings, platformSettings, rolePermissions, roles, shipments, users } from "../db/schema";
+import { accounts, agents, branches, customers, events, invoices, kybApplications, outbox, parcelPayments, paymentSettings, platformSettings, rolePermissions, roles, shipments, users } from "../db/schema";
 import { driverContext, finishDriverLogin, swapHandoff, type DriverCtx } from "../services/drivers";
 import { submitKyb } from "../services/kyb";
-import { agentBook, agentParcels } from "../services/agent-parcels";
+import { agentBook, agentCancel, agentParcel, agentParcels } from "../services/agent-parcels";
 import { createManifest, dispatchOptions, listManifests, manifestDetail, offloadParcel } from "../services/manifests";
 import { verifyDriverToken } from "../auth/driver-token";
 import { DEFAULT_ROLES } from "@/domain/roles";
@@ -218,5 +218,33 @@ describe("sending parcels on from an office under a manifest", () => {
     await db.update(users).set({ accountId: null, roles: [] }).where(eq(users.id, RIDER));
     const outsider = (await driverContext(RIDER))!;
     await expect(manifestDetail({ ...outsider.user, accountId: "acc_nobody" }, sent.manifests[0].id)).rejects.toMatchObject({ code: "NOT_FOUND" });
+  });
+
+  it("the owner cancels a parcel in hand with a reason; what the sender paid is due back", async () => {
+    const wb = (await agentBook(owner.user, booking())).parcel.waybill;
+    const before = await agentParcel(owner.user, wb);
+    expect(before.canCancel).toBe(true);
+    expect(before.cancelReasons.map((r) => r.code)).toEqual(["CN01", "CN02", "CN03", "CN04", "CN05", "CN06"]);
+    await expect(agentCancel(owner.user, wb, {})).rejects.toThrow();
+    await expect(agentCancel(owner.user, wb, { reasonCode: "FD01" })).rejects.toThrow();
+    await expect(agentCancel(owner.user, wb, { reasonCode: "CN06" })).rejects.toMatchObject({ code: "NOTE_REQUIRED" });
+    await expect(agentCancel({ ...owner.user, permissions: new Set([...owner.user.permissions].filter((p) => p !== "shipment.cancel")) }, wb, { reasonCode: "CN01" })).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
+    // Paid at the counter: the money goes back.
+    await db.update(shipments).set({ paidAt: new Date() }).where(eq(shipments.waybill, wb));
+    const r = await agentCancel(owner.user, wb, { reasonCode: "CN02", note: "Gas cylinder inside" });
+    expect(r.parcel.state).toBe("CANCELLED");
+    expect(r.canCancel).toBe(false);
+    expect(r.refundDue).toBe(7000);
+    const [o] = await db.select({ payload: outbox.payload }).from(outbox).where(eq(outbox.idempotencyKey, `cancelrefund:${wb}`));
+    expect(o.payload).toMatchObject({ waybill: wb, refund: 7000, reasonCode: "CN02" });
+    await db.delete(outbox).where(eq(outbox.idempotencyKey, `cancelrefund:${wb}`));
+    await expect(agentCancel(owner.user, wb, { reasonCode: "CN01" })).rejects.toMatchObject({ code: "CANNOT_CANCEL" });
+  });
+
+  it("won't cancel a parcel that's on its way with a courier", async () => {
+    expect((await agentParcel(owner.user, wbs[4])).canCancel).toBe(false);
+    await expect(agentCancel(owner.user, wbs[4], { reasonCode: "CN01" })).rejects.toMatchObject({ code: "ON_ITS_WAY" });
   });
 });
