@@ -211,6 +211,8 @@ export async function appMe(ctx: DriverCtx) {
   if (ctx.user.permissions.has("report.view") && ctx.user.accountId) modules.push("reports");
   // Everyone at the business can read it; changing it needs agent.wallet.manage (checked by the screen and the API).
   if (ctx.user.permissions.has("agent.workspace") && ctx.user.accountId) modules.push("payments");
+  // Sending for a company: the company's sender home.
+  if (ctx.user.permissions.has("corporate.send") && ctx.user.accountId) modules.push("corporate");
   const [[u], [acct], [kyb]] = await Promise.all([
     db.select({ email: users.email, phone: users.phone, avatarUrl: users.avatarUrl }).from(users).where(eq(users.id, ctx.user.id)),
     ctx.user.accountId

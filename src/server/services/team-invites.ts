@@ -13,6 +13,7 @@ import { toE164TZ } from "@/domain/phone";
 import { AGENT_CUSTOM_GRANTABLE, AGENT_STAFF_ROLES, type Permission } from "@/domain/roles";
 import { updateTag } from "next/cache";
 import { ROLES_TAG } from "../rbac";
+import { CORPORATE_ROLES } from "./corporate";
 
 /**
  * Inviting staff. Someone with team.manage invites a person by phone and chooses their roles and office; Tuma texts
@@ -188,8 +189,10 @@ export async function teamOverview(user: CurrentUser) {
   ]);
   const names = await roleNameMap([...new Set([...people.flatMap((p) => p.roles), ...invites.flatMap((i) => i.roles)])]);
   const branchName = new Map(branchRows.map((b) => [b.id, b.name]));
-  const [acct] = await db.select({ kind: accounts.partnerKind }).from(accounts).where(eq(accounts.id, accountId));
+  const [acct] = await db.select({ kind: accounts.partnerKind, type: accounts.type }).from(accounts).where(eq(accounts.id, accountId));
   const agent = acct?.kind === "parcel_agent";
+  // A company that sends: its admins and senders, or its own roles.
+  const company = acct?.type === "shipper";
   const owner = agent && (await isOwner(user, accountId));
   const ownKeys = new Set((await db.select({ key: roles.key }).from(roles).where(and(eq(roles.accountId, accountId), eq(roles.active, true)))).map((r) => r.key));
   const order = (k: string) => {
@@ -217,7 +220,9 @@ export async function teamOverview(user: CurrentUser) {
         roleRows
           .filter((r) => r.active && ((AGENT_STAFF_ROLES as readonly string[]).includes(r.key) || ownKeys.has(r.key)))
           .sort((a, b) => order(a.key) - order(b.key))
-      : roleRows.filter((r) => r.active)
+      : company
+        ? roleRows.filter((r) => r.active && ((CORPORATE_ROLES as readonly string[]).includes(r.key) || ownKeys.has(r.key)))
+        : roleRows.filter((r) => r.active)
     ).map(({ key, name, description }) => ({ key, name, description, custom: ownKeys.has(key) })),
     branches: branchRows,
     /** Only the business's owner makes new kinds of staff with their own permissions. */

@@ -7,13 +7,17 @@ import { driverContext, finishDriverLogin, swapHandoff, type DriverCtx } from ".
 import { submitKyb } from "../services/kyb";
 import { agentParcel, agentParcels, agentRequestPayment } from "../services/agent-parcels";
 import { myParcels, priceDropOff, senderBook, senderCancel, senderParcel, tumaPoints } from "../services/sender";
+import { companyCheck, registerCompany } from "../services/corporate";
+import { teamOverview } from "../services/team-invites";
 import { verifyDriverToken } from "../auth/driver-token";
 import { DEFAULT_ROLES } from "@/domain/roles";
 
 const AGENT = "ondi|sender.test.agent";
 const SENDER = "ondi|sender.test.person";
 const RECEIVER = "ondi|sender.test.receiver";
-const SUBS = [AGENT, SENDER, RECEIVER];
+const BOSS = "ondi|sender.test.company";
+const MATE = "ondi|sender.test.colleague";
+const SUBS = [AGENT, SENDER, RECEIVER, BOSS, MATE];
 
 async function signIn(sub: string, name: string, phone: string): Promise<DriverCtx> {
   const verifier = randomBytes(32).toString("base64url");
@@ -25,7 +29,8 @@ async function signIn(sub: string, name: string, phone: string): Promise<DriverC
 
 async function cleanup() {
   const apps = await db.select({ accountId: kybApplications.accountId }).from(kybApplications).where(inArray(kybApplications.userId, SUBS));
-  const accts = [...new Set(apps.map((r) => r.accountId).filter((a): a is string => !!a))];
+  const mine = await db.select({ accountId: users.accountId }).from(users).where(inArray(users.id, SUBS));
+  const accts = [...new Set([...apps, ...mine].map((r) => r.accountId).filter((a): a is string => !!a))];
   await db.execute(sql`delete from kyb_events where application_id in (select id from kyb_applications where user_id in (${sql.join(SUBS.map((s) => sql`${s}`), sql`, `)}))`);
   await db.update(users).set({ accountId: null, branchId: null }).where(inArray(users.id, SUBS));
   await db.delete(kybApplications).where(inArray(kybApplications.userId, SUBS));
@@ -36,6 +41,7 @@ async function cleanup() {
     }
     await db.delete(parcelPayments).where(inArray(parcelPayments.accountId, accts));
     await db.delete(invoices).where(inArray(invoices.accountId, accts));
+    await db.execute(sql`delete from audit_log where entity_id in (${sql.join(accts.map((a) => sql`${a}`), sql`, `)})`).catch(() => {});
     await db.delete(paymentSettings).where(inArray(paymentSettings.accountId, accts));
     await db.delete(shipments).where(inArray(shipments.accountId, accts));
     await db.delete(customers).where(inArray(customers.accountId, accts));
@@ -141,4 +147,31 @@ describe("sending a parcel as a person (no business)", () => {
     const c = await senderCancel(me.user, r.waybill, { reason: "Sending it next week" });
     expect(c).toMatchObject({ state: "CANCELLED", canCancel: false });
   });
+  it("registers a company that sends; its admin books in its name on account, the point invoices it, the team sees it", async () => {
+    let boss = await signIn(BOSS, "Asha Boss", "+255715100200");
+    const co = await registerCompany(boss.user, { name: "Kilimo Supplies Ltd", tin: "565-676-787", region: "Dar es Salaam", district: "Ilala", street: "Samora Ave", phone: "0715 100 200" });
+    await expect(registerCompany((await signIn(MATE, "Juma Mate", "+255715100300")).user, { name: "Kilimo Copy", tin: "565676787", region: "Dar es Salaam", district: "Ilala", street: "Samora Ave", phone: "0715 100 300" })).rejects.toMatchObject({ code: "COMPANY_ON_TUMA" });
+    expect(await companyCheck({ tin: "565676787" })).toEqual({ taken: true, name: "Kilimo Supplies Ltd" });
+    boss = (await driverContext(BOSS))!;
+    expect(boss.user.permissions.has("corporate.send")).toBe(true);
+    // Its team: only a company's roles to give.
+    expect((await teamOverview(boss.user)).roles.map((r: { key: string }) => r.key).sort()).toEqual(["corporate_admin", "corporate_sender"]);
+
+    await expect(senderBook(me.user, booking(pointId, { paidWith: "account" }))).rejects.toMatchObject({ code: "ACCOUNT_COMPANIES_ONLY" });
+    const r = await senderBook(boss.user, booking(pointId, { asCompany: true, paidWith: "account" }));
+    expect(r).toMatchObject({ onAccount: true, sender: { name: "Kilimo Supplies Ltd" } });
+    const accepted = await priceDropOff(agent.user, r.waybill, { price: 15000 });
+    expect(accepted.parcel).toMatchObject({ state: "RECEIVED", total: 15000, paymentTerms: "account" });
+    expect(accepted.parcel.invoice).toMatchObject({ total: 15000 });
+    expect(accepted.parcel.shipper).toMatchObject({ company: { tin: "565676787", contactName: "Asha Boss" } });
+
+    // A colleague on the team sees the company's parcels.
+    await db.update(users).set({ accountId: co.accountId, roles: ["corporate_sender"] }).where(eq(users.id, MATE));
+    const mate = (await driverContext(MATE))!;
+    const list = await myParcels(mate.user);
+    expect(list.company).toEqual({ name: "Kilimo Supplies Ltd" });
+    expect(list.parcels.find((p) => p.waybill === r.waybill)).toMatchObject({ direction: "sent", bookedBy: "Asha Boss" });
+    expect((await senderParcel(mate.user, r.waybill)).direction).toBe("sent");
+  });
 });
+

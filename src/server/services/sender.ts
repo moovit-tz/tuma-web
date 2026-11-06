@@ -12,6 +12,9 @@ import { normaliseWaybill } from "@/domain/waybill-number";
 import { createParcel, DomainError, transition } from "./shipments";
 import { liveFor } from "./live-tracking";
 import { agentMove, agentParcel } from "./agent-parcels";
+import { companyOf } from "./corporate";
+import { rememberCustomers } from "./customers";
+import { issueCompanyInvoice } from "./counter-payments";
 
 /**
  * Anyone with the Tuma app can send a parcel, with no business to set up: they book it ahead from their phone, take
@@ -106,6 +109,9 @@ export const senderBookingSchema = z.object({
   declaredValue: z.coerce.number({ message: "Enter what the goods are worth" }).int().min(1, "Enter what the goods are worth").max(1_000_000_000),
   /** Who pays: the sender at the drop-off, or the receiver on delivery (when the point takes that). */
   payer: z.enum(["sender", "receiver"]).default("sender"),
+  /** Sending for a company: in its name, and it may go on the company's account (the point invoices it). */
+  asCompany: z.boolean().default(false),
+  paidWith: z.enum(["at_point", "account"]).default("at_point"),
   noProhibited: z.literal(true, { message: "Confirm there are no prohibited items" }),
 });
 
@@ -125,7 +131,10 @@ async function point(id: string) {
 export async function senderBook(user: CurrentUser, raw: unknown) {
   const b = senderBookingSchema.parse(raw);
   const [me] = await db.select({ name: users.name, phone: users.phone, email: users.email }).from(users).where(eq(users.id, user.id));
-  if (!me?.phone) throw new DomainError("PHONE_REQUIRED", "Add your phone number in your profile first: the Tuma point and the receiver need it.");
+  const co = b.asCompany ? await companyOf(user) : null;
+  if (b.asCompany && !co) throw new DomainError("NOT_COMPANY", "You don't send for a company on Tuma.", 403);
+  if (b.paidWith === "account" && (!co || b.payer !== "sender")) throw new DomainError("ACCOUNT_COMPANIES_ONLY", "Only a company can put a parcel on its account.");
+  if (!me?.phone && !co?.phone) throw new DomainError("PHONE_REQUIRED", "Add your phone number in your profile first: the Tuma point and the receiver need it.");
   const drop = await point(b.dropOffId);
   if (!drop) throw new DomainError("POINT_NOT_FOUND", "That Tuma point isn't taking parcels. Pick another.");
   if (!(TZ_REGIONS as readonly string[]).includes(drop.region)) throw new DomainError("POINT_NOT_FOUND", "That Tuma point isn't taking parcels. Pick another.");
@@ -137,22 +146,23 @@ export async function senderBook(user: CurrentUser, raw: unknown) {
     collectId = c.id;
   }
   if (b.payer === "receiver" && !drop.payOnDelivery) throw new DomainError("PAY_ON_DELIVERY_OFF", "This Tuma point doesn't take pay on delivery. You pay when you drop it off.");
-  if (toE164(b.receiver.phone) === toE164(me.phone)) throw new DomainError("SAME_PHONE", "The receiver's number is yours. Enter theirs.");
+  if (me?.phone && toE164(b.receiver.phone) === toE164(me.phone)) throw new DomainError("SAME_PHONE", "The receiver's number is yours. Enter theirs.");
 
   const [w, l, h] = SIZES[b.size];
   const input: ParcelOrderInput = {
     serviceLevel: "next_day",
-    paymentTerms: b.payer === "receiver" ? "pay_on_delivery" : "prepaid",
-    prepayMethod: b.payer === "sender" ? "cash" : undefined,
+    paymentTerms: b.payer === "receiver" ? "pay_on_delivery" : b.paidWith === "account" ? "account" : "prepaid",
+    prepayMethod: b.payer === "sender" && b.paidWith !== "account" ? "cash" : undefined,
     collectMethods: ["cash", "mobile_money"],
     handoverMode: "hub_bulk",
     deliveryMode: b.deliveryMode,
     deliveryBranchId: collectId,
     shipper: {
-      name: me.name,
-      phone: me.phone,
-      email: me.email ?? undefined,
+      name: co ? co.name : me!.name,
+      phone: co ? (me?.phone ?? co.phone!) : me!.phone!,
+      email: me?.email ?? undefined,
       language: user.locale === "en" ? "en" : "sw",
+      company: co ? { tin: co.tin ?? undefined, contactName: me?.name } : undefined,
       address: { region: drop.region as (typeof TZ_REGIONS)[number], district: drop.district || "—", street: drop.address ?? undefined },
     },
     consignee: {
@@ -178,7 +188,7 @@ export async function senderBook(user: CurrentUser, raw: unknown) {
 
 /* ---------------------------------------------------------- my parcels */
 
-const MINE_STATES = ["sent", "coming"] as const;
+type Direction = "sent" | "coming";
 
 function phoneOf(user: CurrentUser) {
   return db
@@ -191,7 +201,13 @@ function phoneOf(user: CurrentUser) {
 /** What this person booked or sent (by their number), and what's coming to their number. */
 export async function myParcels(user: CurrentUser) {
   const phone = await phoneOf(user);
-  const sentBy = or(eq(shipments.createdBy, user.id), phone ? sql`${shipments.shipper}->>'phone' = ${phone}` : undefined)!;
+  const co = await companyOf(user);
+  // A company's team sees every parcel sent in its name.
+  const sentBy = or(
+    eq(shipments.createdBy, user.id),
+    phone ? sql`${shipments.shipper}->>'phone' = ${phone}` : undefined,
+    co?.tin ? sql`${shipments.shipper}->'company'->>'tin' = ${co.tin}` : undefined,
+  )!;
   const toMe = phone ? sql`${shipments.consignee}->>'phone' = ${phone}` : sql`false`;
   const rows = await db
     .select({
@@ -214,11 +230,11 @@ export async function myParcels(user: CurrentUser) {
     .limit(100);
   return {
     parcels: rows.map((r) => {
-      const coming = phone != null && r.consignee.phone === phone && r.createdBy !== user.id;
+      const coming = phone != null && r.consignee.phone === phone && r.createdBy !== user.id && !(co?.tin && r.shipper.company?.tin === co.tin);
       return {
         waybill: r.waybill,
         state: r.state,
-        direction: (coming ? "coming" : "sent") as (typeof MINE_STATES)[number],
+        direction: (coming ? "coming" : "sent") as Direction,
         // Who's on the other end: the receiver of what I sent, the sender of what's coming.
         other: coming ? r.shipper.name : r.consignee.name,
         otherPlace: coming ? r.shipper.address.region : `${r.consignee.address.district}, ${r.consignee.address.region}`,
@@ -227,30 +243,39 @@ export async function myParcels(user: CurrentUser) {
         point: r.point,
         business: r.business,
         createdAt: r.createdAt.toISOString(),
+        // Who at the company booked it (the contact on the parcel).
+        bookedBy: co ? (r.shipper.company?.contactName ?? null) : null,
       };
     }),
+    company: co ? { name: co.name } : null,
   };
 }
 
 async function own(user: CurrentUser, rawWaybill: string) {
   const waybill = normaliseWaybill(rawWaybill).waybill;
   const phone = await phoneOf(user);
+  const co = await companyOf(user);
   const [s] = await db
     .select()
     .from(shipments)
     .where(
       and(
         eq(shipments.waybill, waybill),
-        or(eq(shipments.createdBy, user.id), phone ? sql`${shipments.shipper}->>'phone' = ${phone}` : undefined, phone ? sql`${shipments.consignee}->>'phone' = ${phone}` : undefined),
+        or(
+          eq(shipments.createdBy, user.id),
+          phone ? sql`${shipments.shipper}->>'phone' = ${phone}` : undefined,
+          phone ? sql`${shipments.consignee}->>'phone' = ${phone}` : undefined,
+          co?.tin ? sql`${shipments.shipper}->'company'->>'tin' = ${co.tin}` : undefined,
+        ),
       ),
     );
   if (!s) throw new DomainError("NOT_FOUND", "We couldn't find that parcel among yours.", 404);
-  return { s, phone };
+  return { s, phone, co };
 }
 
 /** One of my parcels: where it is, the Tuma point, the price once the counter set it, and the courier when one has it. */
 export async function senderParcel(user: CurrentUser, rawWaybill: string) {
-  const { s, phone } = await own(user, rawWaybill);
+  const { s, phone, co } = await own(user, rawWaybill);
   const [p] = s.handlingBranchId
     ? await db
         .select({ id: branches.id, name: branches.name, business: accounts.name, address: branches.address, district: branches.district, region: branches.region, phone: branches.phone, lat: branches.lat, lng: branches.lng })
@@ -258,7 +283,7 @@ export async function senderParcel(user: CurrentUser, rawWaybill: string) {
         .innerJoin(accounts, eq(accounts.id, branches.accountId))
         .where(eq(branches.id, s.handlingBranchId))
     : [];
-  const mine = s.createdBy === user.id || s.shipper.phone === phone;
+  const mine = s.createdBy === user.id || s.shipper.phone === phone || (!!co?.tin && s.shipper.company?.tin === co.tin);
   const booked = s.state === "AWAITING_HANDOVER" || s.state === "CREATED";
   return {
     waybill: s.waybill,
@@ -271,6 +296,7 @@ export async function senderParcel(user: CurrentUser, rawWaybill: string) {
     declaredValue: s.declaredValue,
     weightKg: s.actualWeightG / 1000,
     payer: s.paymentTerms === "pay_on_delivery" ? "receiver" : "sender",
+    onAccount: s.paymentTerms === "account",
     // The Tuma point's price, once it has accepted the parcel.
     total: booked ? null : s.totalCharge,
     point: p ?? null,
@@ -339,8 +365,22 @@ export async function priceDropOff(user: CurrentUser, rawWaybill: string, raw: u
     await tx.delete(codRecords).where(eq(codRecords.shipmentId, s.id));
     if (due.total > 0) await tx.insert(codRecords).values({ shipmentId: s.id, amountDue: due.goods, feeDue: due.fee });
   });
-  // Free of charge, or the receiver pays on delivery: in it comes.
-  const [after] = await db.select({ wait: shipments.receiveOnPayment }).from(shipments).where(eq(shipments.waybill, waybill));
-  if (!after.wait) await agentMove(user, waybill, { to: "RECEIVED" });
+  // Both people go into the point's customer list, like a counter booking.
+  const [s] = await db.select().from(shipments).where(eq(shipments.waybill, waybill));
+  const company = s.shipper.company;
+  const ids = await rememberCustomers(user.accountId, {
+    sender: { kind: company ? "company" : "individual", name: s.shipper.name, phone: s.shipper.phone, email: s.shipper.email, tin: company?.tin, regNo: company?.regNo, contactName: company?.contactName },
+    receiver: { kind: "individual", name: s.consignee.name, phone: s.consignee.phone, ...s.consignee.address },
+  });
+  await db.update(shipments).set({ shipperCustomerId: ids.sender, consigneeCustomerId: ids.receiver }).where(eq(shipments.id, s.id));
+  // On the company's account: the point invoices the company now.
+  if (s.paymentTerms === "account") {
+    await db.transaction(async (tx) => {
+      const [fresh] = await tx.select().from(shipments).where(eq(shipments.id, s.id));
+      await issueCompanyInvoice(tx, fresh, { customerId: ids.sender ?? null, actorId: user.id });
+    });
+  }
+  // Free of charge, on account, or the receiver pays on delivery: in it comes.
+  if (!s.receiveOnPayment) await agentMove(user, waybill, { to: "RECEIVED" });
   return agentParcel(user, waybill);
 }

@@ -56,6 +56,7 @@ export const PERMISSIONS = [
   { key: "partner.clients.manage", group: "Partner", label: "Manage clients", description: "The partner's own customer book." },
   { key: "partner.finance.manage", group: "Partner", label: "Invoices and payments", description: "Invoice clients, record payments, reconcile." },
   { key: "partner.dispatch.manage", group: "Partner", label: "Dispatch to drivers", description: "Create jobs for the company's own drivers, approve drivers and follow their runs." },
+  { key: "corporate.send", group: "Company", label: "Send for the company", description: "Book parcels in the company's name, pay on its account, and follow all its parcels." },
   { key: "team.manage", group: "Partner", label: "Manage team and roles", description: "Create roles for your own company and assign them to your team." },
   // Parcel agents (self-onboarded through KYB in the Tuma app)
   { key: "agent.workspace", group: "Parcel agent", label: "Agent workspace", description: "Open the agent dashboard and parcel operations in the Tuma app." },
@@ -159,6 +160,20 @@ export const DEFAULT_ROLES: RoleSeed[] = [
     description: "Owner of a self-onboarded parcel agent office: parcel operations, float wallet, invoices and customers.",
     surface: "field",
     permissions: ["agent.workspace", "agent.wallet.manage", "agent.workflow.manage", "team.manage", "partner.branches.manage", "partner.cargo.read", "partner.cargo.operate", "partner.clients.manage", "partner.finance.manage", "shipment.create", "shipment.receive", "shipment.hub_scan", "shipment.dispatch", "shipment.collection", "shipment.deliver", "shipment.fail_attempt", "label.print", "report.view"],
+  },
+  {
+    key: "corporate_admin",
+    name: "Company admin",
+    description: "Runs a company's sending on Tuma: books parcels in its name, manages its team and sees its reports.",
+    surface: "partner",
+    permissions: ["corporate.send", "team.manage", "report.view"],
+  },
+  {
+    key: "corporate_sender",
+    name: "Company sender",
+    description: "Books parcels in the company's name and follows the company's parcels.",
+    surface: "partner",
+    permissions: ["corporate.send"],
   },
   {
     key: "agent_staff",
