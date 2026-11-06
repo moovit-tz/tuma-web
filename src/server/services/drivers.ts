@@ -209,6 +209,9 @@ export async function appMe(ctx: DriverCtx) {
   // Counter work in the app: booking parcels, and the reports kept in the portal.
   if (ctx.user.permissions.has("agent.workspace") && ctx.user.permissions.has("shipment.create") && ctx.user.accountId) modules.push("book");
   if (ctx.user.permissions.has("report.view") && ctx.user.accountId) modules.push("reports");
+  // Sending parcels on under a manifest, and checking in what arrives against one.
+  if (ctx.user.permissions.has("agent.workspace") && ctx.user.permissions.has("shipment.dispatch") && ctx.user.accountId) modules.push("send_on");
+  if (ctx.user.permissions.has("agent.workspace") && ctx.user.permissions.has("shipment.receive") && ctx.user.accountId) modules.push("offload");
   // Everyone at the business can read it; changing it needs agent.wallet.manage (checked by the screen and the API).
   if (ctx.user.permissions.has("agent.workspace") && ctx.user.accountId) modules.push("payments");
   // Sending for a company: the company's sender home.
