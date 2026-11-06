@@ -11,7 +11,8 @@
 export const DELIVERY_PAYERS = ["prepaid", "account", "pay_on_delivery"] as const;
 export type DeliveryPayer = (typeof DELIVERY_PAYERS)[number];
 
-export const PREPAY_METHODS = ["mobile_money", "card", "bank_transfer"] as const;
+/** "cash" is paid over an agent's counter. */
+export const PREPAY_METHODS = ["mobile_money", "card", "bank_transfer", "cash"] as const;
 export const COLLECT_METHODS = ["cash", "mobile_money", "card"] as const;
 export type PrepayMethod = (typeof PREPAY_METHODS)[number];
 export type CollectMethod = (typeof COLLECT_METHODS)[number];
