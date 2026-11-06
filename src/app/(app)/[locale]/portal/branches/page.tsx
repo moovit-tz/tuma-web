@@ -15,7 +15,7 @@ export const instant = false;
 export default async function BranchesPage({ params }: PageProps<"/[locale]/portal/branches">) {
   const { locale } = await params;
   const user = (await getCurrentUser())!;
-  if (!user.permissions.has("partner.cargo.read")) return <NoAccess locale={locale} />;
+  if (!user.permissions.has("partner.cargo.read") && !user.permissions.has("partner.branches.manage")) return <NoAccess locale={locale} />;
   const t = getDict(locale);
   const b = t.branches;
   const rows = await listBranches(user);
@@ -43,7 +43,7 @@ export default async function BranchesPage({ params }: PageProps<"/[locale]/port
               <dl className="grid grid-cols-3 divide-x border-b">
                 {(
                   [
-                    [b.openCargo, openCargo, `/${locale}/portal/cargo/all?view=all&branch=${br.id}`],
+                    [b.openCargo, openCargo, `/${locale}/portal/cargo?tab=all&branch=${br.id}`],
                     [b.vehicles, vehicles, `/${locale}/portal/vehicles?branch=${br.id}`],
                     [b.staff, staff, null],
                   ] as const
@@ -80,7 +80,7 @@ export default async function BranchesPage({ params }: PageProps<"/[locale]/port
                 )}
               </div>
               <div className="flex items-center justify-between gap-2 border-t px-3 py-2">
-                <Link href={`/${locale}/portal/cargo/all?view=all&branch=${br.id}`} className="px-2 text-sm font-medium underline-offset-4 hover:underline">
+                <Link href={`/${locale}/portal/cargo?tab=all&branch=${br.id}`} className="px-2 text-sm font-medium underline-offset-4 hover:underline">
                   {b.viewCargo} →
                 </Link>
                 {canManage && (
