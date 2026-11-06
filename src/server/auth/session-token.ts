@@ -24,6 +24,8 @@ export async function verifySession(token: string | undefined): Promise<(Session
   if (!token) return null;
   try {
     const { payload } = await jwtVerify(token, key());
+    // Driver-app tokens (aud "tuma-x") never open a portal session.
+    if (payload.aud !== undefined) return null;
     const sat = Number(payload.sat);
     if (Date.now() / 1000 - sat > ABSOLUTE_SECONDS) return null;
     return {

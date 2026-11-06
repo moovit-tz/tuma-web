@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { getDict } from "@/i18n";
 import { PublicFooter, PublicHeader } from "@/components/brand/public-header";
+import { OndiButton } from "@/components/auth/ondi-button";
 
 const ERRORS: Record<string, string> = {
   state: "The sign-in request expired. Try again.",
@@ -42,9 +43,9 @@ async function SignInButton({ locale, searchParams }: { locale: string; searchPa
           {error === "no_role" ? t.signin.noAccess : (ERRORS[error] ?? "Sign-in failed.")}
         </p>
       )}
-      <a href={href} className="bg-primary text-primary-foreground mt-6 flex h-11 items-center justify-center rounded-md font-medium hover:opacity-90">
+      <OndiButton href={href} className="mt-6">
         {t.signin.cta}
-      </a>
+      </OndiButton>
     </>
   );
 }

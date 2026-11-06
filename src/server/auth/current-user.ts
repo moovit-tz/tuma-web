@@ -5,7 +5,8 @@ import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { db } from "../db/client";
 import { users } from "../db/schema";
-import { resolvePermissions } from "../rbac";
+import { effectivePermissions, type Trial } from "../rbac";
+import { ensureWorkspace } from "../services/kyb";
 import { SESSION_COOKIE, verifySession } from "./session-token";
 import type { Permission } from "@/domain/roles";
 
@@ -17,6 +18,10 @@ export type CurrentUser = {
   branchId?: string | null;
   roles: string[];
   permissions: Set<Permission>;
+  /** The company's state; "pending" while its application is reviewed (set-up only). Null without a company. */
+  accountStatus?: string | null;
+  /** A business under review: its parcel allowance and how much is used. */
+  trial?: Trial | null;
   locale: string;
 };
 
@@ -30,15 +35,20 @@ export const getCurrentUser = cache(async function getCurrentUser(): Promise<Cur
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
   const session = await verifySession(token);
   if (!session) return null;
-  const [row] = await db.select().from(users).where(eq(users.id, session.sub)).limit(1);
+  let [row] = await db.select().from(users).where(eq(users.id, session.sub)).limit(1);
   if (!row || !row.active) return null;
+  // An application sent before workspaces existed: open its workspace so they land on their business home.
+  if (!row.accountId && (await ensureWorkspace(row.id))) [row] = await db.select().from(users).where(eq(users.id, session.sub)).limit(1);
+  const { permissions, accountStatus, trial } = await effectivePermissions(row.roles, row.accountId);
   return {
     id: row.id,
     name: row.name,
     accountId: row.accountId,
     branchId: row.branchId,
     roles: row.roles,
-    permissions: await resolvePermissions(row.roles),
+    permissions,
+    accountStatus,
+    trial,
     locale: row.locale,
   };
 });

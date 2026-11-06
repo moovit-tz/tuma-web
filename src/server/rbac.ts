@@ -1,9 +1,10 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, or, sql } from "drizzle-orm";
 import { db } from "./db/client";
-import { rolePermissions, roles } from "./db/schema";
-import { isPermission, type Permission } from "@/domain/roles";
+import { accounts, rolePermissions, roles, shipments } from "./db/schema";
+import { SETUP_PERMISSIONS, TRIAL_INTAKE, TRIAL_PERMISSIONS, isPermission, type Permission } from "@/domain/roles";
+import { getSetting } from "./settings";
 
 export const ROLES_TAG = "rbac:roles";
 
@@ -24,4 +25,41 @@ async function permissionsFor(roleKeys: string[]): Promise<Permission[]> {
 
 export async function resolvePermissions(roleKeys: string[]): Promise<Set<Permission>> {
   return new Set(await permissionsFor([...roleKeys].sort()));
+}
+
+export type Trial = { allowance: number; used: number; remaining: number };
+
+/** Parcels a business under review has handled (booked, or assigned to it to handle) against its allowance. */
+export async function trialFor(accountId: string): Promise<Trial> {
+  const [allowance, [{ used }]] = await Promise.all([
+    getSetting("pendingParcelAllowance"),
+    db
+      .select({ used: sql<number>`count(*)::int` })
+      .from(shipments)
+      .where(or(eq(shipments.accountId, accountId), eq(shipments.handlingPartnerId, accountId))),
+  ]);
+  return { allowance, used, remaining: Math.max(0, allowance - used) };
+}
+
+/**
+ * What a person may actually do: their roles' permissions, limited by their company's state. While a self-onboarded
+ * business is still being reviewed (account status "pending") everyone in it can set up (SETUP_PERMISSIONS) and
+ * handle parcels up to the allowance set in the portal (TRIAL_PERMISSIONS); once it is used up they can finish the
+ * parcels in hand but not take in new ones. Approval lifts the limit on the next request.
+ */
+export async function effectivePermissions(
+  roleKeys: string[],
+  accountId: string | null,
+): Promise<{ permissions: Set<Permission>; accountStatus: string | null; trial: Trial | null }> {
+  const [permissions, acct] = await Promise.all([
+    resolvePermissions(roleKeys),
+    accountId ? db.select({ status: accounts.status }).from(accounts).where(eq(accounts.id, accountId)).then((r) => r[0]) : Promise.resolve(undefined),
+  ]);
+  const accountStatus = acct?.status ?? null;
+  if (accountStatus !== "pending") return { permissions, accountStatus, trial: null };
+  const trial = await trialFor(accountId!);
+  // Allowance 0 and nothing in hand: set-up only. Parcels already taken in can always be finished.
+  const open = trial.allowance > 0 || trial.used > 0 ? TRIAL_PERMISSIONS.filter((p) => trial.remaining > 0 || !TRIAL_INTAKE.includes(p)) : [];
+  const allowed = new Set<Permission>([...SETUP_PERMISSIONS, ...open]);
+  return { permissions: new Set([...permissions].filter((p) => allowed.has(p))), accountStatus, trial };
 }

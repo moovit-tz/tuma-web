@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
   const state = randomToken(16);
   const verifier = randomToken(32);
   const redirectUri = new URL("/api/auth/callback", process.env.APP_URL).toString();
-  const url = ondi().authorizeUrl({ state, codeChallenge: await pkceChallenge(verifier), redirectUri });
+  const url = await ondi().authorizeUrl({ state, codeChallenge: await pkceChallenge(verifier), redirectUri });
 
   const res = NextResponse.redirect(url);
   const opts = { httpOnly: true, sameSite: "lax" as const, secure: process.env.NODE_ENV === "production", path: "/api/auth", maxAge: 600 };

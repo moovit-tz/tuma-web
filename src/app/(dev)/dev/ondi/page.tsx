@@ -57,7 +57,22 @@ async function Personas({ searchParams }: { searchParams: PageProps<"/dev/ondi">
     redirect(back.toString());
   }
 
+  /** Someone new to Tuma: Ondi creates the identity; Tuma gives it roles later (e.g. a driver registering in Tuma-X). */
+  async function signUp(formData: FormData) {
+    "use server";
+    const name = String(formData.get("name") ?? "").trim().slice(0, 80);
+    if (name.length < 3) return;
+    const email = String(formData.get("email") ?? "").trim() || undefined;
+    const sub = `ondi|${name.toLowerCase().replace(/[^a-z0-9]+/g, ".").replace(/^\.|\.$/g, "")}.${crypto.randomUUID().slice(0, 6)}`;
+    const code = await ondiStub().issueCode({ sub, name, email, accountId: null, roles: [], locale: "sw" }, challenge);
+    const back = new URL(redirectUri);
+    back.searchParams.set("code", code);
+    back.searchParams.set("state", state);
+    redirect(back.toString());
+  }
+
   return (
+    <>
     <ul className="divide-border bg-card divide-y rounded-lg border">
       {people.map((p) => (
         <li key={p.id}>
@@ -82,5 +97,12 @@ async function Personas({ searchParams }: { searchParams: PageProps<"/dev/ondi">
         </li>
       ))}
     </ul>
+    <form action={signUp} className="bg-card mt-4 grid gap-2 rounded-lg border p-4 sm:grid-cols-[1fr_1fr_auto]">
+      <div className="text-muted-foreground text-xs sm:col-span-3">New to Ondi? Create an identity (no roles yet).</div>
+      <input name="name" required minLength={3} placeholder="Full name" className="bg-background h-10 rounded-md border px-3 text-sm" />
+      <input name="email" type="email" placeholder="Email (optional)" className="bg-background h-10 rounded-md border px-3 text-sm" />
+      <button className="bg-foreground text-background h-10 rounded-md px-4 text-sm font-medium">Sign up</button>
+    </form>
+    </>
   );
 }
