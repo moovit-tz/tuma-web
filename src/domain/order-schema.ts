@@ -1,7 +1,21 @@
 import { z } from "zod";
-import { toE164TZ } from "./phone";
+import { toE164 } from "./phone";
 import { MAX_PIECE_WEIGHT_KG, TZ_REGIONS } from "./pricing";
 import { COLLECT_METHODS, DELIVERY_PAYERS, PREPAY_METHODS } from "./payments";
+
+/** How a parcel must be handled: printed on the label and shown to everyone who moves it. */
+export const SPECIAL_HANDLING = [
+  "fragile",
+  "perishable",
+  "liquid",
+  "oversize",
+  "heavy",
+  "this_side_up",
+  "handle_with_care",
+  "keep_dry",
+  "do_not_bend",
+  "no_cutter",
+] as const;
 
 /** Parcel order input — FR-PCL-01, address rules FR-WB-07. Shared by the portal form, server and API. */
 
@@ -9,9 +23,9 @@ const phone = z
   .string()
   .trim()
   .transform((v, ctx) => {
-    const e164 = toE164TZ(v);
+    const e164 = toE164(v);
     if (!e164) {
-      ctx.addIssue({ code: "custom", message: "Enter a Tanzanian mobile number, e.g. 0712 345 678" });
+      ctx.addIssue({ code: "custom", message: "Enter a mobile number from an SADC or EAC country, e.g. 0712 345 678 or +254 712 345 678" });
       return z.NEVER;
     }
     return e164;
@@ -46,6 +60,14 @@ export const partySchema = z.object({
   email: z.union([z.email(), z.literal("")]).optional().transform((v) => v || undefined),
   language: z.enum(["en", "sw"]).default("sw"),
   address: addressSchema,
+  /** When the party is a business: its TIN, BRELA number and the person dealing with it. */
+  company: z
+    .object({
+      tin: z.string().trim().regex(/^\d{9}$/, "A TIN is 9 digits").optional(),
+      regNo: z.string().trim().max(40).optional(),
+      contactName: z.string().trim().min(2).max(120).optional(),
+    })
+    .optional(),
 });
 
 export const pieceSchema = z.object({
@@ -68,6 +90,8 @@ export const parcelOrderSchema = z
     deliveryMode: z.enum(["door", "wakala_collect"]),
     pickupLocationId: optionalText,
     deliveryLocationId: optionalText,
+    /** One of the company's own offices to collect from, in place of a Wakala point. */
+    deliveryBranchId: optionalText,
     shipper: partySchema,
     consignee: partySchema,
     deliveryInstructions: z.string().trim().max(500).optional(),
@@ -75,7 +99,7 @@ export const parcelOrderSchema = z
     goodsCategory: z.string().trim().min(2),
     declaredValue: z.coerce.number().int().min(0).optional(),
     codAmount: z.coerce.number().int().min(0).optional(),
-    specialHandling: z.array(z.enum(["fragile", "perishable", "liquid", "oversize"])).default([]),
+    specialHandling: z.array(z.enum(SPECIAL_HANDLING)).default([]),
     prohibitedDeclared: z.literal(true, { message: "Confirm the goods contain no prohibited items" }),
     pieces: z.array(pieceSchema).min(1).max(20),
   })
@@ -85,7 +109,7 @@ export const parcelOrderSchema = z
     if (o.deliveryMode === "door" && !a.landmark && (a.lat === undefined || a.lng === undefined)) {
       ctx.addIssue({ code: "custom", path: ["consignee", "address", "landmark"], message: "Add a landmark or a map pin for door delivery" });
     }
-    if (o.deliveryMode === "wakala_collect" && !o.deliveryLocationId) {
+    if (o.deliveryMode === "wakala_collect" && !o.deliveryLocationId && !o.deliveryBranchId) {
       ctx.addIssue({ code: "custom", path: ["deliveryLocationId"], message: "Choose the Wakala point for collection" });
     }
     if (o.handoverMode === "wakala_dropoff" && !o.pickupLocationId) {

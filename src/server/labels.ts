@@ -243,7 +243,7 @@ export async function waybillA4Pdf(s: ShipmentDetail, trackingBase: string): Pro
 
   page.drawText("GOODS", { x: m, y, size: 8, font: bold, color: MUTED });
   y -= 6 * MM;
-  text(page, `${s.goodsDescription} (${s.goodsCategory})${s.specialHandling.length ? " - " + s.specialHandling.join(", ") : ""}`, m, y, 10.5, regular, INK, W - 2 * m);
+  text(page, `${s.goodsDescription} (${s.goodsCategory})${s.specialHandling.length ? " - " + s.specialHandling.map((h) => h.replace(/_/g, " ")).join(", ") : ""}`, m, y, 10.5, regular, INK, W - 2 * m);
   y -= 8 * MM;
   for (const p of s.pieces) {
     text(page, `${pieceLabel(s.waybill, p.seq, s.piecesCount)}    ${(p.weightG / 1000).toFixed(2)} kg    ${p.lengthCm} x ${p.widthCm} x ${p.heightCm} cm`, m, y, 9.5, mono);

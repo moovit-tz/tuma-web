@@ -7,6 +7,7 @@ import {
   codRecords,
   events,
   exceptions,
+  invoices,
   locations,
   notifications,
   pieces,
@@ -20,22 +21,18 @@ import { checkStanding } from "../adapters/finops";
 import { notifyOnState } from "../adapters/notify";
 import { issueReceiverCode } from "./tracking";
 import type { CurrentUser } from "../auth/current-user";
-import { generateWaybill, normaliseWaybill } from "@/domain/waybill-number";
+import { normaliseWaybill } from "@/domain/waybill-number";
+import { issueReference } from "../adapters/references";
+import { randomUUID } from "node:crypto";
 import { canTransition, consigneeEditable, eventTypeFor, isBeforeHandover, isTerminal, type ShipmentState } from "@/domain/states";
-import { promisedAt, quote, type ServiceLevel } from "@/domain/pricing";
+import { MAX_PIECE_WEIGHT_KG, promisedAt, quote, weights, zoneFor, type Quote, type ServiceLevel } from "@/domain/pricing";
 import type { ParcelOrder } from "@/domain/order-schema";
 import type { Permission } from "@/domain/roles";
 import { amountToCollect, senderPays } from "@/domain/payments";
 
-export class DomainError extends Error {
-  constructor(
-    public code: string,
-    message: string,
-    public status = 422,
-  ) {
-    super(message);
-  }
-}
+import { DomainError } from "../errors";
+import { getSetting } from "../settings";
+export { DomainError };
 
 /* ------------------------------------------------------------------ scope */
 
@@ -62,19 +59,48 @@ export async function quoteParcel(order: ParcelOrder) {
   });
 }
 
-export async function createParcel(user: CurrentUser, order: ParcelOrder, channel: "portal" | "api" | "console" = "portal") {
+/**
+ * An agent's own price instead of Tuma's rate card: agents set their own tariffs and enter the charge at the counter.
+ * Weights and the zone are still worked out, for the promise date and the records.
+ */
+function agentPriced(order: ParcelOrder, charge: number, extras: { code: string; label: string; amount: number }[] = []): Quote {
+  if (order.pieces.some((p) => p.weightKg > MAX_PIECE_WEIGHT_KG)) {
+    return { ok: false, code: "PIECE_TOO_HEAVY", message: `A piece weighs more than ${MAX_PIECE_WEIGHT_KG} kg. Book it as cargo.` };
+  }
+  const w = weights(order.pieces);
+  return {
+    ok: true,
+    zone: zoneFor(order.shipper.address.region, order.consignee.address.region),
+    chargeableKg: Math.max(1, Math.ceil(w.chargeableG / 1000)),
+    lines: [{ code: "AGENT_RATE", label: "Agent's charge", amount: charge }, ...extras],
+    subtotal: charge + extras.reduce((n, e) => n + e.amount, 0),
+    tax: 0,
+    total: charge + extras.reduce((n, e) => n + e.amount, 0),
+    weights: w,
+  };
+}
+
+export async function createParcel(
+  user: CurrentUser,
+  order: ParcelOrder,
+  channel: "portal" | "api" | "console" | "app" = "portal",
+  /** The charge an agent entered at the counter; Tuma's rate card is not used then. */
+  opts: { charge?: number; extras?: { code: string; label: string; amount: number }[] } = {},
+) {
   if (!user.permissions.has("shipment.create")) throw new DomainError("FORBIDDEN", "You cannot create shipments.", 403);
   const accountId = user.accountId;
   if (!accountId) throw new DomainError("NO_ACCOUNT", "Your user is not linked to an account.");
 
   const [account] = await db.select().from(accounts).where(eq(accounts.id, accountId));
   // FR-CRM-03: suspended or closed accounts cannot create orders.
-  if (!account || account.status !== "active") throw new DomainError("ACCOUNT_INACTIVE", "This account cannot create new orders.");
+  // A business under review may book parcels up to its allowance (checked again, locked, when the parcel is written).
+  const trialing = account?.status === "pending";
+  if (!account || (account.status !== "active" && !trialing)) throw new DomainError("ACCOUNT_INACTIVE", "This account cannot create new orders.");
   if (!account.allowedServiceLevels.includes(order.serviceLevel)) {
     throw new DomainError("SERVICE_NOT_IN_CONTRACT", "Your contract does not include this service level.");
   }
 
-  const q = await quoteParcel(order);
+  const q = opts.charge !== undefined ? agentPriced(order, opts.charge, opts.extras) : await quoteParcel(order);
   if (!q.ok) throw new DomainError(q.code, q.message);
 
   // FR-FIN-03: check payment standing before confirming — only when the sender pays.
@@ -99,125 +125,135 @@ export async function createParcel(user: CurrentUser, order: ParcelOrder, channe
   const now = new Date();
   const promise = promisedAt(order.serviceLevel as ServiceLevel, q.zone, now);
 
-  for (let attempt = 0; attempt < 5; attempt++) {
-    const waybill = generateWaybill("parcel", now);
-    try {
-      const created = await db.transaction(async (tx) => {
-        const [s] = await tx
-          .insert(shipments)
-          .values({
-            waybill,
-            type: "parcel",
-            accountId,
-            merchantRef: order.merchantRef,
-            state: "AWAITING_HANDOVER",
-            serviceLevel: order.serviceLevel,
-            paymentTerms: order.paymentTerms,
-            handoverMode: order.handoverMode,
-            deliveryMode: order.deliveryMode,
-            shipper: order.shipper,
-            consignee: order.consignee,
-            pickupLocationId: order.pickupLocationId,
-            deliveryLocationId: order.deliveryLocationId,
-            deliveryInstructions: order.deliveryInstructions,
-            goodsDescription: order.goodsDescription,
-            goodsCategory: order.goodsCategory,
-            declaredValue: order.declaredValue,
-            codAmount: order.codAmount || null,
-            prepayMethod: order.paymentTerms === "prepaid" ? order.prepayMethod : null,
-            collectMethods: order.collectMethods,
-            specialHandling: order.specialHandling,
-            prohibitedDeclared: order.prohibitedDeclared,
-            piecesCount: order.pieces.length,
-            actualWeightG: q.weights.actualG,
-            volumetricWeightG: q.weights.volumetricG,
-            chargeableWeightG: q.weights.chargeableG,
-            totalCharge: q.total,
-            promisedAt: promise,
-            channel,
-            createdBy: user.id,
-          })
-          .returning();
-
-        await tx.insert(pieces).values(
-          order.pieces.map((p, i) => ({
-            shipmentId: s.id,
-            seq: i + 1,
-            weightG: Math.round(p.weightKg * 1000),
-            lengthCm: p.lengthCm,
-            widthCm: p.widthCm,
-            heightCm: p.heightCm,
-            description: p.description,
-          })),
-        );
-
-        await tx.insert(chargeSnapshots).values({
-          shipmentId: s.id,
-          version: 1,
-          lines: q.lines,
-          subtotal: q.subtotal,
-          tax: q.tax,
-          total: q.total,
-          taxRef: "VAT18-ESTIMATE",
-          reason: "confirmation",
-        });
-
-        // Money to collect at the door: COD goods value and/or the delivery fee when the receiver pays.
-        const due = amountToCollect({ paymentTerms: order.paymentTerms, codAmount: order.codAmount, totalCharge: q.total });
-        if (due.total > 0) {
-          await tx.insert(codRecords).values({ shipmentId: s.id, amountDue: due.goods, feeDue: due.fee });
-        }
-
-        const actor = { actorType: "merchant", actorId: user.id };
-        const createdEvt = eventId();
-        await tx.insert(events).values([
-          { id: createdEvt, shipmentId: s.id, type: "shipment.created", stateAfter: "CREATED", occurredAt: now, source: channel === "api" ? "api" : "portal", ...actor },
-          {
-            id: eventId(),
-            shipmentId: s.id,
-            type: "shipment.awaiting_handover",
-            stateAfter: "AWAITING_HANDOVER",
-            occurredAt: new Date(now.getTime() + 1),
-            source: "system",
-            actorType: "system",
-          },
-        ]);
-
-        // FR-FIN-01: billable event with the charge snapshot.
-        await enqueue(tx, {
-          target: "finops",
-          topic: "shipment.priced",
-          idempotencyKey: `priced:${waybill}:v1`,
-          waybill,
-          payload: {
-            waybill,
-            accountId,
-            payer: order.paymentTerms === "pay_on_delivery" ? "receiver" : "sender",
-            paymentTerms: order.paymentTerms,
-            prepayMethod: order.prepayMethod,
-            lines: q.lines,
-            subtotal: q.subtotal,
-            tax: q.tax,
-            total: q.total,
-            currency: "TZS",
-            taxRef: "VAT18-ESTIMATE",
-          },
-        });
-
-        // The receiver's code for full tracking details, sent in their first SMS.
-        await issueReceiverCode(tx, { waybill, consignee: order.consignee }, "booked");
-
-        await audit(tx, { actorId: user.id, action: "shipment.create", entity: "shipment", entityId: waybill, after: { state: "AWAITING_HANDOVER", total: q.total } });
-        return s;
-      });
-      return { shipment: created, duplicateRef };
-    } catch (e) {
-      // Retry only on a waybill collision (FR-WB-01: unique, never reused).
-      if (String((e as { cause?: { constraint_name?: string } }).cause?.constraint_name ?? e).includes("shipments_waybill_uq")) continue;
-      throw e;
+  // The waybill is the shipment's Hudumika global reference (AAA001), issued against its id in the same transaction.
+  const id = randomUUID();
+  const created = await db.transaction(async (tx) => {
+    if (trialing) {
+      // One booking at a time per business, so two counters can't both take the last parcel of the allowance.
+      await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${"trial:" + accountId}))`);
+      const allowance = await getSetting("pendingParcelAllowance");
+      const [{ used }] = await tx
+        .select({ used: sql<number>`count(*)::int` })
+        .from(shipments)
+        .where(or(eq(shipments.accountId, accountId), eq(shipments.handlingPartnerId, accountId)));
+      if (used >= allowance) {
+        throw new DomainError("TRIAL_LIMIT", `While your business is being reviewed you can handle ${allowance} parcels, and they're used up. More open on approval.`, 403);
+      }
     }
-  }
-  throw new DomainError("WAYBILL_EXHAUSTED", "Could not allocate a waybill number. Try again.", 500);
+    const { referenceNumber: waybill } = await issueReference({ type: "PARCEL", entityId: id, tenantId: accountId, createdBy: user.id }, tx);
+    const [s] = await tx
+      .insert(shipments)
+      .values({
+        id,
+        waybill,
+        type: "parcel",
+        accountId,
+        // An agent office booking at its counter handles the parcel itself.
+        handlingPartnerId: user.permissions.has("agent.workspace") ? accountId : null,
+        handlingBranchId: user.permissions.has("agent.workspace") ? (user.branchId ?? null) : null,
+        merchantRef: order.merchantRef,
+        state: "AWAITING_HANDOVER",
+        serviceLevel: order.serviceLevel,
+        paymentTerms: order.paymentTerms,
+        handoverMode: order.handoverMode,
+        deliveryMode: order.deliveryMode,
+        shipper: order.shipper,
+        consignee: order.consignee,
+        pickupLocationId: order.pickupLocationId,
+        deliveryLocationId: order.deliveryLocationId,
+        deliveryBranchId: order.deliveryBranchId,
+        deliveryInstructions: order.deliveryInstructions,
+        goodsDescription: order.goodsDescription,
+        goodsCategory: order.goodsCategory,
+        declaredValue: order.declaredValue,
+        codAmount: order.codAmount || null,
+        prepayMethod: order.paymentTerms === "prepaid" ? order.prepayMethod : null,
+        collectMethods: order.collectMethods,
+        specialHandling: order.specialHandling,
+        prohibitedDeclared: order.prohibitedDeclared,
+        piecesCount: order.pieces.length,
+        actualWeightG: q.weights.actualG,
+        volumetricWeightG: q.weights.volumetricG,
+        chargeableWeightG: q.weights.chargeableG,
+        totalCharge: q.total,
+        promisedAt: promise,
+        channel,
+        createdBy: user.id,
+      })
+      .returning();
+
+    await tx.insert(pieces).values(
+      order.pieces.map((p, i) => ({
+        shipmentId: s.id,
+        seq: i + 1,
+        weightG: Math.round(p.weightKg * 1000),
+        lengthCm: p.lengthCm,
+        widthCm: p.widthCm,
+        heightCm: p.heightCm,
+        description: p.description,
+      })),
+    );
+
+    await tx.insert(chargeSnapshots).values({
+      shipmentId: s.id,
+      version: 1,
+      lines: q.lines,
+      subtotal: q.subtotal,
+      tax: q.tax,
+      total: q.total,
+      taxRef: opts.charge !== undefined ? "AGENT-RATE" : "VAT18-ESTIMATE",
+      reason: "confirmation",
+    });
+
+    // Money to collect at the door: COD goods value and/or the delivery fee when the receiver pays.
+    const due = amountToCollect({ paymentTerms: order.paymentTerms, codAmount: order.codAmount, totalCharge: q.total });
+    if (due.total > 0) {
+      await tx.insert(codRecords).values({ shipmentId: s.id, amountDue: due.goods, feeDue: due.fee });
+    }
+
+    const actor = { actorType: "merchant", actorId: user.id };
+    const createdEvt = eventId();
+    await tx.insert(events).values([
+      { id: createdEvt, shipmentId: s.id, type: "shipment.created", stateAfter: "CREATED", occurredAt: now, source: channel === "api" ? "api" : channel === "app" ? "field_app" : "portal", ...actor },
+      {
+        id: eventId(),
+        shipmentId: s.id,
+        type: "shipment.awaiting_handover",
+        stateAfter: "AWAITING_HANDOVER",
+        occurredAt: new Date(now.getTime() + 1),
+        source: "system",
+        actorType: "system",
+      },
+    ]);
+
+    // FR-FIN-01: billable event with the charge snapshot.
+    await enqueue(tx, {
+      target: "finops",
+      topic: "shipment.priced",
+      idempotencyKey: `priced:${waybill}:v1`,
+      waybill,
+      payload: {
+        waybill,
+        accountId,
+        payer: order.paymentTerms === "pay_on_delivery" ? "receiver" : "sender",
+        paymentTerms: order.paymentTerms,
+        prepayMethod: order.prepayMethod,
+        lines: q.lines,
+        subtotal: q.subtotal,
+        tax: q.tax,
+        total: q.total,
+        currency: "TZS",
+        taxRef: opts.charge !== undefined ? "AGENT-RATE" : "VAT18-ESTIMATE",
+      },
+    });
+
+    // The receiver's code for full tracking details, sent in their first SMS.
+    await issueReceiverCode(tx, { waybill, consignee: order.consignee }, "booked");
+
+    await audit(tx, { actorId: user.id, action: "shipment.create", entity: "shipment", entityId: waybill, after: { state: "AWAITING_HANDOVER", total: q.total } });
+    return s;
+  });
+  return { shipment: created, duplicateRef };
 }
 
 /* ------------------------------------------------------------- lifecycle */
@@ -228,7 +264,12 @@ type TransitionOpts = {
   source: "manual" | "scan" | "field_app" | "portal" | "system";
   locationId?: string;
   occurredAt?: Date;
-  pod?: { method: "otp" | "signature" | "photo"; receiverName?: string };
+  pod?: { method: "otp" | "signature" | "photo" | "counter"; receiverName?: string; photo?: string };
+  /** Where the device was when the event happened (field app). */
+  lat?: number;
+  lng?: number;
+  /** Extra event data, e.g. the Tuma-X job the change belongs to. */
+  data?: Record<string, unknown>;
   /** How the receiver paid what was due at the door. */
   collectMethod?: "cash" | "mobile_money" | "card";
 };
@@ -275,7 +316,9 @@ export async function transition(user: CurrentUser | "system", waybill: string, 
       reasonCode: opts.reasonCode,
       locationId: opts.locationId,
       note: opts.note,
-      data: opts.pod ? { pod: opts.pod } : undefined,
+      lat: opts.lat,
+      lng: opts.lng,
+      data: opts.pod || opts.data ? { ...opts.data, ...(opts.pod ? { pod: opts.pod } : {}) } : undefined,
     });
 
     const patch: Partial<typeof shipments.$inferInsert> = { state: to, updatedAt: now };
@@ -294,6 +337,11 @@ export async function transition(user: CurrentUser | "system", waybill: string, 
           .update(codRecords)
           .set({ amountCollected: due.goods, feeCollected: due.fee, method, status: "collected", collectedAt: occurredAt, holderId: actorId })
           .where(eq(codRecords.shipmentId, s.id));
+        // The receiver paid the delivery charge here: the parcel is paid for, and counts in the business's takings.
+        if (due.fee > 0 && !s.paidAt) {
+          await tx.update(shipments).set({ paidAt: occurredAt, prepayMethod: method === "card" ? "cash" : method }).where(eq(shipments.id, s.id));
+          await tx.update(invoices).set({ status: "paid", amountPaid: s.totalCharge, paidWith: method }).where(eq(invoices.shipmentId, s.id));
+        }
         // FR-FIN-02: report the collection; cash stays "held" by the collector until deposited.
         await enqueue(tx, {
           target: "finops",
@@ -343,12 +391,17 @@ export const MAX_ATTEMPTS = 3; // SRS 5.2 default
 const CANCELLATION_FEE = 2000; // PLACEHOLDER fee table (FR-PCL-12)
 
 async function createReturnWaybill(tx: Tx, original: typeof shipments.$inferSelect, reason: string) {
-  const waybill = generateWaybill("parcel");
+  // A return is a new shipment, so it gets its own reference; the original keeps its number forever.
+  const id = randomUUID();
+  const { referenceNumber: waybill } = await issueReference(
+    { type: original.type === "cargo" ? "CARGO" : "PARCEL", entityId: id, tenantId: original.accountId, createdBy: "system" },
+    tx,
+  );
   const [r] = await tx
     .insert(shipments)
     .values({
       ...original,
-      id: undefined,
+      id,
       waybill,
       state: "CREATED",
       shipper: original.consignee,
