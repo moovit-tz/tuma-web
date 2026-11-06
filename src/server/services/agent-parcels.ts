@@ -2,7 +2,7 @@ import "server-only";
 import { and, asc, count, desc, eq, gte, ilike, inArray, ne, or, sql, type SQL } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "../db/client";
-import { accounts, branches, codRecords, events, invoices, kybApplications, kybEvents, locations, parcelPayments, reasonCodes, shipments, users } from "../db/schema";
+import { accounts, branches, codRecords, events, invoices, kybApplications, kybEvents, locations, manifests, parcelPayments, reasonCodes, shipments, users } from "../db/schema";
 import { collect, collection } from "../adapters/hudupay";
 import { issueCompanyInvoice, markPaid, receiveOnceFor, settlePayment } from "./counter-payments";
 import { momoEnabled } from "./agent-payments";
@@ -70,7 +70,7 @@ export async function agentSummary(user: CurrentUser) {
   const month = darMidnight(29);
   const day = sql<string>`to_char(${shipments.createdAt} at time zone 'Africa/Dar_es_Salaam', 'YYYY-MM-DD')`;
   const dday = sql<string>`to_char(${shipments.deliveredAt} at time zone 'Africa/Dar_es_Salaam', 'YYYY-MM-DD')`;
-  const [byState, booked, delivered, periods, trial] = await Promise.all([
+  const [byState, booked, delivered, periods, trial, coming] = await Promise.all([
     db.select({ state: shipments.state, n: count() }).from(shipments).where(scope).groupBy(shipments.state),
     db.select({ day, n: count(), value: sql<number>`coalesce(sum(${shipments.totalCharge}), 0)::int` }).from(shipments).where(and(scope, gte(shipments.createdAt, week))).groupBy(day),
     db.select({ day: dday, n: count() }).from(shipments).where(and(scope, eq(shipments.state, "DELIVERED"), gte(shipments.deliveredAt, week))).groupBy(dday),
@@ -86,6 +86,11 @@ export async function agentSummary(user: CurrentUser) {
       .from(shipments)
       .where(and(scope, gte(shipments.createdAt, month), sql`${shipments.state} <> 'CANCELLED'`)),
     user.accountStatus === "pending" ? trialFor(acct) : Promise.resolve(null),
+    // Manifests on their way to this office, to check in when they arrive.
+    db
+      .select({ n: count() })
+      .from(manifests)
+      .where(and(eq(manifests.toAccountId, acct), eq(manifests.status, "on_the_way"), user.branchId ? eq(manifests.toBranchId, user.branchId) : undefined)),
   ]);
   const st = Object.fromEntries(byState.map((r) => [r.state, r.n])) as Record<string, number>;
   const sum = (keys: readonly string[]) => keys.reduce((a, k) => a + (st[k] ?? 0), 0);
@@ -97,7 +102,7 @@ export async function agentSummary(user: CurrentUser) {
   });
   const p = periods[0];
   return {
-    counts: { expected: sum(EXPECTED), inHand: sum(IN_HAND), onTheWay: sum(ON_THE_WAY), readyForCollection: st.READY_FOR_COLLECTION ?? 0 },
+    counts: { expected: sum(EXPECTED), inHand: sum(IN_HAND), onTheWay: sum(ON_THE_WAY), readyForCollection: st.READY_FOR_COLLECTION ?? 0, manifestsComing: coming[0]?.n ?? 0 },
     periods: {
       today: { parcels: p?.today ?? 0, value: p?.todayValue ?? 0 },
       week: { parcels: p?.week ?? 0, value: p?.weekValue ?? 0 },

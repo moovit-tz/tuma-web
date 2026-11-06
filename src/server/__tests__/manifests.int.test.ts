@@ -5,8 +5,8 @@ import { db } from "../db/client";
 import { accounts, agents, branches, customers, events, invoices, kybApplications, parcelPayments, paymentSettings, platformSettings, rolePermissions, roles, shipments, users } from "../db/schema";
 import { driverContext, finishDriverLogin, swapHandoff, type DriverCtx } from "../services/drivers";
 import { submitKyb } from "../services/kyb";
-import { agentBook } from "../services/agent-parcels";
-import { createManifest, dispatchOptions, listManifests, manifestDetail } from "../services/manifests";
+import { agentBook, agentParcels } from "../services/agent-parcels";
+import { createManifest, dispatchOptions, listManifests, manifestDetail, offloadParcel } from "../services/manifests";
 import { verifyDriverToken } from "../auth/driver-token";
 import { DEFAULT_ROLES } from "@/domain/roles";
 
@@ -106,6 +106,7 @@ describe("sending parcels on from an office under a manifest", () => {
   let owner: DriverCtx;
   let riderId: string;
   let mwanza: string;
+  let pointRun: string;
   const wbs: string[] = [];
 
   it("lists who can carry: the office's people with dispatch, and Tuma couriers", async () => {
@@ -152,6 +153,8 @@ describe("sending parcels on from an office under a manifest", () => {
   });
 
   it("sends two to another Tuma point by bus: in transit, and the point sees them coming", async () => {
+    // One is for the receiver to collect at that point (booked there from the sender's phone).
+    await db.update(shipments).set({ deliveryMode: "wakala_collect", deliveryBranchId: mwanza }).where(eq(shipments.waybill, wbs[3]));
     const m = await createManifest(owner.user, {
       waybills: [wbs[2], wbs[3]],
       mode: "point",
@@ -161,6 +164,7 @@ describe("sending parcels on from an office under a manifest", () => {
     });
     expect(m).toMatchObject({ mode: "point", to: { id: mwanza, business: "Mussa Point Parcels" }, carrier: { kind: "transporter", name: "Abood Bus", phone: "+255713999888", plate: "T 123 ABC", ref: "Ticket 4471" } });
     expect(m.parcels.every((p) => p.state === "IN_TRANSIT")).toBe(true);
+    pointRun = m.id;
     const point = (await driverContext(OTHER))!;
     const coming = await listManifests(point.user, { dir: "in" });
     expect(coming.manifests.map((x) => x.ref)).toEqual([m.ref]);
@@ -168,6 +172,26 @@ describe("sending parcels on from an office under a manifest", () => {
     expect((await manifestDetail(point.user, m.id)).outgoing).toBe(false);
     const sent = await listManifests(owner.user, { dir: "out" });
     expect(sent.manifests.map((s) => s.mode)).toEqual(["point", "door"]);
+  });
+
+  it("the point checks them in: collection parcels ready, the rest in hand there; then the manifest has arrived", async () => {
+    const point = (await driverContext(OTHER))!;
+    await expect(offloadParcel(point.user, pointRun, { waybill: wbs[0] })).rejects.toMatchObject({ code: "NOT_ON_MANIFEST" });
+    await expect(offloadParcel(owner.user, pointRun, { waybill: wbs[3] })).rejects.toMatchObject({ code: "NOT_FOUND" });
+
+    const a = await offloadParcel(point.user, pointRun, { waybill: wbs[3].toLowerCase() });
+    expect(a.checkedIn).toEqual({ waybill: wbs[3], state: "READY_FOR_COLLECTION", receiver: "Baraka Receiver" });
+    expect(a.manifest).toMatchObject({ status: "on_the_way", totals: { arrived: 1, parcels: 2 } });
+    await expect(offloadParcel(point.user, pointRun, { waybill: wbs[3] })).rejects.toMatchObject({ code: "ALREADY_IN" });
+    // Now it's the point's to hand over.
+    const ready = await agentParcels(point.user, { view: "in_hand" });
+    expect(ready.parcels.map((p) => p.waybill)).toContain(wbs[3]);
+
+    const b = await offloadParcel(point.user, pointRun, { waybill: wbs[2] });
+    expect(b.checkedIn.state).toBe("AT_HUB");
+    expect(b.manifest).toMatchObject({ status: "arrived", totals: { arrived: 2 } });
+    expect(b.manifest.arrivedAt).not.toBeNull();
+    expect((await listManifests(point.user, { dir: "in" })).manifests[0]).toMatchObject({ status: "arrived", arrived: 2 });
   });
 
   it("sends one to the door with a Tuma courier: a job in Tuma's pool from this office; it moves when picked up", async () => {

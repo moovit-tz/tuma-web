@@ -330,3 +330,46 @@ export async function manifestDetail(user: CurrentUser, id: string) {
     })),
   };
 }
+
+/* ---------------------------------------------------------------- offload */
+
+export const offloadSchema = z.object({ waybill: z.string().trim().min(1) });
+
+/**
+ * The point a manifest is going to checks a parcel in (scanned, or picked when the label won't read): it becomes this
+ * office's to handle, ready for collection when the receiver collects here, otherwise in hand here (to send on to the
+ * door). When everything on the manifest is in, the manifest has arrived.
+ */
+export async function offloadParcel(user: CurrentUser, id: string, raw: unknown) {
+  const acct = businessOf(user);
+  const { waybill } = normaliseWaybill(offloadSchema.parse(raw).waybill);
+  if (!z.string().uuid().safeParse(id).success) throw new DomainError("NOT_FOUND", "We couldn't find that manifest.", 404);
+  const [mf] = await db
+    .select()
+    .from(manifests)
+    .where(and(eq(manifests.id, id), eq(manifests.toAccountId, acct), user.branchId ? eq(manifests.toBranchId, user.branchId) : undefined));
+  if (!mf) throw new DomainError("NOT_FOUND", "That manifest isn't coming to this office.", 404);
+  const [it] = await db
+    .select({ s: shipments, arrivedAt: manifestItems.arrivedAt })
+    .from(manifestItems)
+    .innerJoin(shipments, eq(shipments.id, manifestItems.shipmentId))
+    .where(and(eq(manifestItems.manifestId, mf.id), eq(shipments.waybill, waybill)));
+  if (!it) throw new DomainError("NOT_ON_MANIFEST", `${waybill} isn't on ${mf.ref}. Check the label, or keep it aside and call the sender.`, 404);
+  if (it.arrivedAt) throw new DomainError("ALREADY_IN", `${waybill} is already checked in.`, 409);
+  const s = it.s;
+  if (s.state !== "IN_TRANSIT") throw new DomainError("NOT_ON_THE_WAY", `${waybill} isn't on its way any more (${s.state.toLowerCase().replaceAll("_", " ")}).`, 409);
+  // Collected here: ready for the receiver. Otherwise it's in hand here.
+  const collectHere = s.deliveryMode === "wakala_collect" && (!s.deliveryBranchId || s.deliveryBranchId === mf.toBranchId);
+  const next: ShipmentState = collectHere ? "READY_FOR_COLLECTION" : "AT_HUB";
+  const can = canTransition(s.state, next, user.permissions);
+  if (!can.ok) throw new DomainError("FORBIDDEN", collectHere ? "You can't set parcels ready for collection." : "You can't check parcels in at this office.", 403);
+
+  await db.transaction(async (tx) => {
+    await tx.update(shipments).set({ handlingPartnerId: acct, handlingBranchId: mf.toBranchId, deliveryBranchId: collectHere ? mf.toBranchId : s.deliveryBranchId }).where(eq(shipments.id, s.id));
+    await tx.update(manifestItems).set({ arrivedAt: new Date(), arrivedBy: user.id }).where(and(eq(manifestItems.manifestId, mf.id), eq(manifestItems.shipmentId, s.id)));
+  });
+  await transition(user, waybill, next, { source: "scan", note: `Checked in from ${mf.ref}`, data: { manifest: mf.ref } });
+  const [left] = (await db.execute(sql`select count(*)::int n from ${manifestItems} where manifest_id = ${mf.id} and arrived_at is null`)) as unknown as { n: number }[];
+  if (left.n === 0) await db.update(manifests).set({ status: "arrived", arrivedAt: new Date() }).where(eq(manifests.id, mf.id));
+  return { checkedIn: { waybill, state: next, receiver: s.consignee.name }, manifest: await manifestDetail(user, mf.id) };
+}
