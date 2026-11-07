@@ -2,7 +2,7 @@ import "server-only";
 import { and, desc, eq, gte, inArray, isNotNull, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "../db/client";
-import { accounts, branches, chargeSnapshots, codRecords, events, shipments, users, walletEntries } from "../db/schema";
+import { accounts, branches, locations, chargeSnapshots, codRecords, events, shipments, users, walletEntries } from "../db/schema";
 import type { CurrentUser } from "../auth/current-user";
 import { toE164 } from "@/domain/phone";
 import { TZ_REGIONS } from "@/domain/pricing";
@@ -13,7 +13,7 @@ import { createParcel, DomainError, transition } from "./shipments";
 import { liveFor, liveForMany } from "./live-tracking";
 import { myRatingFor, ratingScores } from "./ratings";
 
-import { agentMove, agentParcel } from "./agent-parcels";
+import { agentMove, agentParcel, collectionPoints } from "./agent-parcels";
 import { companyOf } from "./corporate";
 import { rememberCustomers } from "./customers";
 import { issueCompanyInvoice } from "./counter-payments";
@@ -128,7 +128,9 @@ export const senderBookingSchema = z.object({
   }),
   /** To the receiver's door, or collected at a Tuma point of the same business. */
   deliveryMode: z.enum(["door", "wakala_collect"]).default("door"),
+  /** Collected at an office of the drop-off's business (collectId) or at a common collection point (deliveryLocationId). */
   collectId: z.string().uuid().optional(),
+  deliveryLocationId: z.string().trim().min(1).max(64).optional(),
   goods: z.string().trim().min(3).max(200),
   category: z.string().trim().min(2).max(40).default("general"),
   weightKg: z.coerce.number().positive().max(30),
@@ -144,9 +146,20 @@ export const senderBookingSchema = z.object({
   noProhibited: z.literal(true, { message: "Confirm there are no prohibited items" }),
 });
 
+/**
+ * Where a receiver can collect a parcel dropped at [dropOffId], as at that business's counter: its other offices
+ * (the receiver's district first, then the head office) and the common collection points.
+ */
+export async function senderCollectionPoints(user: CurrentUser, f: { dropOffId?: string | null; region?: string | null; district?: string | null }) {
+  const drop = f.dropOffId ? await point(f.dropOffId) : undefined;
+  if (!drop) throw new DomainError("POINT_NOT_FOUND", "Choose the Tuma point you'll take it to first.");
+  const counter: CurrentUser = { ...user, accountId: drop.accountId, branchId: drop.id };
+  return { business: drop.business, ...(await collectionPoints(counter, f.region ?? undefined, f.district ?? undefined)) };
+}
+
 async function point(id: string) {
   const [p] = await db
-    .select({ id: branches.id, name: branches.name, accountId: branches.accountId, region: branches.region, district: branches.district, address: branches.address, payOnDelivery: accounts.payOnDelivery })
+    .select({ id: branches.id, name: branches.name, business: accounts.name, accountId: branches.accountId, region: branches.region, district: branches.district, address: branches.address, payOnDelivery: accounts.payOnDelivery })
     .from(branches)
     .innerJoin(accounts, eq(accounts.id, branches.accountId))
     .where(and(eq(branches.id, id), eq(branches.active, true), eq(accounts.partnerKind, "parcel_agent"), inArray(accounts.status, ["active", "pending"])));
@@ -168,7 +181,15 @@ export async function senderBook(user: CurrentUser, raw: unknown) {
   if (!drop) throw new DomainError("POINT_NOT_FOUND", "That Tuma point isn't taking parcels. Pick another.");
   if (!(TZ_REGIONS as readonly string[]).includes(drop.region)) throw new DomainError("POINT_NOT_FOUND", "That Tuma point isn't taking parcels. Pick another.");
   let collectId: string | undefined;
-  if (b.deliveryMode === "wakala_collect") {
+  let locationId: string | undefined;
+  if (b.deliveryMode === "wakala_collect" && !b.collectId && b.deliveryLocationId) {
+    const [l] = await db
+      .select({ id: locations.id })
+      .from(locations)
+      .where(and(eq(locations.id, b.deliveryLocationId), eq(locations.active, true), inArray(locations.type, ["wakala", "collection_point"])));
+    if (!l) throw new DomainError("COLLECT_POINT", "That collection point isn't open. Pick another.");
+    locationId = l.id;
+  } else if (b.deliveryMode === "wakala_collect") {
     const c = b.collectId ? await point(b.collectId) : undefined;
     if (!c || c.accountId !== drop.accountId) throw new DomainError("COLLECT_POINT", "Choose where the receiver collects it: a Tuma point of the same business.");
     if (c.id === drop.id) throw new DomainError("COLLECT_POINT", "That's where you're dropping it off. Pick where the receiver will collect it.");
@@ -186,6 +207,7 @@ export async function senderBook(user: CurrentUser, raw: unknown) {
     handoverMode: "hub_bulk",
     deliveryMode: b.deliveryMode,
     deliveryBranchId: collectId,
+    deliveryLocationId: locationId,
     shipper: {
       name: co ? co.name : me!.name,
       phone: co ? (me?.phone ?? co.phone!) : me!.phone!,

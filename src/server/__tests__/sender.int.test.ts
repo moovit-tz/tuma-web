@@ -2,13 +2,13 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createHash, randomBytes } from "node:crypto";
 import { eq, inArray, sql } from "drizzle-orm";
 import { db } from "../db/client";
-import { accounts, agents, branches, customerRatings, customers, parcelRatings, invoices, kybApplications, parcelPayments, paymentSettings, platformSettings, rolePermissions, roles, shipments, users } from "../db/schema";
+import { accounts, agents, branches, customerRatings, locations, customers, parcelRatings, invoices, kybApplications, parcelPayments, paymentSettings, platformSettings, rolePermissions, roles, shipments, users } from "../db/schema";
 import { driverContext, finishDriverLogin, swapHandoff, type DriverCtx } from "../services/drivers";
 import { submitKyb } from "../services/kyb";
 import { agentParcel, agentParcels, agentRequestPayment } from "../services/agent-parcels";
 import { rateCustomer } from "../services/customer-ratings";
 import { myRatings, rateMine } from "../services/ratings";
-import { myParcels, priceDropOff, senderBook, senderCancel, senderParcel, tumaPoints } from "../services/sender";
+import { myParcels, priceDropOff, senderBook, senderCancel, senderCollectionPoints, senderParcel, tumaPoints } from "../services/sender";
 import { companyCheck, registerCompany } from "../services/corporate";
 import { teamOverview } from "../services/team-invites";
 import { verifyDriverToken } from "../auth/driver-token";
@@ -53,7 +53,10 @@ async function cleanup() {
   }
   await db.execute(sql`delete from driver_handoffs where user_id in (${sql.join(SUBS.map((s) => sql`${s}`), sql`, `)})`);
   await db.delete(users).where(inArray(users.id, SUBS));
+  await db.delete(locations).where(eq(locations.id, LOC));
 }
+
+const LOC = "TEST-SENDER-WAKALA";
 
 beforeAll(async () => {
   delete process.env.HUDUPAY_URL;
@@ -171,6 +174,19 @@ describe("sending a parcel as a person (no business)", () => {
     const [s] = await db.select({ consignee: shipments.consignee }).from(shipments).where(eq(shipments.waybill, r.waybill));
     expect(s.consignee).toMatchObject({ name: "Mwanga Traders Ltd", company: { tin: "123456789", contactName: "Asha Store" } });
     await expect(senderBook(me.user, booking(pointId, { receiver: { ...booking(pointId).receiver, company: { tin: "12" } } }))).rejects.toBeTruthy();
+  });
+
+  it("is collected where a counter would send it: the business's other offices or a common collection point", async () => {
+    await db.insert(locations).values({ id: LOC, type: "wakala", name: "Sender Test Wakala", region: "Dodoma", district: "Dodoma City", landmark: "By the market" }).onConflictDoNothing();
+    const list = await senderCollectionPoints(me.user, { dropOffId: pointId, region: "Dodoma" });
+    expect(list.offices.map((o) => o.id)).not.toContain(pointId);
+    expect(list.points.map((p) => p.id)).toContain(LOC);
+    const r = await senderBook(me.user, booking(pointId, { deliveryMode: "wakala_collect", deliveryLocationId: LOC }));
+    const [s] = await db.select({ loc: shipments.deliveryLocationId, mode: shipments.deliveryMode }).from(shipments).where(eq(shipments.waybill, r.waybill));
+    expect(s).toMatchObject({ loc: LOC, mode: "wakala_collect" });
+    await db.update(locations).set({ active: false }).where(eq(locations.id, LOC));
+    await expect(senderBook(me.user, booking(pointId, { deliveryMode: "wakala_collect", deliveryLocationId: LOC }))).rejects.toMatchObject({ code: "COLLECT_POINT" });
+    await expect(senderCollectionPoints(me.user, { dropOffId: null })).rejects.toMatchObject({ code: "POINT_NOT_FOUND" });
   });
 
   it("lets the sender cancel a booking that hasn't reached the point, with a reason", async () => {
