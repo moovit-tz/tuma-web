@@ -2,10 +2,12 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createHash, randomBytes } from "node:crypto";
 import { eq, inArray, sql } from "drizzle-orm";
 import { db } from "../db/client";
-import { accounts, agents, branches, customers, invoices, kybApplications, parcelPayments, paymentSettings, platformSettings, rolePermissions, roles, shipments, users } from "../db/schema";
+import { accounts, agents, branches, customerRatings, customers, parcelRatings, invoices, kybApplications, parcelPayments, paymentSettings, platformSettings, rolePermissions, roles, shipments, users } from "../db/schema";
 import { driverContext, finishDriverLogin, swapHandoff, type DriverCtx } from "../services/drivers";
 import { submitKyb } from "../services/kyb";
 import { agentParcel, agentParcels, agentRequestPayment } from "../services/agent-parcels";
+import { rateCustomer } from "../services/customer-ratings";
+import { myRatings, rateMine } from "../services/ratings";
 import { myParcels, priceDropOff, senderBook, senderCancel, senderParcel, tumaPoints } from "../services/sender";
 import { companyCheck, registerCompany } from "../services/corporate";
 import { teamOverview } from "../services/team-invites";
@@ -36,7 +38,7 @@ async function cleanup() {
   await db.delete(kybApplications).where(inArray(kybApplications.userId, SUBS));
   if (accts.length) {
     const ids = sql`(select id from shipments where account_id in (${sql.join(accts.map((a) => sql`${a}`), sql`, `)}))`;
-    for (const t of ["pieces", "events", "charge_snapshots", "cod_records", "exceptions", "notifications", "job_shipments", "tracking_otps"]) {
+    for (const t of ["pieces", "events", "charge_snapshots", "cod_records", "exceptions", "notifications", "job_shipments", "tracking_otps", "customer_ratings", "parcel_ratings"]) {
       await db.execute(sql`delete from ${sql.identifier(t)} where ${sql.identifier(t === "tracking_otps" ? "waybill" : "shipment_id")} in ${t === "tracking_otps" ? sql`(select waybill from shipments where account_id in (${sql.join(accts.map((a) => sql`${a}`), sql`, `)}))` : ids}`);
     }
     await db.delete(parcelPayments).where(inArray(parcelPayments.accountId, accts));
@@ -139,6 +141,29 @@ describe("sending a parcel as a person (no business)", () => {
     expect(paid.parcel).toMatchObject({ state: "RECEIVED", paidWith: "cash" });
     expect((await senderParcel(me.user, waybill)).total).toBe(9000);
     await expect(senderCancel(me.user, waybill, { reason: "Changed my mind" })).rejects.toMatchObject({ code: "CANNOT_CANCEL" });
+  });
+
+  it("rates both ways: the point rates the sender, the receiver rates the point in the app", async () => {
+    // Not on the move with a courier: no live position on the list.
+    expect((await myParcels(me.user)).parcels.find((p) => p.waybill === waybill)?.live).toBeNull();
+    await expect(rateCustomer(me.user, waybill, { role: "sender", stars: 5 })).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(rateCustomer(agent.user, waybill, { role: "sender", stars: 9 })).rejects.toBeTruthy();
+    const r = await rateCustomer(agent.user, waybill, { role: "sender", stars: 4, note: "On time" });
+    expect(r.ratings).toEqual({ sender: 4, receiver: null });
+    // Rating again changes it rather than adding one.
+    await rateCustomer(agent.user, waybill, { role: "sender", stars: 5 });
+    expect((await agentParcel(agent.user, waybill)).customerRatings).toEqual({ sender: 5, receiver: null });
+    expect(await db.select().from(customerRatings).where(eq(customerRatings.phone, "+255712300400"))).toHaveLength(1);
+
+    const them = (await driverContext(RECEIVER))!;
+    const [s] = await db.select({ id: shipments.id }).from(shipments).where(eq(shipments.waybill, waybill));
+    await db.insert(parcelRatings).values({ shipmentId: s.id, accountId: agent.user.accountId!, tokenHash: `t-${waybill}`, phone: "+255754909101" });
+    expect((await myRatings(them.user)).toRate).toMatchObject([{ waybill, business: "Halima Parcels", status: "open" }]);
+    expect((await senderParcel(them.user, waybill)).rating).toMatchObject({ status: "open" });
+    await expect(rateMine(me.user, waybill, { stars: 5 })).rejects.toMatchObject({ code: "NOT_FOUND" });
+    await rateMine(them.user, waybill, { stars: 2, issue: "late" });
+    expect((await myRatings(them.user)).rated).toMatchObject([{ waybill, stars: 2, issue: "late" }]);
+    await expect(rateMine(them.user, waybill, { stars: 5 })).rejects.toMatchObject({ code: "ALREADY_RATED" });
   });
 
   it("lets the sender cancel a booking that hasn't reached the point, with a reason", async () => {

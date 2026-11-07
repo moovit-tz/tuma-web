@@ -1,4 +1,5 @@
 import "server-only";
+import { customerRatingsOn } from "./customer-ratings";
 import { and, asc, count, desc, eq, gte, ilike, inArray, ne, or, sql, type SQL } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "../db/client";
@@ -43,6 +44,8 @@ const VIEW_STATES: Record<Exclude<AgentView, "all">, readonly ShipmentState[]> =
 
 /** Moves an agent may make from the app; the rest belong to hubs, dispatch and the platform. */
 const AGENT_MOVES: ShipmentState[] = ["RECEIVED", "READY_FOR_COLLECTION", "IN_TRANSIT", "OUT_FOR_DELIVERY", "DELIVERED", "ATTEMPT_FAILED"];
+
+const acctOf = (user: CurrentUser) => user.accountId!;
 
 function businessOf(user: CurrentUser): string {
   if (!user.permissions.has("agent.workspace") || !user.accountId) throw new DomainError("FORBIDDEN", "You don't have access to parcels.", 403);
@@ -281,6 +284,8 @@ export async function agentParcel(user: CurrentUser, rawWaybill: string) {
     },
     moves,
     canDispatch,
+    // How this business rated the sender and the receiver (stars or null): rateable once it's at the counter.
+    customerRatings: await customerRatingsOn(acctOf(user), s.id),
     failReasons,
     canCancel,
     cancelReasons,

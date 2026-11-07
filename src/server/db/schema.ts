@@ -1281,6 +1281,34 @@ export const parcelRatings = pgTable(
 );
 
 /**
+ * How a business (a Tuma point or a courier's fleet) rated a customer it served on a parcel: the sender who brought
+ * it or the receiver who collected it. One per business, parcel and person. The person sees their score in the app.
+ */
+export const customerRatings = pgTable(
+  "customer_ratings",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    accountId: text("account_id")
+      .notNull()
+      .references(() => accounts.id),
+    shipmentId: uuid("shipment_id")
+      .notNull()
+      .references(() => shipments.id),
+    /** The person rated (E.164). */
+    phone: text("phone").notNull(),
+    /** sender | receiver */
+    role: text("role").notNull(),
+    stars: smallint("stars").notNull(),
+    note: text("note"),
+    ratedBy: text("rated_by")
+      .notNull()
+      .references(() => users.id),
+    createdAt: ts("created_at").notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("customer_ratings_once_uq").on(t.accountId, t.shipmentId, t.phone), index("customer_ratings_phone_idx").on(t.phone, t.createdAt)],
+);
+
+/**
  * A sender's Tuma wallet: money they put in ahead (a mobile-money top-up through HuduPay) and spend on their parcels
  * when a Tuma point prices them, with refunds coming back in. The balance is the sum of the settled entries; a
  * top-up counts once HuduPay says it's paid. Tuma holds the money and pays the point out as for mobile money.

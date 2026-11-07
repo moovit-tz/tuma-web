@@ -13,6 +13,9 @@ export const TICKET_TOPICS = {
   parcel: "Parcel or delivery",
   payment: "Payments and float",
   printer: "Printer or labels",
+  // Incident reports from the app: a courier, or a Tuma point or business, that treated them badly.
+  courier: "Incident: a courier",
+  business: "Incident: a Tuma point or business",
   account: "Account and business",
   app: "App problem",
   other: "Other",

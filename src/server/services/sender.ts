@@ -10,8 +10,9 @@ import { parcelOrderSchema, type ParcelOrderInput } from "@/domain/order-schema"
 import { amountToCollect } from "@/domain/payments";
 import { normaliseWaybill } from "@/domain/waybill-number";
 import { createParcel, DomainError, transition } from "./shipments";
-import { liveFor } from "./live-tracking";
-import { ratingScores } from "./ratings";
+import { liveFor, liveForMany } from "./live-tracking";
+import { myRatingFor, ratingScores } from "./ratings";
+
 import { agentMove, agentParcel } from "./agent-parcels";
 import { companyOf } from "./corporate";
 import { rememberCustomers } from "./customers";
@@ -247,6 +248,7 @@ export async function myParcels(user: CurrentUser) {
   const { phone, co, sentBy, toMe } = await senderScope(user);
   const rows = await db
     .select({
+      id: shipments.id,
       waybill: shipments.waybill,
       state: shipments.state,
       shipper: shipments.shipper,
@@ -264,6 +266,11 @@ export async function myParcels(user: CurrentUser) {
     .where(and(eq(shipments.type, "parcel"), or(sentBy, toMe)))
     .orderBy(desc(shipments.createdAt))
     .limit(100);
+  // Where the courier is for the ones on the move (the same as the GTFS-RT feed per parcel), in one query.
+  const live = await liveForMany(
+    rows.filter((r) => !["DELIVERED", "CANCELLED", "RETURNED", "RETURNED_TO_SENDER"].includes(r.state)).map((r) => r.id),
+    true,
+  );
   return {
     parcels: rows.map((r) => {
       const coming = phone != null && r.consignee.phone === phone && r.createdBy !== user.id && !(co?.tin && r.shipper.company?.tin === co.tin);
@@ -283,6 +290,7 @@ export async function myParcels(user: CurrentUser) {
         createdAt: r.createdAt.toISOString(),
         // Who at the company booked it (the contact on the parcel).
         bookedBy: co ? (r.shipper.company?.contactName ?? null) : null,
+        live: live.get(r.id) ?? null,
       };
     }),
     company: co ? { name: co.name } : null,
@@ -420,6 +428,8 @@ export async function senderParcel(user: CurrentUser, rawWaybill: string) {
     point: p ?? null,
     canCancel: mine && booked && s.createdBy === user.id,
     live: await liveFor(s.id, true),
+    // The receiver's rating of the point that handed it over, once it's delivered.
+    rating: phone && !mine ? await myRatingFor(s.id, phone) : null,
     createdAt: s.createdAt.toISOString(),
   };
 }

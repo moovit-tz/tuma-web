@@ -59,7 +59,7 @@ type Row = {
   lastSeenAt: Date | null;
 };
 
-async function activeRows(filter: { shipmentId?: string; fleet?: string }): Promise<Row[]> {
+async function activeRows(filter: { shipmentId?: string; shipmentIds?: string[]; fleet?: string }): Promise<Row[]> {
   return db
     .select({
       shipmentId: shipments.id,
@@ -83,6 +83,7 @@ async function activeRows(filter: { shipmentId?: string; fleet?: string }): Prom
         eq(jobShipments.outcome, "pending"),
         isNotNull(drivers.lat),
         filter.shipmentId ? eq(jobShipments.shipmentId, filter.shipmentId) : undefined,
+        filter.shipmentIds ? inArray(jobShipments.shipmentId, filter.shipmentIds) : undefined,
         filter.fleet ? eq(jobs.accountId, filter.fleet) : undefined,
       ),
     )
@@ -111,6 +112,15 @@ function toLive(r: Row, exact: boolean): Live {
 export async function liveFor(shipmentId: string, exact: boolean): Promise<Live | null> {
   const [r] = await activeRows({ shipmentId });
   return r ? toLive(r, exact) : null;
+}
+
+/** The same for a list of parcels at once (a person's parcels list): shipment id → live, only those on the move. */
+export async function liveForMany(shipmentIds: string[], exact: boolean): Promise<Map<string, Live>> {
+  const out = new Map<string, Live>();
+  if (!shipmentIds.length) return out;
+  // Newest job first: the first row per parcel is the courier carrying it now.
+  for (const r of await activeRows({ shipmentIds })) if (!out.has(r.shipmentId)) out.set(r.shipmentId, toLive(r, exact));
+  return out;
 }
 
 /* -------------------------------------------------------------- GTFS-Realtime */

@@ -3,11 +3,12 @@ import { createHash, randomBytes } from "node:crypto";
 import { and, desc, eq, gte, inArray, isNotNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db, type Tx } from "../db/client";
-import { accounts, branches, notifications, parcelRatings, shipments, type Party } from "../db/schema";
+import { accounts, branches, notifications, parcelRatings, shipments, users, type Party } from "../db/schema";
 import { enqueue } from "../adapters/outbox";
 import { DomainError } from "./shipments";
 import type { CurrentUser } from "../auth/current-user";
-import { maskPhone } from "@/domain/phone";
+import { maskPhone, toE164 } from "@/domain/phone";
+import { normaliseWaybill } from "@/domain/waybill-number";
 
 /**
  * Ratings of the Tuma points (parcel agents) by the people they hand parcels to. When a parcel is delivered, the
@@ -177,4 +178,74 @@ export async function agentRatings(user: CurrentUser) {
     issues: Object.fromEntries(issues.map((i) => [i.issue!, i.n])),
     recent: recent.map((r) => ({ ...r, at: r.at!.toISOString() })),
   };
+}
+
+/* ---------------------------------------------- in the app, for the receiver */
+
+/** The signed-in person's number (E.164), which their rating links went to. */
+async function myPhone(user: CurrentUser) {
+  const [u] = await db.select({ phone: users.phone }).from(users).where(eq(users.id, user.id));
+  return u?.phone ? toE164(u.phone) : null;
+}
+
+type Mine = { waybill: string; business: string; point: string | null; status: "open" | "rated" | "expired"; stars: number | null; issue: string | null; deliveredAt: string | null };
+
+function mineOf(r: { waybill: string; business: string; point: string | null; stars: number | null; issue: string | null; sentAt: Date; ratedAt: Date | null; deliveredAt: Date | null }): Mine {
+  return {
+    waybill: r.waybill,
+    business: r.business,
+    point: r.point && r.point !== r.business ? r.point : null,
+    status: r.ratedAt ? "rated" : Date.now() - r.sentAt.getTime() > RATE_WINDOW_MS ? "expired" : "open",
+    stars: r.stars,
+    issue: r.issue,
+    deliveredAt: r.deliveredAt?.toISOString() ?? null,
+  };
+}
+
+const mineQuery = () =>
+  db
+    .select({
+      waybill: shipments.waybill,
+      business: accounts.name,
+      point: branches.name,
+      stars: parcelRatings.stars,
+      issue: parcelRatings.issue,
+      sentAt: parcelRatings.sentAt,
+      ratedAt: parcelRatings.ratedAt,
+      deliveredAt: shipments.deliveredAt,
+      id: parcelRatings.id,
+    })
+    .from(parcelRatings)
+    .innerJoin(shipments, eq(shipments.id, parcelRatings.shipmentId))
+    .innerJoin(accounts, eq(accounts.id, parcelRatings.accountId))
+    .leftJoin(branches, eq(branches.id, shipments.handlingBranchId));
+
+/** The rating asked of this number for one parcel (on the parcel screen), or null when none was asked. */
+export async function myRatingFor(shipmentId: string, phone: string): Promise<Mine | null> {
+  const [r] = await mineQuery().where(and(eq(parcelRatings.shipmentId, shipmentId), eq(parcelRatings.phone, phone)));
+  return r ? mineOf(r) : null;
+}
+
+/** Everything this person was asked to rate: still to rate first, then what they rated. */
+export async function myRatings(user: CurrentUser) {
+  const phone = await myPhone(user);
+  if (!phone) return { toRate: [], rated: [] };
+  const rows = await mineQuery().where(eq(parcelRatings.phone, phone)).orderBy(desc(parcelRatings.sentAt)).limit(50);
+  const all = rows.map(mineOf);
+  return { toRate: all.filter((r) => r.status === "open"), rated: all.filter((r) => r.status === "rated") };
+}
+
+/** Rate the point from the app instead of the SMS link: the same rules, matched by the person's number. */
+export async function rateMine(user: CurrentUser, rawWaybill: string, raw: unknown) {
+  const phone = await myPhone(user);
+  const [r] = phone ? await mineQuery().where(and(eq(shipments.waybill, normaliseWaybill(rawWaybill).waybill), eq(parcelRatings.phone, phone))) : [];
+  if (!r) throw new DomainError("NOT_FOUND", "There's nothing to rate on this parcel.", 404);
+  if (r.ratedAt) throw new DomainError("ALREADY_RATED", "Thank you, you've already rated this parcel.", 409);
+  if (Date.now() - r.sentAt.getTime() > RATE_WINDOW_MS) throw new DomainError("EXPIRED", "Rating this parcel has closed.", 410);
+  const v = ratingSchema.parse(raw);
+  await db
+    .update(parcelRatings)
+    .set({ stars: v.stars, issue: v.stars <= 3 ? (v.issue ?? null) : null, comment: v.comment || null, ratedAt: new Date() })
+    .where(and(eq(parcelRatings.id, r.id), sql`${parcelRatings.ratedAt} is null`));
+  return { ok: true, stars: v.stars };
 }
