@@ -178,7 +178,12 @@ describe("sending a parcel as a person (no business)", () => {
   });
 
   it("sends from a person to a company: in the company's name, with who takes it in and its TIN", async () => {
-    const r = await senderBook(me.user, booking(pointId, { receiver: { ...booking(pointId).receiver, name: "Mwanga Traders Ltd", company: { tin: "123-456-789", contactName: "Asha Store" } } }));
+    const r = await senderBook(
+      me.user,
+      booking(pointId, { photo: "parcel/2026/11/test.webp", receiver: { ...booking(pointId).receiver, name: "Mwanga Traders Ltd", company: { tin: "123-456-789", contactName: "Asha Store" } } }),
+    );
+    expect((await db.select({ photo: shipments.goodsPhoto }).from(shipments).where(eq(shipments.waybill, r.waybill)))[0].photo).toBe("parcel/2026/11/test.webp");
+    await expect(senderBook(me.user, booking(pointId, { photo: "kyb/secret.pdf" }))).rejects.toBeTruthy();
     const [s] = await db.select({ consignee: shipments.consignee }).from(shipments).where(eq(shipments.waybill, r.waybill));
     expect(s.consignee).toMatchObject({ name: "Mwanga Traders Ltd", company: { tin: "123456789", contactName: "Asha Store" } });
     await expect(senderBook(me.user, booking(pointId, { receiver: { ...booking(pointId).receiver, company: { tin: "12" } } }))).rejects.toBeTruthy();

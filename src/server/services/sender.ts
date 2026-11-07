@@ -136,6 +136,8 @@ export const senderBookingSchema = z.object({
   weightKg: z.coerce.number().positive().max(30),
   size: z.enum(["small", "medium", "large"]).default("small"),
   fragile: z.boolean().default(false),
+  /** A photo of the parcel the sender took (an upload key from /api/driver/uploads, kind "parcel"). */
+  photo: z.string().regex(/^parcel\/[\w/.-]+$/).max(200).optional(),
   declaredValue: z.coerce.number({ message: "Enter what the goods are worth" }).int().min(1, "Enter what the goods are worth").max(1_000_000_000),
   /** Who pays: the sender at the drop-off, or the receiver on delivery (when the point takes that). */
   payer: z.enum(["sender", "receiver"]).default("sender"),
@@ -239,7 +241,7 @@ export async function senderBook(user: CurrentUser, raw: unknown) {
   await db
     .update(shipments)
     // From the wallet: paid the moment the point prices it (if the balance covers it).
-    .set({ handlingPartnerId: drop.accountId, handlingBranchId: drop.id, ...(b.paidWith === "wallet" && b.payer === "sender" ? { prepayMethod: "wallet" } : {}) })
+    .set({ handlingPartnerId: drop.accountId, handlingBranchId: drop.id, goodsPhoto: b.photo ?? null, ...(b.paidWith === "wallet" && b.payer === "sender" ? { prepayMethod: "wallet" } : {}) })
     .where(eq(shipments.id, shipment.id));
   // The point's team hears a parcel is on its way to their counter.
   await db.transaction((tx) =>
