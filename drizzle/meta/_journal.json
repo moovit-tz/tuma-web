@@ -169,6 +169,13 @@
       "when": 1794022785627,
       "tag": "0023_push_devices",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1794023624447,
+      "tag": "0024_sender_profile",
+      "breakpoints": true
     }
   ]
 }

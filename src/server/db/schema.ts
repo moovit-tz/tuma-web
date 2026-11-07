@@ -165,6 +165,8 @@ export const users = pgTable("users", {
   /** The person deleted their Tuma account: details wiped, signed out. Signing in with Ondi again starts afresh. */
   deletedAt: ts("deleted_at"),
   lastSeenAt: ts("last_seen_at"),
+  /** Set up to send and receive parcels in the app (the sender's home): their area, for the nearest Tuma points. */
+  senderProfile: jsonb("sender_profile").$type<{ region: string; district?: string; since: string }>(),
 });
 
 export const locations = pgTable("locations", {

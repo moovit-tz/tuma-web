@@ -3,7 +3,8 @@ import { createHash, randomBytes } from "node:crypto";
 import { eq, inArray, sql } from "drizzle-orm";
 import { db } from "../db/client";
 import { accounts, agents, branches, customers, invoices, kybApplications, parcelPayments, paymentSettings, platformSettings, rolePermissions, roles, users, walletEntries } from "../db/schema";
-import { driverContext, finishDriverLogin, swapHandoff, type DriverCtx } from "../services/drivers";
+import { appMe, driverContext, finishDriverLogin, swapHandoff, type DriverCtx } from "../services/drivers";
+import { setUpSender } from "../services/sender-profile";
 import { submitKyb } from "../services/kyb";
 import { agentCancel, agentParcel } from "../services/agent-parcels";
 import { priceDropOff, senderBook, senderParcel } from "../services/sender";
@@ -161,6 +162,19 @@ describe("a sender's Tuma wallet", () => {
     const w = await myWallet(me.user);
     expect(w.balance).toBe(13000);
     expect(w.entries[0]).toMatchObject({ kind: "refund", amount: 6000, waybill: b.waybill });
+  });
+
+  it("sets up as a sender: area and language kept, the phone left as Ondi has it, shown by /me", async () => {
+    await expect(setUpSender(me.user, { region: "Atlantis" })).rejects.toThrow();
+    const r = await setUpSender(me.user, { region: "Dar es Salaam", district: "Kinondoni", language: "sw", phone: "0700 000 000" });
+    expect(r).toMatchObject({ sender: { region: "Dar es Salaam", district: "Kinondoni" }, phone: "+255712300777" });
+    me = (await driverContext(SENDER))!;
+    const m = await appMe(me);
+    expect(m.sender).toMatchObject({ region: "Dar es Salaam", district: "Kinondoni" });
+    expect(m.user.locale).toBe("sw");
+    // Set up again later: the date it started stays.
+    const again = await setUpSender(me.user, { region: "Arusha" });
+    expect(again.sender.since).toBe(r.sender.since);
   });
 
   it("paying at the point still works as before", async () => {

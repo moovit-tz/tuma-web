@@ -217,7 +217,7 @@ export async function appMe(ctx: DriverCtx) {
   // Sending for a company: the company's sender home.
   if (ctx.user.permissions.has("corporate.send") && ctx.user.accountId) modules.push("corporate");
   const [[u], [acct], [kyb]] = await Promise.all([
-    db.select({ email: users.email, phone: users.phone, avatarUrl: users.avatarUrl }).from(users).where(eq(users.id, ctx.user.id)),
+    db.select({ email: users.email, phone: users.phone, avatarUrl: users.avatarUrl, sender: users.senderProfile }).from(users).where(eq(users.id, ctx.user.id)),
     ctx.user.accountId
       ? db.select({ id: accounts.id, name: accounts.name, type: accounts.type, partnerKind: accounts.partnerKind, status: accounts.status, payOnDelivery: accounts.payOnDelivery, momo: paymentSettings.momoEnabled }).from(accounts).leftJoin(paymentSettings, eq(paymentSettings.accountId, accounts.id)).where(eq(accounts.id, ctx.user.accountId))
       : Promise.resolve([]),
@@ -231,6 +231,8 @@ export async function appMe(ctx: DriverCtx) {
     // Someone not in a business yet may have been invited to one.
     invites: ctx.user.accountId ? [] : await invitesFor(ctx.user),
     onboarding: kyb ? { ref: kyb.ref, status: kyb.status, accountKind: kyb.accountKind, note: kyb.note, submittedAt: kyb.submittedAt.toISOString() } : null,
+    // Set up as a sender (their home is the sender's app); null until they do.
+    sender: u?.sender ?? null,
     modules,
   };
 }
