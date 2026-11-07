@@ -12,7 +12,8 @@ import type { QuickAction } from "./header-actions";
 import type { Permission } from "@/domain/roles";
 
 /** `permission`: the item shows when the user holds this permission, or any of a list. */
-export type ShellNavItem = NavItem & { permission?: Permission | Permission[] };
+/** `unless`: hidden from people who hold it (e.g. the partner cargo screens for a parcel agent, who has the parcels desk). */
+export type ShellNavItem = NavItem & { permission?: Permission | Permission[]; unless?: Permission };
 type ShellQuickAction = QuickAction & { permission: Permission | Permission[] };
 
 type Props = {
@@ -70,7 +71,7 @@ async function Shell({ locale, nav, systemGroup, quickActions, gate, search, chi
   const allowed = gate.some((g) => user.permissions.has(g));
   return (
     <PortalFrame
-      nav={nav.filter((i) => holds(user, i.permission)).map(({ permission: _p, ...i }) => i)}
+      nav={nav.filter((i) => holds(user, i.permission) && !(i.unless && user.permissions.has(i.unless))).map(({ permission: _p, unless: _u, ...i }) => i)}
       systemGroup={systemGroup}
       user={shellUser}
       quickActions={quickActions.filter((a) => holds(user, a.permission)).map(({ key, href }) => ({ key, href }))}

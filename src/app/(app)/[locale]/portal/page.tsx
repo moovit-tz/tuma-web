@@ -5,6 +5,7 @@ import { MerchantOverview } from "@/components/dashboards/merchant-overview";
 import { asRange } from "@/domain/range";
 import { NoAccess } from "@/components/shell/no-access";
 import { SetupOverview } from "@/components/onboarding/setup-overview";
+import { AgentOverview } from "@/components/dashboards/agent-overview";
 
 export const instant = false;
 
@@ -21,6 +22,8 @@ export default async function PortalHome({ params, searchParams }: PageProps<"/[
   // A business still under review: what it can set up now.
   if (user.accountStatus === "pending") return <SetupOverview user={user} locale={locale} />;
   if (user.permissions.has("shipment.read.all")) return <ControlTowerDashboard locale={locale} range={range} />;
+  // A parcel agent: the counter (the app's home at a desk).
+  if (user.permissions.has("agent.workspace") && user.accountId) return <AgentOverview locale={locale} />;
   if (user.permissions.has("partner.cargo.read")) return <PartnerOverview locale={locale} range={range} branch={branch} />;
   if (user.permissions.has("shipment.read.own_account")) return <MerchantOverview locale={locale} range={range} />;
   return <NoAccess locale={locale} />;
