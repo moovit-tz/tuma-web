@@ -20,6 +20,7 @@ export default async function PortalLayout({ children, params }: LayoutProps<"/[
     { href: `${base}/shipments/new`, label: t.nav.newShipment, icon: "new", permission: "shipment.create", group: t.nav.shipping },
     { href: `${base}/exceptions`, label: t.nav.exceptions, icon: "exceptions", permission: "exception.manage", group: t.nav.shipping },
     { href: `${base}/parcels`, label: t.agent.nav.parcels, icon: "cargo", permission: "agent.workspace", group: p.nav.operations },
+    { href: `${base}/manifests`, label: t.agent.mf.nav, icon: "manifests", permission: "agent.workspace", group: p.nav.operations },
     { href: `${base}/dispatch`, label: t.dispatch.title, icon: "dispatch", permission: ["dispatch.manage", "partner.dispatch.manage"], group: p.nav.operations },
     { href: `${base}/drivers`, label: t.drivers.title, icon: "drivers", permission: ["drivers.manage", "partner.dispatch.manage"], group: p.nav.operations },
     { href: `${base}/cargo`, label: p.cargo.title, icon: "cargo", permission: "partner.cargo.read", unless: "agent.workspace", group: p.nav.operations },

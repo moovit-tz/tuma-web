@@ -2,7 +2,7 @@
 import { useMemo, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Boxes, Building, Building2, ChevronDown, ChevronsLeft, HandCoins, LayoutDashboard, LogOut, Menu, Package, PackagePlus, RadioTower, Receipt, Search, ShieldCheck, TriangleAlert, Truck, Users, Wallet, X, type LucideIcon, Send, Bike, Settings2 } from "lucide-react";
+import { Boxes, Building, Building2, ChevronDown, ChevronsLeft, HandCoins, LayoutDashboard, LogOut, Menu, Package, PackagePlus, RadioTower, Receipt, Search, ShieldCheck, TriangleAlert, Truck, Users, Wallet, X, type LucideIcon, Send, Bike, Settings2, ClipboardList } from "lucide-react";
 import { useI18n } from "@/i18n/client";
 import { TumaMark, TumaWordmark } from "@/components/brand/logo";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -28,6 +28,7 @@ export const NAV_ICONS = {
   invoices: Receipt,
   payments: HandCoins,
   dispatch: Send,
+  manifests: ClipboardList,
   drivers: Bike,
   settings: Settings2,
 } satisfies Record<string, LucideIcon>;

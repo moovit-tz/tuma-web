@@ -5,7 +5,8 @@ import { getCurrentUser } from "@/server/auth/current-user";
 import { DomainError } from "@/server/services/shipments";
 import { agentBook, agentCancel, agentMove, agentParcel, agentPaymentStatus, agentRequestPayment, collectionPoints } from "@/server/services/agent-parcels";
 import { agentCustomers } from "@/server/services/customers";
-import { priceDropOff } from "@/server/services/sender";
+import { priceDropOff, tumaPoints } from "@/server/services/sender";
+import { createManifest, offloadParcel } from "@/server/services/manifests";
 import { requestTrackingOtp } from "@/server/services/tracking";
 import type { ActionResult } from "./shipments";
 
@@ -132,5 +133,33 @@ export async function agentCollectionPointsAction(region: string, district?: str
     };
   } catch {
     return { offices: [], points: [] };
+  }
+}
+
+/* --------------------------------------------------------------- manifests */
+
+/** Send parcels on under one manifest: to the doors (own courier or a Tuma courier) or to a Tuma point. */
+export async function createManifestAction(input: unknown) {
+  return run(async (u) => {
+    const m = await createManifest(u, input);
+    return { id: m.id, ref: m.ref };
+  });
+}
+
+/** Check one parcel in at this office from a manifest coming to it (scanned or typed). */
+export async function offloadAction(manifestId: string, waybill: string) {
+  return run(async (u) => {
+    const r = await offloadParcel(u, manifestId, { waybill });
+    return { waybill: r.checkedIn.waybill, state: r.checkedIn.state as string, receiver: r.checkedIn.receiver, done: r.manifest.status === "arrived" };
+  });
+}
+
+/** Tuma points to send a run to (other agents' offices and the business's own), for the manifest form. */
+export async function tumaPointsAction(q: string, region?: string) {
+  try {
+    const r = await tumaPoints({ q: q.trim() || undefined, region });
+    return r.points.map((p) => ({ id: p.id, name: p.name, business: p.business, region: p.region, district: p.district }));
+  } catch {
+    return [];
   }
 }
