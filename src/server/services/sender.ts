@@ -1,8 +1,8 @@
 import "server-only";
-import { and, desc, eq, inArray, isNotNull, or, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, isNotNull, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "../db/client";
-import { accounts, branches, chargeSnapshots, codRecords, shipments, users } from "../db/schema";
+import { accounts, branches, chargeSnapshots, codRecords, events, shipments, users, walletEntries } from "../db/schema";
 import type { CurrentUser } from "../auth/current-user";
 import { toE164 } from "@/domain/phone";
 import { TZ_REGIONS } from "@/domain/pricing";
@@ -228,8 +228,8 @@ function phoneOf(user: CurrentUser) {
     .then((r) => (r[0]?.phone ? toE164(r[0].phone) : null));
 }
 
-/** What this person booked or sent (by their number), and what's coming to their number. */
-export async function myParcels(user: CurrentUser) {
+/** Which parcels are this person's: booked by them, sent from their number (or in their company's name), or to it. */
+async function senderScope(user: CurrentUser) {
   const phone = await phoneOf(user);
   const co = await companyOf(user);
   // A company's team sees every parcel sent in its name.
@@ -239,6 +239,12 @@ export async function myParcels(user: CurrentUser) {
     co?.tin ? sql`${shipments.shipper}->'company'->>'tin' = ${co.tin}` : undefined,
   )!;
   const toMe = phone ? sql`${shipments.consignee}->>'phone' = ${phone}` : sql`false`;
+  return { phone, co, sentBy, toMe };
+}
+
+/** What this person booked or sent (by their number), and what's coming to their number. */
+export async function myParcels(user: CurrentUser) {
+  const { phone, co, sentBy, toMe } = await senderScope(user);
   const rows = await db
     .select({
       waybill: shipments.waybill,
@@ -279,6 +285,81 @@ export async function myParcels(user: CurrentUser) {
     }),
     company: co ? { name: co.name } : null,
   };
+}
+
+/** A sender's notification: one of their parcels moved, or money in or out of their wallet. */
+export type SenderNotification =
+  | { id: string; kind: "parcel"; at: string; waybill: string; state: string | null; receiver: string | null; note: string | null; direction: Direction }
+  | { id: string; kind: "wallet"; at: string; entry: "topup" | "parcel" | "refund"; amount: number; waybill: string | null };
+
+/**
+ * The sender's notifications, read from what already happened: the last 30 days of moves on their parcels (sent and
+ * coming) made by someone else, and their settled wallet top-ups, payments and refunds. Newest first; read state
+ * stays on the phone.
+ */
+export async function senderNotifications(user: CurrentUser): Promise<{ notifications: SenderNotification[] }> {
+  const { phone, co, sentBy, toMe } = await senderScope(user);
+  const since = new Date(Date.now() - 30 * 86_400_000);
+  const [moves, money] = await Promise.all([
+    db
+      .select({
+        id: events.id,
+        at: events.occurredAt,
+        state: events.stateAfter,
+        note: events.note,
+        waybill: shipments.waybill,
+        consignee: shipments.consignee,
+        shipper: shipments.shipper,
+        createdBy: shipments.createdBy,
+      })
+      .from(events)
+      .innerJoin(shipments, eq(events.shipmentId, shipments.id))
+      .where(
+        and(
+          eq(shipments.type, "parcel"),
+          or(sentBy, toMe),
+          gte(events.occurredAt, since),
+          sql`${events.stateAfter} is not null`,
+          eq(events.estimated, false),
+          or(sql`${events.actorId} is null`, sql`${events.actorId} <> ${user.id}`),
+        ),
+      )
+      .orderBy(desc(events.occurredAt))
+      .limit(50),
+    db
+      .select({ id: walletEntries.id, kind: walletEntries.kind, amount: walletEntries.amount, waybill: walletEntries.waybill, at: walletEntries.settledAt })
+      .from(walletEntries)
+      .where(and(eq(walletEntries.userId, user.id), eq(walletEntries.status, "paid"), gte(walletEntries.settledAt, since)))
+      .orderBy(desc(walletEntries.settledAt))
+      .limit(20),
+  ]);
+  const list: SenderNotification[] = [
+    ...moves.map((m) => {
+      const coming = phone != null && m.consignee.phone === phone && m.createdBy !== user.id && !(co?.tin && m.shipper.company?.tin === co.tin);
+      return {
+        id: m.id,
+        kind: "parcel" as const,
+        at: m.at.toISOString(),
+        waybill: m.waybill,
+        state: m.state,
+        receiver: coming ? null : (m.consignee.name ?? null) || null,
+        note: m.note,
+        direction: (coming ? "coming" : "sent") as Direction,
+      };
+    }),
+    ...money
+      .filter((w) => w.at != null)
+      .map((w) => ({
+        id: w.id,
+        kind: "wallet" as const,
+        at: w.at!.toISOString(),
+        entry: w.kind as "topup" | "parcel" | "refund",
+        amount: Math.abs(w.amount),
+        waybill: w.waybill,
+      })),
+  ];
+  list.sort((a, b) => (a.at < b.at ? 1 : a.at > b.at ? -1 : 0));
+  return { notifications: list.slice(0, 60) };
 }
 
 async function own(user: CurrentUser, rawWaybill: string) {

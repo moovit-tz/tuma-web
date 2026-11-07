@@ -7,7 +7,7 @@ import { appMe, driverContext, finishDriverLogin, swapHandoff, type DriverCtx } 
 import { setUpSender } from "../services/sender-profile";
 import { submitKyb } from "../services/kyb";
 import { agentCancel, agentParcel } from "../services/agent-parcels";
-import { priceDropOff, senderBook, senderParcel } from "../services/sender";
+import { priceDropOff, senderBook, senderNotifications, senderParcel } from "../services/sender";
 import { myWallet, payFromWallet, settleWalletTopUp, walletTopUp, walletTopUpStatus } from "../services/wallet";
 import { verifyDriverToken } from "../auth/driver-token";
 import { DEFAULT_ROLES } from "@/domain/roles";
@@ -162,6 +162,20 @@ describe("a sender's Tuma wallet", () => {
     const w = await myWallet(me.user);
     expect(w.balance).toBe(13000);
     expect(w.entries[0]).toMatchObject({ kind: "refund", amount: 6000, waybill: b.waybill });
+  });
+
+  it("notifies the sender of the point's moves on their parcels and of their wallet, not of their own steps", async () => {
+    const { notifications: n } = await senderNotifications(me.user);
+    const parcel = n.filter((x) => x.kind === "parcel");
+    expect(parcel.length).toBeGreaterThan(0);
+    expect(parcel.some((x) => x.state === "RECEIVED" && x.direction === "sent")).toBe(true);
+    expect(parcel.some((x) => x.state === "CREATED")).toBe(false);
+    const money = n.filter((x) => x.kind === "wallet");
+    expect(money.some((x) => x.entry === "topup" && x.amount === 20000)).toBe(true);
+    expect(money.some((x) => x.entry === "refund" && x.amount === 6000)).toBe(true);
+    expect(money.some((x) => x.entry === "parcel" && x.amount === 7000)).toBe(true);
+    expect([...n].sort((a, b) => (a.at < b.at ? 1 : -1)).map((x) => x.id)).toEqual(n.map((x) => x.id));
+    expect((await senderNotifications(agent.user)).notifications.some((x) => x.kind === "wallet")).toBe(false);
   });
 
   it("sets up as a sender: area and language kept, the phone left as Ondi has it, shown by /me", async () => {
