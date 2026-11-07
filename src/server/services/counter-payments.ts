@@ -129,9 +129,11 @@ export async function settlePayment(reference: string, status: "SUCCESS" | "FAIL
 export async function receiveOnceFor(shipmentIdOrWaybill: string) {
   const byId = /^[0-9a-f-]{36}$/i.test(shipmentIdOrWaybill);
   const [s] = await db
-    .select({ waybill: shipments.waybill, state: shipments.state, wait: shipments.receiveOnPayment, paidAt: shipments.paidAt })
+    .select({ waybill: shipments.waybill, state: shipments.state, wait: shipments.receiveOnPayment, paidAt: shipments.paidAt, method: shipments.prepayMethod })
     .from(shipments)
     .where(byId ? eq(shipments.id, shipmentIdOrWaybill) : eq(shipments.waybill, shipmentIdOrWaybill));
   if (!s?.wait || !s.paidAt || s.state !== "AWAITING_HANDOVER") return;
-  await transition("system", s.waybill, "RECEIVED", { source: "system", note: "Paid by mobile money" });
+  // Says how it was actually paid: cash at the counter, a mobile-money push, or the sender's wallet.
+  const how = { cash: "Paid in cash", mobile_money: "Paid by mobile money", wallet: "Paid from the Tuma wallet" }[s.method ?? "cash"] ?? "Paid";
+  await transition("system", s.waybill, "RECEIVED", { source: "system", note: how });
 }
