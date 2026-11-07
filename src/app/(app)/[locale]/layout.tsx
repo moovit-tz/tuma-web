@@ -6,6 +6,7 @@ import { I18nProvider } from "@/i18n/client";
 import { getDict } from "@/i18n";
 import { isLocale, LOCALES } from "@/domain/types";
 import { fontVars } from "../../fonts";
+import { THEME_SCRIPT } from "@/lib/theme";
 import "../../globals.css";
 
 export const metadata: Metadata = {
@@ -29,6 +30,10 @@ export default async function LocaleLayout({ children, params }: LayoutProps<"/[
   if (!isLocale(locale)) notFound();
   return (
     <html lang={locale} className={`${fontVars} antialiased`} suppressHydrationWarning>
+      <head>
+        {/* Applies the chosen theme before paint (no light flash for a dark choice). */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
       <body className="min-h-dvh" suppressHydrationWarning>
         <I18nProvider dict={getDict(locale)} locale={locale}>
           <TooltipProvider>{children}</TooltipProvider>

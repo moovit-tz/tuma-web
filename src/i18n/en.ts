@@ -134,6 +134,9 @@ const en = {
   handover: { pickup: "Pickup from me", wakala_dropoff: "I'll drop it at a Wakala point", hub_bulk: "Bulk handover at a hub" } as Record<string, string>,
   delivery: { door: "Door delivery", wakala_collect: "Collect at a Wakala point" } as Record<string, string>,
   shell: {
+    wizard: { steps: "Steps", stepOf: "Step {n} of {total}", next: "Next: {title}", back: "Back", continue: "Continue", summary: "Summary" },
+    theme: "Theme",
+    themes: { light: "Light", dark: "Dark", system: "Device" },
     menu: "Menu",
     system: "System",
     collapse: "Collapse sidebar",
@@ -1231,6 +1234,13 @@ const en = {
       wallet: "{amount} went back into the sender's Tuma wallet.",
     },
     book: {
+      steps: {
+        senderHint: "Start with their phone: a saved customer fills in the rest.",
+        receiver: "Receiver & delivery",
+        receiverHint: "Who gets it, and whether it goes to their door or they collect it.",
+        parcelHint: "What's inside, how heavy it is and what it's worth.",
+        payHint: "The price, who pays and how. Check the summary before booking.",
+      },
       title: "Book a parcel",
       sub: "At the counter: who's sending, who it's for, what it is and your price",
       sender: "Sender",
@@ -1327,6 +1337,15 @@ const en = {
       no_cutter: "No cutter",
     } as Record<string, string>,
     mf: {
+      stepHints: {
+        mode: "Is this run going to the receivers' doors, or to another Tuma point for them to collect?",
+        door: "A rider takes the parcels straight to each receiver.",
+        point: "The parcels travel to another office; it checks them in and the receivers collect there.",
+        where: "Search for the office the parcels are going to.",
+        noPoints: "Try the town, the district or the office's name.",
+        who: "Who is carrying the parcels, and anything they should know.",
+        noneHere: "Only parcels in hand that fit this run can go on it. Book or receive parcels first.",
+      },
       nav: "Manifests",
       title: "Manifests",
       sub: "Parcels sent on from this office, and those coming to it",
@@ -1570,6 +1589,18 @@ const en = {
       readOnly: "Only the owner (or whoever may) changes this.",
       save: "Save",
       saved: "Saved",
+    },
+    empty: {
+      search: { title: "No matches", body: "Try a waybill, a name or a phone number, or clear the search." },
+      mfOut: { title: "No manifests sent yet", body: "When parcels leave this office, put them on a manifest. It lists what went, who carries it and where it's going." },
+      mfIn: { title: "Nothing coming in", body: "Manifests other offices send to you show here, so you can check each parcel in when it arrives." },
+      desk: {
+        expected: { title: "Nothing on its way to you", body: "Parcels heading to this office show here before they arrive, so you can get ready for them." },
+        in_hand: { title: "No parcels at the counter", body: "Parcels you book or receive stay here until they leave on a manifest or are collected." },
+        on_the_way: { title: "Nothing on the road", body: "Parcels you send out show here until they reach the other end." },
+        done: { title: "Nothing finished yet", body: "Delivered and collected parcels land here, so you can look them up later." },
+        all: { title: "No parcels yet", body: "Book a parcel at the counter to get started. It shows here with every step it takes." },
+      },
     },
     choose: "Choose…",
     close: "Close",

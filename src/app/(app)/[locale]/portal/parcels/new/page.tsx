@@ -1,6 +1,5 @@
-import Link from "next/link";
 import { eq } from "drizzle-orm";
-import { ArrowLeft } from "lucide-react";
+import { PackagePlus } from "lucide-react";
 import { db } from "@/server/db/client";
 import { accounts } from "@/server/db/schema";
 import { getCurrentUser } from "@/server/auth/current-user";
@@ -30,12 +29,7 @@ export default async function BookAtCounter({ params }: PageProps<"/[locale]/por
 
   return (
     <div>
-      <Link href={`/${locale}/portal/parcels`} className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm">
-        <ArrowLeft className="size-4" /> {t.agent.parcel.back}
-      </Link>
-      <div className="mt-3">
-        <PageHeader title={t.agent.book.title} description={t.agent.book.sub} />
-      </div>
+      <PageHeader back={{ href: `/${locale}/portal/parcels`, label: t.agent.parcel.back }} icon={PackagePlus} title={t.agent.book.title} description={t.agent.book.sub} />
       <CounterBookingForm
         regions={TZ_REGIONS}
         goodsTypes={goodsTypes.map((g) => ({ key: g.key, label: lang(g) }))}

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { useI18n } from "@/i18n/client";
 import { isValidWaybill, normaliseWaybill } from "@/domain/waybill-number";
 import { LocaleSwitch } from "./locale-switch";
+import { ThemeSwitch } from "./theme-switch";
 
 const QA_ICONS = {
   newShipment: PackagePlus,
@@ -31,6 +32,7 @@ export function HeaderActions({ actions }: { actions: QuickAction[] }) {
   return (
     <>
       <LocaleSwitch className="hidden sm:inline-flex" />
+      <ThemeSwitch className="hidden sm:grid" />
       <button
         type="button"
         onClick={() => setTrackOpen(true)}

@@ -1,5 +1,4 @@
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { Send } from "lucide-react";
 import { getCurrentUser } from "@/server/auth/current-user";
 import { agentParcels } from "@/server/services/agent-parcels";
 import { dispatchOptions } from "@/server/services/manifests";
@@ -26,10 +25,7 @@ export default async function NewManifestPage({ params }: PageProps<"/[locale]/p
 
   return (
     <div>
-      <Link href={`/${locale}/portal/manifests`} className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm">
-        <ArrowLeft className="size-4" /> {m.back}
-      </Link>
-      <PageHeader title={m.newTitle} description={`${m.newSub} · ${opts.from.name}`} />
+      <PageHeader back={{ href: `/${locale}/portal/manifests`, label: m.back }} icon={Send} title={m.newTitle} description={`${m.newSub} · ${opts.from.name}`} />
       <NewManifestForm locale={locale} parcels={parcels} couriers={opts.couriers} tumaCourier={opts.tumaCourier} region={opts.from.region ?? undefined} />
     </div>
   );

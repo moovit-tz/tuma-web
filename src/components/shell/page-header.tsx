@@ -1,17 +1,55 @@
 import Link from "next/link";
-import type { LucideIcon } from "lucide-react";
+import { ChevronLeft, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export function PageHeader({ eyebrow, title, children, description }: { eyebrow?: string; title: React.ReactNode; description?: React.ReactNode; children?: React.ReactNode }) {
+/**
+ * The top of a page: an optional way back, a small eyebrow, the title with an optional badge beside it, a line on what
+ * the page is for, and its actions. On phones the actions drop below the title and share the width, so they stay
+ * easy to tap; on wider screens they sit to the right.
+ */
+export function PageHeader({
+  eyebrow,
+  title,
+  children,
+  description,
+  back,
+  badge,
+  icon: Icon,
+}: {
+  eyebrow?: React.ReactNode;
+  title: React.ReactNode;
+  description?: React.ReactNode;
+  children?: React.ReactNode;
+  back?: { href: string; label: string };
+  badge?: React.ReactNode;
+  icon?: LucideIcon;
+}) {
   return (
-    <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-      <div className="min-w-0">
-        {eyebrow && <div className="eyebrow mb-1">{eyebrow}</div>}
-        <h2 className="font-display text-[26px] leading-tight font-bold tracking-[-0.02em] text-balance sm:text-[30px]">{title}</h2>
-        {description && <p className="text-muted-foreground mt-1 max-w-2xl text-sm">{description}</p>}
+    <header className="mb-6">
+      {back && (
+        <Link href={back.href} className="text-muted-foreground hover:text-foreground mb-3 inline-flex items-center gap-1 text-sm outline-none focus-visible:underline print:hidden">
+          <ChevronLeft className="size-4" aria-hidden /> {back.label}
+        </Link>
+      )}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex min-w-0 items-start gap-3.5">
+          {Icon && (
+            <span aria-hidden className="bg-sidebar text-brand-red mt-0.5 hidden size-11 shrink-0 place-items-center rounded-lg sm:grid">
+              <Icon className="size-5" />
+            </span>
+          )}
+          <div className="min-w-0">
+            {eyebrow && <div className="eyebrow mb-1">{eyebrow}</div>}
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+              <h2 className="font-display min-w-0 text-[24px] leading-tight font-bold tracking-[-0.02em] break-words sm:text-[30px]">{title}</h2>
+              {badge}
+            </div>
+            {description && <p className="text-muted-foreground mt-1.5 max-w-2xl text-sm text-pretty">{description}</p>}
+          </div>
+        </div>
+        {children && <div className="flex flex-wrap items-center gap-2 *:max-sm:flex-1 print:hidden">{children}</div>}
       </div>
-      {children && <div className="flex flex-wrap items-center gap-2">{children}</div>}
-    </div>
+    </header>
   );
 }
 

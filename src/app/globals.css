@@ -2,7 +2,7 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-/* Dark mode follows the OS, or [data-theme] when the user picks one. */
+/* Dark mode: the theme switch (light / dark / system) sets [data-theme] on <html> before paint; without script, the OS. */
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 @theme inline {
@@ -110,6 +110,36 @@
     color-scheme: dark;
   }
 }
+
+/* Dark chosen in the theme switch (the script in the layout also sets it when "system" resolves to dark). */
+:root[data-theme="dark"] {
+  --background: #0b0b0c;
+  --foreground: #eceae4;
+  --card: #141416;
+  --card-foreground: #eceae4;
+  --popover: #141416;
+  --popover-foreground: #eceae4;
+  --primary: #eceae4;
+  --primary-foreground: #0b0b0c;
+  --secondary: #1c1c1f;
+  --secondary-foreground: #eceae4;
+  --muted: #1c1c1f;
+  --muted-foreground: #a19e96;
+  --accent: #1c1c1f;
+  --accent-foreground: #eceae4;
+  --destructive: #ff6b5e;
+  --border: #2c2c30;
+  --input: #36363b;
+  --ring: #ff5757;
+  --sunken: #1c1c1f;
+  --sidebar-accent: #121212;
+  --parcel: #ff5757;
+  --cargo: #b8ae99;
+  --ok: #4cc38a;
+  --warn: #f0a83a;
+  color-scheme: dark;
+}
+
 
 /* Force the dark palette on a subtree (dark map pages: track, contact, report lost item, legal header). */
 .theme-dark {

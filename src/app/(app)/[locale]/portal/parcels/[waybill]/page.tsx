@@ -1,12 +1,11 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Info } from "lucide-react";
+import { Info } from "lucide-react";
 import { getCurrentUser } from "@/server/auth/current-user";
 import { agentParcel } from "@/server/services/agent-parcels";
 import { DomainError } from "@/server/services/shipments";
 import { fmt, getDict } from "@/i18n";
 import { dateTime, money } from "@/lib/format";
-import { Panel } from "@/components/shell/page-header";
+import { PageHeader, Panel } from "@/components/shell/page-header";
 import { NoAccess } from "@/components/shell/no-access";
 import { StateBadge } from "@/components/shipments/state-badge";
 import { StateIcon, stateColor } from "@/components/shipments/state-icon";
@@ -39,24 +38,18 @@ export default async function AgentParcelPage({ params }: PageProps<"/[locale]/p
 
   return (
     <div className="space-y-6">
-      <div>
-        <Link href={`/${locale}/portal/parcels`} className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm">
-          <ArrowLeft className="size-4" /> {a.parcel.back}
-        </Link>
-        <div className="mt-3 flex flex-wrap items-start justify-between gap-4">
-          <div className="min-w-0">
-            <div className="eyebrow flex flex-wrap gap-x-3">
-              <span className="text-parcel">{t.service[p.serviceLevel ?? ""] ?? "Parcel"}</span>
-              <span>{p.deliveryMode === "wakala_collect" ? fmt(a.parcel.collectAt, { place: p.collectAt ?? "—" }) : a.parcel.door}</span>
-            </div>
-            <h1 className="mt-1 font-mono text-[26px] font-semibold tracking-tight sm:text-[30px]">{p.waybill}</h1>
-            <div className="mt-2 flex flex-wrap items-center gap-3">
-              <StateBadge state={p.state} label={t.states[p.state]} className="text-sm" />
-              <span className="text-muted-foreground text-sm">{dateTime(p.createdAt, locale)}</span>
-            </div>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        back={{ href: `/${locale}/portal/parcels`, label: a.parcel.back }}
+        eyebrow={
+          <span className="flex flex-wrap gap-x-3">
+            <span className="text-parcel">{t.service[p.serviceLevel ?? ""] ?? "Parcel"}</span>
+            <span>{p.deliveryMode === "wakala_collect" ? fmt(a.parcel.collectAt, { place: p.collectAt ?? "—" }) : a.parcel.door}</span>
+          </span>
+        }
+        title={<span className="font-mono">{p.waybill}</span>}
+        badge={<StateBadge state={p.state} label={t.states[p.state]} className="text-sm" />}
+        description={dateTime(p.createdAt, locale)}
+      />
 
       {(p.needsPrice || p.awaitingPayment || p.bookedAhead) && (
         <p className="border-warn/40 bg-warn/10 flex items-center gap-2 rounded-md border px-4 py-2.5 text-sm">

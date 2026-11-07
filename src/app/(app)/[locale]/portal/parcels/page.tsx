@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, Search } from "lucide-react";
+import { CheckCheck, Inbox, PackageOpen, Plus, Search, SearchX, Truck, Boxes, Hourglass, type LucideIcon } from "lucide-react";
 import { getCurrentUser } from "@/server/auth/current-user";
 import { AGENT_VIEWS, agentParcels, agentSummary, type AgentView } from "@/server/services/agent-parcels";
 import { fmt, getDict } from "@/i18n";
@@ -7,6 +7,8 @@ import { money, relative } from "@/lib/format";
 import { PageHeader, PageTabs, Panel } from "@/components/shell/page-header";
 import { StateBadge } from "@/components/shipments/state-badge";
 import { NoAccess } from "@/components/shell/no-access";
+import { DataTable } from "@/components/shell/data-table";
+import { EmptyState } from "@/components/shell/empty-state";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -14,6 +16,8 @@ import { cn } from "@/lib/utils";
 export const instant = false;
 
 const LIMIT = 100;
+
+const VIEW_ICON: Record<AgentView, LucideIcon> = { expected: Hourglass, in_hand: PackageOpen, on_the_way: Truck, done: CheckCheck, all: Inbox };
 
 /**
  * The parcels desk: the office's parcels by where they are (Expected, In hand, On the way, Done, All), the same stages
@@ -38,11 +42,12 @@ export default async function ParcelsDesk({ params, searchParams }: PageProps<"/
   };
   const counts: Partial<Record<AgentView, number>> = { expected: s.counts.expected, in_hand: s.counts.inHand, on_the_way: s.counts.onTheWay };
   const rows = list.parcels;
+  const canBook = user.permissions.has("shipment.create");
 
   return (
     <div>
-      <PageHeader title={a.desk.title} description={a.desk.sub}>
-        {user.permissions.has("shipment.create") && (
+      <PageHeader icon={Boxes} title={a.desk.title} description={a.desk.sub}>
+        {canBook && (
           <Button asChild>
             <Link href={`/${locale}/portal/parcels/new`}>
               <Plus /> {t.nav.newShipment}
@@ -64,56 +69,86 @@ export default async function ParcelsDesk({ params, searchParams }: PageProps<"/
       />
 
       <Panel>
-        {rows.length === 0 ? (
-          <p className="text-muted-foreground px-4 py-16 text-center text-sm">{q ? a.desk.emptySearch : a.desk.empty}</p>
-        ) : (
-          <div className="table-scroll">
-            <table className="w-full min-w-[860px] text-sm">
-              <thead>
-                <tr className="text-muted-foreground h-10 border-b text-left text-xs">
-                  <th className="px-4 font-medium">{a.desk.waybill}</th>
-                  <th className="px-3 font-medium">{a.desk.from}</th>
-                  <th className="px-3 font-medium">{a.desk.to}</th>
-                  <th className="px-3 font-medium">{a.desk.goods}</th>
-                  <th className="px-3 text-right font-medium">{a.desk.total}</th>
-                  <th className="px-3 font-medium">{a.desk.state}</th>
-                  <th className="px-4 text-right font-medium">{a.desk.updated}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {rows.map((r) => (
-                  <tr key={r.waybill} className="hover:bg-muted/40">
-                    <td className="px-4 py-3">
-                      <Link href={`${base}/${r.waybill}`} prefetch={false} className="font-mono text-[13px] font-medium underline-offset-4 hover:underline">
-                        {r.waybill}
+        <DataTable
+          rows={rows}
+          rowKey={(r) => r.waybill}
+          href={(r) => `${base}/${r.waybill}`}
+          minWidth={860}
+          empty={
+            q ? (
+              <EmptyState icon={SearchX} title={a.empty.search.title} body={a.empty.search.body} />
+            ) : (
+              <EmptyState
+                icon={VIEW_ICON[view]}
+                title={a.empty.desk[view].title}
+                body={a.empty.desk[view].body}
+                action={
+                  canBook && (view === "in_hand" || view === "all") ? (
+                    <Button asChild>
+                      <Link href={`${base}/new`}>
+                        <Plus /> {a.book.title}
                       </Link>
-                      <span className="text-muted-foreground block text-xs">{r.deliveryMode === "wakala_collect" ? a.desk.collect : a.desk.door}</span>
-                    </td>
-                    <td className="max-w-44 truncate px-3 py-3">
-                      {r.from.name}
-                      <span className="text-muted-foreground block truncate text-xs">{r.from.region}</span>
-                    </td>
-                    <td className="max-w-48 truncate px-3 py-3">
-                      {r.to.name}
-                      <span className="text-muted-foreground block truncate text-xs">{[r.to.district, r.to.region].filter(Boolean).join(", ")}</span>
-                    </td>
-                    <td className="max-w-52 truncate px-3 py-3" title={r.goods ?? ""}>
-                      {r.goods}
-                      <span className="text-muted-foreground block text-xs">
-                        {r.pieces} × {t.shipments.pieces.toLowerCase()}
-                      </span>
-                    </td>
-                    <td className={cn("tabular px-3 py-3 text-right", !r.total && "text-muted-foreground")}>{r.total ? money(r.total, locale) : "—"}</td>
-                    <td className="px-3 py-3">
-                      <StateBadge state={r.state} label={t.states[r.state]} />
-                    </td>
-                    <td className="text-muted-foreground px-4 py-3 text-right text-xs whitespace-nowrap">{relative(r.updatedAt, locale)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                    </Button>
+                  ) : undefined
+                }
+              />
+            )
+          }
+          columns={[
+            {
+              key: "waybill",
+              header: a.desk.waybill,
+              mobile: "title",
+              cell: (r) => (
+                <>
+                  <Link href={`${base}/${r.waybill}`} prefetch={false} className="font-mono text-[13px] font-medium underline-offset-4 hover:underline">
+                    {r.waybill}
+                  </Link>
+                  <span className="text-muted-foreground block font-sans text-xs font-normal">{r.deliveryMode === "wakala_collect" ? a.desk.collect : a.desk.door}</span>
+                </>
+              ),
+            },
+            {
+              key: "from",
+              header: a.desk.from,
+              className: "max-w-44",
+              cell: (r) => (
+                <span className="block truncate">
+                  {r.from.name}
+                  <span className="text-muted-foreground block truncate text-xs">{r.from.region}</span>
+                </span>
+              ),
+            },
+            {
+              key: "to",
+              header: a.desk.to,
+              mobile: "subtitle",
+              className: "max-w-48",
+              cell: (r) => (
+                <span className="block truncate">
+                  {r.to.name}
+                  <span className="text-muted-foreground hidden truncate text-xs sm:block">{[r.to.district, r.to.region].filter(Boolean).join(", ")}</span>
+                </span>
+              ),
+            },
+            {
+              key: "goods",
+              header: a.desk.goods,
+              className: "max-w-52",
+              cell: (r) => (
+                <span className="block truncate" title={r.goods ?? ""}>
+                  {r.goods}
+                  <span className="text-muted-foreground hidden text-xs sm:block">
+                    {r.pieces} × {t.shipments.pieces.toLowerCase()}
+                  </span>
+                </span>
+              ),
+            },
+            { key: "total", header: a.desk.total, align: "right", cell: (r) => <span className={cn("tabular", !r.total && "text-muted-foreground")}>{r.total ? money(r.total, locale) : "—"}</span> },
+            { key: "state", header: a.desk.state, mobile: "aside", cell: (r) => <StateBadge state={r.state} label={t.states[r.state]} /> },
+            { key: "updated", header: a.desk.updated, align: "right", cell: (r) => <span className="text-muted-foreground text-xs whitespace-nowrap">{relative(r.updatedAt, locale)}</span> },
+          ]}
+        />
         {rows.length >= LIMIT && <p className="text-muted-foreground border-t px-4 py-2.5 text-xs">{fmt(a.desk.showing, { n: LIMIT })}</p>}
       </Panel>
     </div>

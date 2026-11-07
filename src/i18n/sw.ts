@@ -137,6 +137,9 @@ const sw: Dict = {
   handover: { pickup: "Ichukuliwe kwangu", wakala_dropoff: "Nitaipeleka kwa wakala", hub_bulk: "Kukabidhi kwa wingi kituoni" },
   delivery: { door: "Kuletewa mlangoni", wakala_collect: "Kuchukua kwa wakala" },
   shell: {
+    wizard: { steps: "Hatua", stepOf: "Hatua {n} kati ya {total}", next: "Inayofuata: {title}", back: "Rudi", continue: "Endelea", summary: "Muhtasari" },
+    theme: "Mandhari",
+    themes: { light: "Mwanga", dark: "Giza", system: "Kifaa" },
     menu: "Menyu",
     system: "Mfumo",
     collapse: "Kunja menyu",
@@ -1233,6 +1236,13 @@ const sw: Dict = {
       wallet: "{amount} zimerudi kwenye pochi ya Tuma ya mtumaji.",
     },
     book: {
+      steps: {
+        senderHint: "Anza na simu yake: mteja aliyehifadhiwa anajaza mengine.",
+        receiver: "Mpokeaji na upelekaji",
+        receiverHint: "Anayepokea, na kama kinapelekwa mlangoni au anakichukua.",
+        parcelHint: "Kilichomo, uzito wake na thamani yake.",
+        payHint: "Bei, anayelipa na jinsi gani. Angalia muhtasari kabla ya kupokea.",
+      },
       title: "Pokea kifurushi",
       sub: "Kaunta: anayetuma, anayepokea, kilichomo na bei yako",
       sender: "Mtumaji",
@@ -1329,6 +1339,15 @@ const sw: Dict = {
       no_cutter: "Usitumie kisu",
     } as Record<string, string>,
     mf: {
+      stepHints: {
+        mode: "Safari hii inakwenda milangoni kwa wapokeaji, au kwenye kituo kingine cha Tuma wakachukue?",
+        door: "Mpanda pikipiki anapeleka vifurushi moja kwa moja kwa kila mpokeaji.",
+        point: "Vifurushi vinasafiri hadi ofisi nyingine; inavipokea na wapokeaji wanachukua huko.",
+        where: "Tafuta ofisi ambako vifurushi vinakwenda.",
+        noPoints: "Jaribu mji, wilaya au jina la ofisi.",
+        who: "Nani anabeba vifurushi, na chochote anachopaswa kujua.",
+        noneHere: "Vifurushi vilivyopo vinavyofaa safari hii tu ndivyo vinaweza kwenda. Sajili au pokea vifurushi kwanza.",
+      },
       nav: "Manifesti",
       title: "Manifesti",
       sub: "Vifurushi vilivyotumwa kutoka ofisi hii, na vinavyokuja",
@@ -1572,6 +1591,18 @@ const sw: Dict = {
       readOnly: "Mmiliki (au mwenye ruhusa) pekee ndiye anabadilisha hii.",
       save: "Hifadhi",
       saved: "Imehifadhiwa",
+    },
+    empty: {
+      search: { title: "Hakuna kinacholingana", body: "Jaribu namba ya waybill, jina au namba ya simu, au futa utafutaji." },
+      mfOut: { title: "Bado hakuna manifest iliyotumwa", body: "Vifurushi vinapoondoka ofisi hii, viweke kwenye manifest. Inaonyesha kilichoondoka, anayebeba na kinakokwenda." },
+      mfIn: { title: "Hakuna kinachokuja", body: "Manifest zinazotumwa kwako na ofisi nyingine zinaonekana hapa, ili upokee kila kifurushi kinapofika." },
+      desk: {
+        expected: { title: "Hakuna kifurushi kinachokuja", body: "Vifurushi vinavyokuja ofisi hii vinaonekana hapa kabla havijafika, ili ujiandae." },
+        in_hand: { title: "Hakuna vifurushi kaunta", body: "Vifurushi unavyopokea au kusajili vinakaa hapa hadi viondoke kwenye manifest au vichukuliwe." },
+        on_the_way: { title: "Hakuna kilicho njiani", body: "Vifurushi unavyotuma vinaonekana hapa hadi vifike upande wa pili." },
+        done: { title: "Bado hakuna kilichokamilika", body: "Vifurushi vilivyofikishwa na kuchukuliwa vinakaa hapa ili uvitafute baadaye." },
+        all: { title: "Bado hakuna vifurushi", body: "Sajili kifurushi kaunta kuanza. Kitaonekana hapa pamoja na kila hatua yake." },
+      },
     },
     choose: "Chagua…",
     close: "Funga",

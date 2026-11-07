@@ -15,6 +15,9 @@ const fr: DeepPartial<Dict> = {
     asOfNow: "En ce moment",
   },
   shell: {
+    wizard: { steps: "Étapes", stepOf: "Étape {n} sur {total}", next: "Ensuite : {title}", back: "Retour", continue: "Continuer", summary: "Résumé" },
+    theme: "Thème",
+    themes: { light: "Clair", dark: "Sombre", system: "Appareil" },
     menu: "Menu",
     system: "Système",
     collapse: "Réduire le menu",

@@ -1,12 +1,12 @@
 "use client";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Building2, Check, PackagePlus, Search, User } from "lucide-react";
+import { Building2, Check, Search, User } from "lucide-react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useI18n } from "@/i18n/client";
+import { Wizard, type WizardStep } from "@/components/shell/wizard";
 import { fmt } from "@/i18n";
 import { TZ_DISTRICTS } from "@/domain/tz-districts";
 import { SPECIAL_HANDLING } from "@/domain/order-schema";
@@ -140,11 +140,66 @@ export function CounterBookingForm(p: CounterBookingProps) {
       router.push(`/${locale}/portal/parcels/${r.data!.waybill}`);
     });
 
+  const steps: WizardStep[] = [
+    {
+      key: "sender",
+      title: b.sender,
+      hint: b.steps.senderHint,
+      ready: phoneOk(sender.phone) && sender.name.trim().length >= 2 && !(sender.kind === "company" && sender.tin && digits(sender.tin).length !== 9),
+      missing: need([!phoneOk(sender.phone) && b.need.senderPhone, sender.name.trim().length < 2 && b.need.senderName, sender.kind === "company" && sender.tin && digits(sender.tin).length !== 9 && b.need.senderTin]),
+    },
+    {
+      key: "receiver",
+      title: b.steps.receiver,
+      hint: b.steps.receiverHint,
+      ready: phoneOk(receiver.phone) && receiver.name.trim().length >= 2 && !!region && district.trim().length >= 2 && !(mode === "wakala_collect" && !collect),
+      missing: need([
+        !phoneOk(receiver.phone) && b.need.receiverPhone,
+        receiver.name.trim().length < 2 && b.need.receiverName,
+        !region && b.need.region,
+        district.trim().length < 2 && b.need.district,
+        mode === "wakala_collect" && !collect && b.need.collect,
+      ]),
+    },
+    {
+      key: "parcel",
+      title: b.parcel,
+      hint: b.steps.parcelHint,
+      ready: goods.trim().length >= 3 && kg > 0 && kg <= 30 && amount(declared) >= 1,
+      missing: need([goods.trim().length < 3 && b.need.goods, !(kg > 0 && kg <= 30) && b.need.weight, amount(declared) < 1 && b.need.declared]),
+    },
+    {
+      key: "pay",
+      title: b.money,
+      hint: b.steps.payHint,
+      ready: missing.length === 0,
+      missing: need(missing),
+    },
+  ];
+  const [step, setStep] = useState(0);
+
+  const summary = (
+    <dl className="space-y-2">
+            <Line k={b.sender} v={sender.name || "—"} />
+            <Line k={b.receiver} v={receiver.name || "—"} />
+            <Line k={b.delivery} v={[mode === "door" ? b.door : b.collect, district, region].filter(Boolean).join(" · ") || "—"} />
+            <Line k={b.weight} v={kg > 0 ? `${kg} kg` : "—"} />
+            <div className="border-t pt-2" />
+            <Line k={b.price} v={`TZS ${amount(price).toLocaleString("en-US")}`} />
+            {extrasTotal > 0 && <Line k={b.extras} v={`TZS ${extrasTotal.toLocaleString("en-US")}`} />}
+            <div className="flex justify-between gap-3 border-t pt-2 text-base font-semibold">
+              <dt>{b.total}</dt>
+              <dd className="tabular">TZS {total.toLocaleString("en-US")}</dd>
+            </div>
+            <p className="text-muted-foreground text-xs">{receiverPays ? b.payerReceiver : `${b.payerSender} · ${paidWith === "cash" ? b.cash : paidWith === "mobile_money" ? b.momo : b.invoice}`}</p>
+          </dl>
+  );
+
   return (
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
-      <div className="space-y-6">
-        <div className="grid gap-6 lg:grid-cols-2">
-          <PartyCard title={b.sender} value={sender} onChange={setSender} contactLabel={b.contactName} />
+    <Wizard steps={steps} step={step} onStep={setStep} onSubmit={submit} submitLabel={pending ? b.submitting : b.submit} pending={pending} summary={summary} summaryTitle={b.summary}>
+      {step === 0 && <PartyCard title={b.sender} value={sender} onChange={setSender} contactLabel={b.contactName} />}
+      {step === 1 && (
+        <>
           <PartyCard
             title={b.receiver}
             value={receiver}
@@ -156,9 +211,7 @@ export function CounterBookingForm(p: CounterBookingProps) {
               if (c.landmark) setLandmark(c.landmark);
             }}
           />
-        </div>
-
-        <Card title={b.delivery}>
+          <Card title={b.delivery}>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label={b.region}>
               <select
@@ -206,8 +259,11 @@ export function CounterBookingForm(p: CounterBookingProps) {
             <CollectPicker points={points} value={collect} onChange={setCollect} labels={b} />
           )}
         </Card>
-
-        <Card title={b.parcel}>
+        </>
+      )}
+      {step === 2 && (
+        <>
+          <Card title={b.parcel}>
           <Field label={b.goods}>
             <Input value={goods} onChange={(e) => setGoods(e.target.value)} placeholder={b.goodsHint} />
           </Field>
@@ -272,8 +328,7 @@ export function CounterBookingForm(p: CounterBookingProps) {
             </div>
           </Field>
         </Card>
-
-        <Card title={b.extras}>
+          <Card title={b.extras}>
           <div className="grid gap-4 sm:grid-cols-3">
             <Field label={b.insurance}>
               <Input inputMode="numeric" value={insurance} onChange={(e) => setInsurance(grouped(e.target.value))} placeholder="0" />
@@ -293,8 +348,9 @@ export function CounterBookingForm(p: CounterBookingProps) {
             </Field>
           </div>
         </Card>
-
-        <Card title={b.money}>
+        </>
+      )}
+      {step === 3 && <Card title={b.money}>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label={b.price}>
               <Input inputMode="numeric" value={price} onChange={(e) => setPrice(grouped(e.target.value))} placeholder="5,000" className="text-base font-semibold" />
@@ -336,42 +392,15 @@ export function CounterBookingForm(p: CounterBookingProps) {
             <input type="checkbox" className="mt-0.5 size-4" checked={noProhibited} onChange={(e) => setNoProhibited(e.target.checked)} />
             <span>{b.prohibited}</span>
           </label>
-        </Card>
-      </div>
-
-      <aside className="xl:sticky xl:top-4 xl:self-start">
-        <section className="bg-card overflow-hidden rounded-lg border shadow-sm">
-          <div className="bg-sidebar text-sidebar-foreground px-5 py-4">
-            <h3 className="text-base font-bold">{b.summary}</h3>
-          </div>
-          <dl className="space-y-2 px-5 py-4 text-sm">
-            <Line k={b.sender} v={sender.name || "—"} />
-            <Line k={b.receiver} v={receiver.name || "—"} />
-            <Line k={b.delivery} v={[mode === "door" ? b.door : b.collect, district, region].filter(Boolean).join(" · ") || "—"} />
-            <Line k={b.weight} v={kg > 0 ? `${kg} kg` : "—"} />
-            <div className="border-t pt-2" />
-            <Line k={b.price} v={`TZS ${amount(price).toLocaleString("en-US")}`} />
-            {extrasTotal > 0 && <Line k={b.extras} v={`TZS ${extrasTotal.toLocaleString("en-US")}`} />}
-            <div className="flex justify-between gap-3 border-t pt-2 text-base font-semibold">
-              <dt>{b.total}</dt>
-              <dd className="tabular">TZS {total.toLocaleString("en-US")}</dd>
-            </div>
-            <p className="text-muted-foreground text-xs">{receiverPays ? b.payerReceiver : `${b.payerSender} · ${paidWith === "cash" ? b.cash : paidWith === "mobile_money" ? b.momo : b.invoice}`}</p>
-          </dl>
-          <div className="border-t px-5 py-4">
-            {missing.length > 0 && (
-              <p className="text-muted-foreground mb-3 text-xs">
-                <span className="font-medium">{b.missing}:</span> {missing.join(", ")}
-              </p>
-            )}
-            <Button className="w-full" size="lg" disabled={pending || missing.length > 0} onClick={submit}>
-              <PackagePlus /> {pending ? b.submitting : b.submit}
-            </Button>
-          </div>
-        </section>
-      </aside>
-    </div>
+        </Card>}
+    </Wizard>
   );
+}
+
+/** "Still needed: a, b" for the bar under the step, or nothing. */
+function need(list: (string | false | "" | undefined | null | 0)[]) {
+  const l = list.filter(Boolean) as string[];
+  return l.length ? l.join(", ") : undefined;
 }
 
 /* ---------------------------------------------------------------- pieces */

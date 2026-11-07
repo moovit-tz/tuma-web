@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { HeaderActions, type QuickAction } from "./header-actions";
 import { UserMenu, type ShellUser } from "./user-menu";
 import { LocaleSwitch } from "./locale-switch";
+import { ThemeSegments } from "./theme-switch";
 
 export const NAV_ICONS = {
   dashboard: LayoutDashboard,
@@ -304,6 +305,12 @@ function Sidebar({
       </nav>
 
       <div className="border-sidebar-border shrink-0 border-t bg-white/[0.03] p-3">
+        {/* Phones: the theme sits in the menu, so the top bar stays uncluttered. */}
+        {mobile && (
+          <div className="mb-3">
+            <ThemeSegments />
+          </div>
+        )}
         <div className={cn("flex items-center gap-3", collapsed && "flex-col")}>
           <div aria-hidden className="bg-brand-red grid size-9 shrink-0 place-items-center rounded-md text-sm font-semibold text-white">
             {user.initials}
