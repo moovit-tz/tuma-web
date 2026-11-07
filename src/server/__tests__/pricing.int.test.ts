@@ -26,13 +26,15 @@ async function signIn(sub: string, name: string, phone: string): Promise<DriverC
 
 async function cleanup() {
   const apps = await db.select({ accountId: kybApplications.accountId }).from(kybApplications).where(inArray(kybApplications.userId, SUBS));
-  const accts = [...new Set(apps.map((r) => r.accountId).filter((a): a is string => !!a))];
+  // Also by TIN: a run that stopped halfway can leave the business behind without its application.
+  const byTin = await db.select({ accountId: accounts.id }).from(accounts).where(inArray(accounts.tin, ["414525636", "747858969"]));
+  const accts = [...new Set([...apps, ...byTin].map((r) => r.accountId).filter((a): a is string => !!a))];
   await db.execute(sql`delete from kyb_events where application_id in (select id from kyb_applications where user_id in (${sql.join(SUBS.map((s) => sql`${s}`), sql`, `)}))`);
   await db.update(users).set({ accountId: null, branchId: null }).where(inArray(users.id, SUBS));
   await db.delete(kybApplications).where(inArray(kybApplications.userId, SUBS));
   if (accts.length) {
     const ids = sql`(select id from shipments where account_id in (${sql.join(accts.map((a) => sql`${a}`), sql`, `)}))`;
-    for (const t of ["pieces", "events", "charge_snapshots", "cod_records", "exceptions", "notifications", "job_shipments", "tracking_otps"]) {
+    for (const t of ["pieces", "events", "charge_snapshots", "cod_records", "exceptions", "notifications", "job_shipments", "parcel_ratings", "wallet_entries", "parcel_payments", "invoices", "tracking_otps"]) {
       await db.execute(sql`delete from ${sql.identifier(t)} where ${sql.identifier(t === "tracking_otps" ? "waybill" : "shipment_id")} in ${t === "tracking_otps" ? sql`(select waybill from shipments where account_id in (${sql.join(accts.map((a) => sql`${a}`), sql`, `)}))` : ids}`);
     }
     await db.delete(parcelPayments).where(inArray(parcelPayments.accountId, accts));
@@ -121,5 +123,6 @@ describe("parcel pricing analytics for HuduBI", () => {
     await publishPricing();
     expect(stubInbox.length).toBe(before + 2);
     expect(await db.select().from(outbox).where(eq(outbox.target, "hudubi"))).toHaveLength(1);
-  });
+    // Two businesses and seven parcels: slow when the whole suite shares the database.
+  }, 60_000);
 });
