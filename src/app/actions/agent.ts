@@ -4,7 +4,8 @@ import { ZodError } from "zod";
 import { getCurrentUser } from "@/server/auth/current-user";
 import { DomainError } from "@/server/services/shipments";
 import { agentBook, agentCancel, agentMove, agentParcel, agentPaymentStatus, agentRequestPayment, collectionPoints } from "@/server/services/agent-parcels";
-import { agentCustomers } from "@/server/services/customers";
+import { agentCustomers, deleteCustomer, dismissDuplicates, mergeCustomers, reportCustomer, updateCustomer } from "@/server/services/customers";
+import { updatePaymentSettings } from "@/server/services/agent-payments";
 import { priceDropOff, tumaPoints } from "@/server/services/sender";
 import { createManifest, offloadParcel } from "@/server/services/manifests";
 import { requestTrackingOtp } from "@/server/services/tracking";
@@ -162,4 +163,43 @@ export async function tumaPointsAction(q: string, region?: string) {
   } catch {
     return [];
   }
+}
+
+/* ------------------------------------------------------------ money and customers */
+
+/** Mobile money (with where takings are paid out) and pay on delivery. Whoever manages the float. */
+export async function paymentSettingsAction(input: unknown) {
+  return run(async (u) => {
+    await updatePaymentSettings(u, input);
+    return null;
+  });
+}
+
+export async function customerUpdateAction(id: string, input: unknown) {
+  return run(async (u) => (await updateCustomer(u, id, input)).customer);
+}
+
+export async function customerDeleteAction(id: string) {
+  return run(async (u) => deleteCustomer(u, id));
+}
+
+export async function customerReportAction(id: string, input: { reason: string; note?: string }) {
+  return run(async (u) => {
+    await reportCustomer(u, id, input);
+    return null;
+  });
+}
+
+export async function customerMergeAction(keepId: string, mergeIds: string[]) {
+  return run(async (u) => {
+    await mergeCustomers(u, { keepId, mergeIds });
+    return null;
+  });
+}
+
+export async function customerNotSameAction(ids: string[]) {
+  return run(async (u) => {
+    await dismissDuplicates(u, { ids });
+    return null;
+  });
 }
