@@ -1155,6 +1155,7 @@ const sw: Dict = {
       showing: "Inaonyesha {n} vya karibuni",
     },
     parcel: {
+      dispatch: "Safirisha",
       back: "Vifurushi",
       bookedAhead: "Kimepangwa mapema kwenye programu ya Tuma",
       needsPrice: "Kipime na uweke bei ili ukipokee",
@@ -1339,6 +1340,9 @@ const sw: Dict = {
       no_cutter: "Usitumie kisu",
     } as Record<string, string>,
     mf: {
+      transporterHint: "Mpanda pikipiki, dereva, basi au lori asiye kwenye Tuma. Tunamhifadhi kwenye wasafirishaji wako.",
+      savedDispatchers: "Uliowatumia awali",
+      tumaDoorOnly: "Msafirishaji wa Tuma anakwenda milangoni tu.",
       stepHints: {
         mode: "Safari hii inakwenda milangoni kwa wapokeaji, au kwenye kituo kingine cha Tuma wakachukue?",
         door: "Mpanda pikipiki anapeleka vifurushi moja kwa moja kwa kila mpokeaji.",
@@ -1398,8 +1402,8 @@ const sw: Dict = {
       tuma: "Msafirishaji wa Tuma",
       tumaHint: "Msafirishaji wa Tuma anavichukua; vinaanza safari akivichukua.",
       tumaOff: "Wasafirishaji wa Tuma bado hawapatikani.",
-      transporter: "Msafirishaji (basi, lori, bodaboda)",
-      tName: "Msafirishaji au basi",
+      transporter: "Mpanda pikipiki au msafirishaji mwingine",
+      tName: "Jina",
       tPhone: "Simu",
       tPlate: "Namba ya gari",
       tRef: "Tiketi au kumbukumbu",

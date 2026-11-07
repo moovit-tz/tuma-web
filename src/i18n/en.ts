@@ -1153,6 +1153,7 @@ const en = {
       showing: "Showing the latest {n}",
     },
     parcel: {
+      dispatch: "Dispatch",
       back: "Parcels",
       bookedAhead: "Booked ahead on the Tuma app",
       needsPrice: "Weigh and price it to take it in",
@@ -1337,6 +1338,9 @@ const en = {
       no_cutter: "No cutter",
     } as Record<string, string>,
     mf: {
+      transporterHint: "A rider, driver, bus or lorry not on Tuma. We save them to your dispatchers.",
+      savedDispatchers: "Sent with before",
+      tumaDoorOnly: "A Tuma courier goes to the doors only.",
       stepHints: {
         mode: "Is this run going to the receivers' doors, or to another Tuma point for them to collect?",
         door: "A rider takes the parcels straight to each receiver.",
@@ -1396,11 +1400,11 @@ const en = {
       tuma: "A Tuma courier",
       tumaHint: "A courier from Tuma's pool takes them; they move when it picks them up.",
       tumaOff: "Tuma couriers aren't available yet.",
-      transporter: "A transporter (bus, lorry, boda)",
-      tName: "Transporter or bus",
+      transporter: "Another rider or transporter",
+      tName: "Name",
       tPhone: "Phone",
-      tPlate: "Plate",
-      tRef: "Ticket or reference",
+      tPlate: "Vehicle number",
+      tRef: "Ticket or receipt number",
       noteHint: "For the carrier or the receiving office",
       submit: "Send {n} on",
       sent: "Manifest {ref} is on its way",

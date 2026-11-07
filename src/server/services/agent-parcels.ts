@@ -183,9 +183,31 @@ async function load(user: CurrentUser, rawWaybill: string) {
   return s;
 }
 
-/** What this person can do next with the parcel, from its state and their permissions. */
-function movesFor(user: CurrentUser, state: ShipmentState): ShipmentState[] {
-  return nextStates(state).filter((to) => AGENT_MOVES.includes(to) && canTransition(state, to, user.permissions).ok);
+/** In hand at an office: it leaves only on a dispatch (a manifest, with who carries it and where to). */
+const IN_COUNTER: ShipmentState[] = ["RECEIVED", "AT_HUB", "ATTEMPT_FAILED"];
+const LEAVING: ShipmentState[] = ["IN_TRANSIT", "OUT_FOR_DELIVERY"];
+
+type Placed = { state: string; deliveryMode: string | null; deliveryBranchId: string | null; handlingBranchId: string | null };
+
+/** It's collected at this very office, so it can be made ready for collection here without travelling. */
+function collectedHere(user: CurrentUser, s: Placed) {
+  const here = user.branchId ?? s.handlingBranchId;
+  return s.deliveryMode === "wakala_collect" && !!s.deliveryBranchId && s.deliveryBranchId === here;
+}
+
+/**
+ * What this person can do next with the parcel, from its state and their permissions. A parcel in hand can't be
+ * handed over or sent off with a tap: it goes out on a dispatch, or is made ready for collection when it's collected
+ * at this office.
+ */
+function movesFor(user: CurrentUser, s: Placed): ShipmentState[] {
+  const state = s.state as ShipmentState;
+  return nextStates(state).filter((to) => {
+    if (!AGENT_MOVES.includes(to) || !canTransition(state, to, user.permissions).ok) return false;
+    if (IN_COUNTER.includes(state) && LEAVING.includes(to)) return false;
+    if (IN_COUNTER.includes(state) && to === "READY_FOR_COLLECTION") return collectedHere(user, s);
+    return true;
+  });
 }
 
 export async function agentParcel(user: CurrentUser, rawWaybill: string) {
@@ -212,7 +234,9 @@ export async function agentParcel(user: CurrentUser, rawWaybill: string) {
   const bookedAhead = (EXPECTED as readonly string[]).includes(s.state) && by?.accountId !== s.handlingPartnerId;
   const needsPrice = bookedAhead && !s.receiveOnPayment && s.totalCharge === 0;
   // It comes in through pricing (priceDropOff), not straight to received.
-  const moves = movesFor(user, s.state as ShipmentState).filter((m) => !(needsPrice && m === "RECEIVED"));
+  const moves = movesFor(user, s).filter((m) => !(needsPrice && m === "RECEIVED"));
+  // In hand and not collected here: the next step is dispatching it (step one, who carries it).
+  const canDispatch = user.permissions.has("shipment.dispatch") && IN_COUNTER.includes(s.state as ShipmentState) && !collectedHere(user, s) && !(await onItsWay(s.id));
   // Cancelling one in hand here: the owner (shipment.cancel), with a reason, before it's on its way with anyone.
   const canCancel = user.permissions.has("shipment.cancel") && CANCEL_FROM.includes(s.state) && !(await onItsWay(s.id));
   const cancelReasons = canCancel
@@ -256,6 +280,7 @@ export async function agentParcel(user: CurrentUser, rawWaybill: string) {
       events: evts,
     },
     moves,
+    canDispatch,
     failReasons,
     canCancel,
     cancelReasons,
@@ -340,6 +365,13 @@ const CODE_ERRORS = {
 export async function agentMove(user: CurrentUser, rawWaybill: string, raw: unknown) {
   const s = await load(user, rawWaybill);
   const m = moveSchema.parse(raw);
+  if (!movesFor(user, s).includes(m.to as ShipmentState)) {
+    throw new DomainError(
+      IN_COUNTER.includes(s.state as ShipmentState) && LEAVING.includes(m.to as ShipmentState) ? "DISPATCH_FIRST" : "BAD_MOVE",
+      IN_COUNTER.includes(s.state as ShipmentState) ? "Dispatch it first: choose who carries it and where it's going." : "That can't be done with this parcel now.",
+      409,
+    );
+  }
   if (m.to === "ATTEMPT_FAILED" && !m.reasonCode) throw new DomainError("REASON_REQUIRED", "Choose why the handover didn't happen.");
   if (m.to === "DELIVERED" && !m.receiverName) throw new DomainError("RECEIVER_REQUIRED", "Enter the name of the person who took the parcel.");
   // Handing over: the receiver's code is their signature.

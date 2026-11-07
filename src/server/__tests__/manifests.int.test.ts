@@ -33,6 +33,7 @@ async function cleanup() {
   const mine = await db.select({ accountId: users.accountId }).from(users).where(inArray(users.id, SUBS));
   const accts = [...new Set([...apps, ...mine].map((r) => r.accountId).filter((a): a is string => !!a))];
   await db.execute(sql`delete from kyb_events where application_id in (select id from kyb_applications where user_id in (${list(SUBS)}))`);
+  await db.execute(sql`delete from dispatchers where created_by in (${list(SUBS)})`);
   await db.update(users).set({ accountId: null, branchId: null }).where(inArray(users.id, SUBS));
   await db.delete(kybApplications).where(inArray(kybApplications.userId, SUBS));
   if (accts.length) {
@@ -40,6 +41,7 @@ async function cleanup() {
     await db.execute(sql`delete from job_shipments where job_id in ${jobIds}`);
     const ids = (await db.execute(sql`select job_id from manifests where account_id in (${list(accts)}) and job_id is not null`)) as unknown as { job_id: string }[];
     await db.execute(sql`delete from manifests where account_id in (${list(accts)}) or to_account_id in (${list(accts)})`);
+    await db.execute(sql`delete from dispatchers where account_id in (${list(accts)})`);
     if (ids.length) await db.execute(sql`delete from jobs where id in (${list(ids.map((i) => i.job_id))})`);
     const sh = sql`(select id from shipments where account_id in (${list(accts)}))`;
     for (const t of ["pieces", "events", "charge_snapshots", "cod_records", "exceptions", "notifications", "job_shipments", "parcel_ratings"]) {
@@ -149,9 +151,17 @@ describe("sending parcels on from an office under a manifest", () => {
   });
 
   it("refuses carriers that don't fit the run, and a point run with nowhere to go", async () => {
-    await expect(createManifest(owner.user, { waybills: [wbs[2]], mode: "door", carrier: { kind: "transporter", name: "Abood Bus" } })).rejects.toMatchObject({ code: "BAD_CARRIER" });
+    // Anyone else carrying them gives a name, a phone and a vehicle number (they join the dispatcher network).
+    await expect(createManifest(owner.user, { waybills: [wbs[2]], mode: "door", carrier: { kind: "transporter", name: "Abood Bus" } })).rejects.toThrow(/phone/);
+    await expect(createManifest(owner.user, { waybills: [wbs[2]], mode: "door", carrier: { kind: "transporter", name: "Abood Bus", phone: "0713 999 888" } })).rejects.toThrow(/vehicle/);
+    await expect(createManifest(owner.user, { waybills: [wbs[2]], mode: "door", carrier: { kind: "transporter", name: "Abood Bus", phone: "12345", plate: "T 1 A" } })).rejects.toThrow(/phone/);
+    await expect(
+      createManifest(owner.user, { waybills: [wbs[2]], mode: "door", carrier: { kind: "transporter", name: "Abood Bus", phone: "0713 999 888", plate: "T 1 A", receiptKey: "../etc/passwd" } }),
+    ).rejects.toThrow(/receipt/);
     await expect(createManifest(owner.user, { waybills: [wbs[2]], mode: "point", carrier: { kind: "tuma" } })).rejects.toMatchObject({ code: "BAD_CARRIER" });
-    await expect(createManifest(owner.user, { waybills: [wbs[2]], mode: "point", carrier: { kind: "transporter", name: "Abood Bus" } })).rejects.toMatchObject({ code: "DESTINATION_REQUIRED" });
+    await expect(createManifest(owner.user, { waybills: [wbs[2]], mode: "point", carrier: { kind: "transporter", name: "Abood Bus", phone: "0713 999 888", plate: "T 1 A" } })).rejects.toMatchObject({
+      code: "DESTINATION_REQUIRED",
+    });
     await expect(createManifest(owner.user, { waybills: [wbs[2]], mode: "door", carrier: { kind: "staff", userId: OTHER } })).rejects.toMatchObject({ code: "BAD_CARRIER" });
   });
 
@@ -162,10 +172,19 @@ describe("sending parcels on from an office under a manifest", () => {
       waybills: [wbs[2], wbs[3]],
       mode: "point",
       toBranchId: mwanza,
-      carrier: { kind: "transporter", name: "Abood Bus", phone: "0713 999 888", plate: "t 123 abc", ref: "Ticket 4471" },
+      carrier: { kind: "transporter", name: "Abood Bus", phone: "0713 999 888", plate: "t 123 abc", ref: "Ticket 4471", receiptKey: "dispatch/2026/11/01JCRECEIPT.jpg" },
       note: "Two boxes, top rack",
     });
-    expect(m).toMatchObject({ mode: "point", to: { id: mwanza, business: "Mussa Point Parcels" }, carrier: { kind: "transporter", name: "Abood Bus", phone: "+255713999888", plate: "T 123 ABC", ref: "Ticket 4471" } });
+    expect(m).toMatchObject({
+      mode: "point",
+      to: { id: mwanza, business: "Mussa Point Parcels" },
+      carrier: { kind: "transporter", name: "Abood Bus", phone: "+255713999888", plate: "T 123 ABC", ref: "Ticket 4471", receiptKey: "dispatch/2026/11/01JCRECEIPT.jpg", dispatcherId: expect.any(String) },
+    });
+    // Saved to this office's dispatchers, unvetted, and offered next time.
+    const saved = (await dispatchOptions(owner.user)).dispatchers;
+    expect(saved).toEqual([expect.objectContaining({ name: "Abood Bus", phone: "+255713999888", plate: "T 123 ABC", status: "unvetted", trips: 1 })]);
+    // And that point is offered first next time.
+    expect((await dispatchOptions(owner.user)).recentPoints).toEqual([expect.objectContaining({ id: mwanza, business: "Mussa Point Parcels" })]);
     expect(m.parcels.every((p) => p.state === "IN_TRANSIT")).toBe(true);
     pointRun = m.id;
     const point = (await driverContext(OTHER))!;

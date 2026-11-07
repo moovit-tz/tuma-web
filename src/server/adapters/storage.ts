@@ -16,7 +16,7 @@ export const DOCUMENT_TYPES = Object.keys(EXT);
 export const UPLOAD_MAX_BYTES = 8 * 1024 * 1024;
 
 /** Saves the bytes and returns a key like "pod/2026/11/01JC….jpg". */
-export async function put(folder: "pod" | "driver" | "kyb" | "parcel", type: string, bytes: Uint8Array): Promise<string> {
+export async function put(folder: "pod" | "driver" | "kyb" | "parcel" | "dispatch", type: string, bytes: Uint8Array): Promise<string> {
   const d = new Date();
   const key = `${folder}/${d.getUTCFullYear()}/${String(d.getUTCMonth() + 1).padStart(2, "0")}/${ulid()}.${EXT[type] ?? "bin"}`;
   const file = path.join(ROOT(), key);

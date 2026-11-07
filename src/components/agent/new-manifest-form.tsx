@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 
 type Parcel = { waybill: string; state: string; deliveryMode: string; to: { name: string; phone: string; region?: string; district?: string }; goods: string; pieces: number };
 type Courier = { id: string; name: string | null; phone: string | null; you: boolean };
+type Dispatcher = { id: string; name: string; phone: string; plate: string; status: string; trips: number };
 type Point = Awaited<ReturnType<typeof tumaPointsAction>>[number];
 type Mode = "door" | "point";
 type Kind = "staff" | "tuma" | "transporter";
@@ -29,13 +30,31 @@ const fits = (p: Parcel, mode: Mode) => (mode === "door" ? p.deliveryMode === "d
  * (searched), who carries them (our own person, a Tuma courier for door runs, or a transporter for point runs) and a
  * note. Sends one manifest and opens it.
  */
-export function NewManifestForm({ locale, parcels, couriers, tumaCourier, region }: { locale: string; parcels: Parcel[]; couriers: Courier[]; tumaCourier: boolean; region?: string }) {
+export function NewManifestForm({
+  locale,
+  parcels,
+  couriers,
+  tumaCourier,
+  region,
+  dispatchers = [],
+  startWith,
+}: {
+  locale: string;
+  parcels: Parcel[];
+  couriers: Courier[];
+  tumaCourier: boolean;
+  region?: string;
+  dispatchers?: Dispatcher[];
+  /** Opened from a parcel's Dispatch: that parcel ticked, on the run it fits. */
+  startWith?: string;
+}) {
   const { dict: t } = useI18n();
   const m = t.agent.mf;
   const router = useRouter();
   const [pending, start] = useTransition();
-  const [mode, setMode] = useState<Mode>("door");
-  const [picked, setPicked] = useState<Set<string>>(new Set());
+  const first = parcels.find((p) => p.waybill === startWith);
+  const [mode, setMode] = useState<Mode>(first && !fits(first, "door") ? "point" : "door");
+  const [picked, setPicked] = useState<Set<string>>(new Set(first ? [first.waybill] : []));
   const [kind, setKind] = useState<Kind>("staff");
   const [staffId, setStaffId] = useState(couriers.find((c) => c.you)?.id ?? couriers[0]?.id ?? "");
   const [tr, setTr] = useState({ name: "", phone: "", plate: "", ref: "" });
@@ -47,9 +66,16 @@ export function NewManifestForm({ locale, parcels, couriers, tumaCourier, region
 
   const list = useMemo(() => parcels.filter((p) => fits(p, mode)), [parcels, mode]);
   const chosen = list.filter((p) => picked.has(p.waybill));
-  // A Tuma courier only goes to doors, a transporter only to a point: switching the run moves an impossible choice back to our own person.
-  const carrier: Kind = (mode === "point" && kind === "tuma") || (mode === "door" && kind === "transporter") ? "staff" : kind;
-  const missing = [!chosen.length && m.need.parcels, mode === "point" && !point && m.need.point, ((carrier === "staff" && !staffId) || (carrier === "transporter" && tr.name.trim().length < 2)) && m.need.carrier].filter(Boolean) as string[];
+  // A Tuma courier only goes to doors: switching to a point run moves that choice back to our own person.
+  const carrier: Kind = mode === "point" && kind === "tuma" ? "staff" : kind;
+  const missing = [!chosen.length && m.need.parcels, mode === "point" && !point && m.need.point, ((carrier === "staff" && !staffId) || (carrier === "transporter" && (tr.name.trim().length < 2 || tr.phone.replace(/\D/g, "").length < 9 || tr.plate.trim().length < 2))) && m.need.carrier].filter(Boolean) as string[];
+
+  // Changing the run keeps only the ticked parcels that still fit it.
+  const switchMode = (k: Mode) => {
+    if (k === mode) return;
+    setMode(k);
+    setPicked((s) => new Set([...s].filter((w) => parcels.some((p) => p.waybill === w && fits(p, k)))));
+  };
 
   const toggle = (wb: string) =>
     setPicked((s) => {
@@ -82,18 +108,18 @@ export function NewManifestForm({ locale, parcels, couriers, tumaCourier, region
 
   const carriers: { k: Kind; label: string; icon: typeof User; show: boolean; hint?: string }[] = [
     { k: "staff", label: m.staff, icon: User, show: true },
-    { k: "tuma", label: m.tuma, icon: Bike, show: mode === "door", hint: tumaCourier ? m.tumaHint : m.tumaOff },
-    { k: "transporter", label: m.transporter, icon: Bus, show: mode === "point" },
+    { k: "tuma", label: m.tuma, icon: Bike, show: true, hint: tumaCourier ? m.tumaHint : m.tumaOff },
+    { k: "transporter", label: m.transporter, icon: Bus, show: true, hint: m.transporterHint },
   ];
 
   const h = m.stepHints;
+  // The order the app uses: who takes them, where they go (the doors or a receiving office), then which parcels.
+  const carrierOk = !((carrier === "staff" && !staffId) || (carrier === "transporter" && (tr.name.trim().length < 2 || tr.phone.replace(/\D/g, "").length < 9 || tr.plate.trim().length < 2)));
   const steps: (WizardStep & { show: boolean })[] = [
-    { key: "mode", title: m.mode, hint: h.mode, ready: true, show: true },
-    { key: "parcels", title: m.choose, hint: m.chooseHint, ready: chosen.length > 0, missing: m.need.parcels, show: true },
-    { key: "where", title: m.where, hint: h.where, ready: !!point, missing: m.need.point, show: mode === "point" },
-    { key: "who", title: m.who, hint: h.who, ready: missing.length === 0, missing: `${m.missing}: ${missing.join(", ")}`, show: true },
-  ];
-  const shown = steps.filter((x) => x.show);
+    { key: "who", title: m.who, hint: h.who, ready: carrierOk, missing: m.need.carrier, show: true },
+    { key: "where", title: m.where, hint: h.mode, ready: mode === "door" || !!point, missing: m.need.point, show: true },
+    { key: "parcels", title: m.choose, hint: m.chooseHint, ready: missing.length === 0, missing: `${m.missing}: ${missing.join(", ")}`, show: true },
+  ];  const shown = steps.filter((x) => x.show);
   const [step, setStep] = useState(0);
   const at = shown[Math.min(step, shown.length - 1)].key;
 
@@ -125,7 +151,7 @@ export function NewManifestForm({ locale, parcels, couriers, tumaCourier, region
       summary={summary}
       summaryTitle={m.newTitle}
     >
-      {at === "mode" && (
+      {at === "where" && (
         <div className="grid gap-3 sm:grid-cols-2">
           {(
             [
@@ -138,11 +164,10 @@ export function NewManifestForm({ locale, parcels, couriers, tumaCourier, region
               on={mode === k}
               icon={Icon}
               label={label}
-              sub={sub}
-              onClick={() => {
-                if (mode !== k) setPicked(new Set());
-                setMode(k);
-              }}
+              // A Tuma courier goes to the doors only.
+              sub={k === "point" && kind === "tuma" ? m.tumaDoorOnly : sub}
+              disabled={k === "point" && kind === "tuma"}
+              onClick={() => switchMode(k)}
             />
           ))}
         </div>
@@ -183,7 +208,7 @@ export function NewManifestForm({ locale, parcels, couriers, tumaCourier, region
           </div>
         ))}
 
-      {at === "where" && (
+      {at === "where" && mode === "point" && (
         <div className="space-y-3">
           <form
             className="flex gap-2"
@@ -236,7 +261,11 @@ export function NewManifestForm({ locale, parcels, couriers, tumaCourier, region
             {carriers
               .filter((c) => c.show)
               .map((c) => (
-                <Choice key={c.k} on={carrier === c.k} disabled={c.k === "tuma" && !tumaCourier} icon={c.icon} label={c.label} sub={c.hint} onClick={() => setKind(c.k)} />
+                <Choice key={c.k} on={carrier === c.k} disabled={c.k === "tuma" && !tumaCourier} icon={c.icon} label={c.label} sub={c.hint} onClick={() => {
+                    setKind(c.k);
+                    if (c.k === "tuma") switchMode("door");
+                  }}
+                />
               ))}
           </div>
           {carrier === "staff" && (
@@ -249,6 +278,27 @@ export function NewManifestForm({ locale, parcels, couriers, tumaCourier, region
                   </option>
                 ))}
               </select>
+            </div>
+          )}
+          {carrier === "transporter" && dispatchers.length > 0 && (
+            <div className="space-y-2">
+              <Label>{m.savedDispatchers}</Label>
+              <div className="flex flex-wrap gap-2">
+                {dispatchers.map((d) => {
+                  const on = tr.phone === d.phone;
+                  return (
+                    <button
+                      key={d.id}
+                      type="button"
+                      aria-pressed={on}
+                      onClick={() => setTr({ name: d.name, phone: d.phone, plate: d.plate, ref: "" })}
+                      className={cn("rounded-full border px-3 py-1.5 text-left text-xs transition-colors", on ? "border-primary bg-primary/5 ring-primary/30 ring-2" : "hover:bg-muted/50")}
+                    >
+                      <span className="font-medium">{d.name}</span> <span className="text-muted-foreground font-mono">{d.plate}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
           {carrier === "transporter" && (

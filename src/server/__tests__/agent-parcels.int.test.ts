@@ -106,7 +106,10 @@ describe("parcel work at the agent counter (app)", () => {
     expect(r.parcel.state).toBe("RECEIVED");
     expect(r.parcel.total).toBe(q.total);
     expect(r.parcel.toCollect.fee).toBe(q.total); // receiver pays on delivery
-    expect(r.moves).toContain("READY_FOR_COLLECTION"); // sending on (dispatch) opens on approval
+    // In hand here: it can't be handed over or sent off with a tap; it leaves on a dispatch (opens on approval).
+    expect(r.moves).not.toContain("READY_FOR_COLLECTION");
+    expect(r.moves).not.toContain("OUT_FOR_DELIVERY");
+    await expect(agentMove(me.user, waybill, { to: "READY_FOR_COLLECTION" })).rejects.toMatchObject({ code: "BAD_MOVE" });
 
     const home = await agentSummary(me.user);
     expect(home.counts.inHand).toBe(1);
@@ -121,6 +124,9 @@ describe("parcel work at the agent counter (app)", () => {
   });
 
   it("hands a parcel over at the counter with the receiver's SMS code as signature, an optional photo, collecting what's due", async () => {
+    // As it arrives after a dispatch: at the office it's collected from (here, for the test).
+    const [office] = await db.select({ id: branches.id }).from(branches).where(and(eq(branches.accountId, me.user.accountId!), eq(branches.isHead, true)));
+    await db.update(shipments).set({ state: "AT_HUB", deliveryMode: "wakala_collect", deliveryBranchId: office.id, handlingBranchId: office.id }).where(eq(shipments.waybill, waybill));
     await agentMove(me.user, waybill, { to: "READY_FOR_COLLECTION" });
     await expect(agentMove(me.user, waybill, { to: "DELIVERED", collectMethod: "cash" })).rejects.toMatchObject({ code: "RECEIVER_REQUIRED" });
     await expect(agentMove(me.user, waybill, { to: "DELIVERED", receiverName: "Baraka Receiver" })).rejects.toMatchObject({ code: "CODE_REQUIRED" });

@@ -3,14 +3,14 @@ import { DOCUMENT_TYPES, put, UPLOAD_MAX_BYTES, UPLOAD_TYPES } from "@/server/ad
 import { DomainError } from "@/server/services/shipments";
 
 /**
- * POST multipart { file, kind: "pod" | "driver" | "kyb" | "parcel" } → { key } to send with the delivery, registration or
+ * POST multipart { file, kind: "pod" | "driver" | "kyb" | "parcel" | "dispatch" } → { key } to send with the delivery, registration or
  * business application. Business documents (kyb) may also be PDFs.
  */
 export const POST = driverRoute(async (_ctx, req) => {
   const form = await req.formData();
   const file = form.get("file");
   const raw = form.get("kind");
-  const kind = raw === "driver" || raw === "kyb" || raw === "parcel" ? raw : "pod";
+  const kind = raw === "driver" || raw === "kyb" || raw === "parcel" || raw === "dispatch" ? raw : "pod";
   if (!(file instanceof File)) throw new DomainError("NO_FILE", "Attach a photo.", 400);
   const types = kind === "kyb" ? DOCUMENT_TYPES : UPLOAD_TYPES;
   if (!types.includes(file.type)) {

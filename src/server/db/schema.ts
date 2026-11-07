@@ -797,7 +797,18 @@ export const manifests = pgTable(
     toBranchId: uuid("to_branch_id").references(() => branches.id),
     /** staff (one of the office's people) | tuma (a Tuma courier, see jobId) | transporter (a bus, lorry or boda). */
     carrier: jsonb("carrier")
-      .$type<{ kind: "staff" | "tuma" | "transporter"; userId?: string; name: string; phone?: string; company?: string; plate?: string; ref?: string }>()
+      .$type<{
+        kind: "staff" | "tuma" | "transporter";
+        userId?: string;
+        name: string;
+        phone?: string;
+        company?: string;
+        plate?: string;
+        ref?: string;
+        /** A custom carrier's entry in the dispatcher network, and the photo of their receipt or ticket (a storage key). */
+        dispatcherId?: string;
+        receiptKey?: string;
+      }>()
       .notNull(),
     jobId: uuid("job_id").references(() => jobs.id),
     status: text("status").notNull().default("on_the_way"),
@@ -809,6 +820,34 @@ export const manifests = pgTable(
     arrivedAt: ts("arrived_at"),
   },
   (t) => [uniqueIndex("manifests_ref_uq").on(t.ref), index("manifests_from_idx").on(t.accountId, t.createdAt), index("manifests_to_idx").on(t.toBranchId, t.status)],
+);
+
+/**
+ * The dispatcher network: riders, drivers and transporters an office has sent parcels with who aren't Tuma couriers
+ * or on its team. Each is saved the first time it's used (name, phone, vehicle number) so the office can pick them
+ * again, and stays unvetted until Tuma checks them and invites them onto the network. One row per office and phone.
+ */
+export const dispatchers = pgTable(
+  "dispatchers",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    accountId: text("account_id")
+      .notNull()
+      .references(() => accounts.id),
+    name: text("name").notNull(),
+    /** E.164 */
+    phone: text("phone").notNull(),
+    plate: text("plate").notNull(),
+    /** unvetted (saved by an office) | vetted (checked by Tuma) | invited (asked to join as a Tuma courier) */
+    status: text("status").notNull().default("unvetted"),
+    trips: integer("trips").notNull().default(0),
+    lastUsedAt: ts("last_used_at"),
+    createdBy: text("created_by")
+      .notNull()
+      .references(() => users.id),
+    createdAt: ts("created_at").notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("dispatchers_acct_phone_uq").on(t.accountId, t.phone), index("dispatchers_phone_idx").on(t.phone)],
 );
 
 export const manifestItems = pgTable(

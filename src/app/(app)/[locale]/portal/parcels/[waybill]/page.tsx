@@ -1,11 +1,13 @@
 import { notFound } from "next/navigation";
-import { Info } from "lucide-react";
+import Link from "next/link";
+import { Info, Send } from "lucide-react";
 import { getCurrentUser } from "@/server/auth/current-user";
 import { agentParcel } from "@/server/services/agent-parcels";
 import { DomainError } from "@/server/services/shipments";
 import { fmt, getDict } from "@/i18n";
 import { dateTime, money } from "@/lib/format";
 import { PageHeader, Panel } from "@/components/shell/page-header";
+import { Button } from "@/components/ui/button";
 import { NoAccess } from "@/components/shell/no-access";
 import { StateBadge } from "@/components/shipments/state-badge";
 import { StateIcon, stateColor } from "@/components/shipments/state-icon";
@@ -49,7 +51,15 @@ export default async function AgentParcelPage({ params }: PageProps<"/[locale]/p
         title={<span className="font-mono">{p.waybill}</span>}
         badge={<StateBadge state={p.state} label={t.states[p.state]} className="text-sm" />}
         description={dateTime(p.createdAt, locale)}
-      />
+      >
+        {r.canDispatch && (
+          <Button asChild>
+            <Link href={`/${locale}/portal/manifests/new?waybill=${encodeURIComponent(p.waybill)}`}>
+              <Send /> {a.parcel.dispatch}
+            </Link>
+          </Button>
+        )}
+      </PageHeader>
 
       {(p.needsPrice || p.awaitingPayment || p.bookedAhead) && (
         <p className="border-warn/40 bg-warn/10 flex items-center gap-2 rounded-md border px-4 py-2.5 text-sm">

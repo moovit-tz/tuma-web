@@ -2,7 +2,7 @@ import "server-only";
 import { and, asc, desc, eq, inArray, isNull, or, sql, type SQL } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "../db/client";
-import { accounts, branches, jobShipments, jobs, manifestItems, manifests, rolePermissions, roles, shipments, users } from "../db/schema";
+import { accounts, branches, dispatchers, jobShipments, jobs, manifestItems, manifests, rolePermissions, roles, shipments, users } from "../db/schema";
 import { audit } from "../audit";
 import { ulid } from "../ids";
 import type { CurrentUser } from "../auth/current-user";
@@ -74,7 +74,44 @@ export async function dispatchOptions(user: CurrentUser) {
     from: { id: here.id, name: here.name, region: here.region },
     couriers: (await couriersOf(acct, user.branchId ?? null)).map((c) => ({ ...c, you: c.id === user.id })),
     tumaCourier: !!(await tumaPool()),
+    dispatchers: await savedDispatchers(acct),
+    recentPoints: await recentPoints(acct, here.id),
   };
+}
+
+/** The Tuma points this office sent parcels to lately, newest first, still open (for picking the receiving office). */
+async function recentPoints(acct: string, hereId: string, limit = 5) {
+  const rows = await db
+    .select({
+      id: branches.id,
+      name: branches.name,
+      business: accounts.name,
+      businessId: accounts.id,
+      region: branches.region,
+      district: branches.district,
+      address: branches.address,
+      phone: branches.phone,
+      lat: branches.lat,
+      lng: branches.lng,
+    })
+    .from(manifests)
+    .innerJoin(branches, eq(branches.id, manifests.toBranchId))
+    .innerJoin(accounts, eq(accounts.id, branches.accountId))
+    .where(and(eq(manifests.accountId, acct), eq(manifests.mode, "point"), eq(branches.active, true), sql`${branches.id} <> ${hereId}`))
+    .groupBy(branches.id, accounts.id)
+    .orderBy(desc(sql`max(${manifests.createdAt})`))
+    .limit(limit);
+  return rows.map((r) => ({ ...r, lat: r.lat ?? 0, lng: r.lng ?? 0 }));
+}
+
+/** Riders and transporters this office sent parcels with before (the dispatcher network), most used lately first. */
+export async function savedDispatchers(acct: string, limit = 20) {
+  return db
+    .select({ id: dispatchers.id, name: dispatchers.name, phone: dispatchers.phone, plate: dispatchers.plate, status: dispatchers.status, trips: dispatchers.trips })
+    .from(dispatchers)
+    .where(eq(dispatchers.accountId, acct))
+    .orderBy(desc(dispatchers.lastUsedAt), desc(dispatchers.createdAt))
+    .limit(limit);
 }
 
 export const manifestSchema = z.object({
@@ -85,12 +122,18 @@ export const manifestSchema = z.object({
   carrier: z.discriminatedUnion("kind", [
     z.object({ kind: z.literal("staff"), userId: z.string().min(1) }),
     z.object({ kind: z.literal("tuma") }),
+    /** Anyone else: a rider, driver, bus or lorry. Saved to the dispatcher network by phone. */
     z.object({
       kind: z.literal("transporter"),
-      name: z.string().trim().min(2, "Enter who carries them (the bus or transporter)").max(80),
-      phone: z.string().trim().max(20).optional(),
-      plate: z.string().trim().max(20).optional(),
+      name: z.string({ error: "Enter the name of who carries them" }).trim().min(2, "Enter the name of who carries them").max(80),
+      phone: z.string({ error: "Enter their phone number" }).trim().min(9, "Enter their phone number").max(20),
+      plate: z.string({ error: "Enter their vehicle number" }).trim().min(2, "Enter their vehicle number").max(20),
       ref: z.string().trim().max(40).optional(),
+      /** A photo of their receipt or ticket, uploaded as kind "dispatch". */
+      receiptKey: z
+        .string()
+        .regex(/^dispatch\/[0-9]{4}\/[0-9]{2}\/[0-9A-Z]+\.[a-z]+$/, "That receipt photo didn't upload. Add it again.")
+        .optional(),
     }),
   ]),
   note: z.string().trim().max(300).optional(),
@@ -100,10 +143,9 @@ export async function createManifest(user: CurrentUser, raw: unknown) {
   const acct = businessOf(user);
   canSend(user);
   const m = manifestSchema.parse(raw);
-  // A Tuma courier and the office's own courier go to doors; a transporter or the office's own person to a point.
+  // A Tuma courier goes to doors; the office's own person, or another rider or transporter, goes either way.
   if (m.carrier.kind === "tuma" && m.mode !== "door")
-    throw new DomainError("BAD_CARRIER", "A Tuma courier takes parcels to the receivers' doors. Send them to a point with your own person or a transporter.");
-  if (m.carrier.kind === "transporter" && m.mode !== "point") throw new DomainError("BAD_CARRIER", "To the door, send them with your own courier or a Tuma courier.");
+    throw new DomainError("BAD_CARRIER", "A Tuma courier takes parcels to the receivers' doors. Send them to a point with your own person or another rider or transporter.");
   const here = await hereOf(user, acct);
 
   // The parcels: ours, in hand here, not already on their way with someone.
@@ -157,9 +199,16 @@ export async function createManifest(user: CurrentUser, raw: unknown) {
   } else if (m.carrier.kind === "tuma") {
     carrier = { kind: "tuma", name: "Tuma courier" };
   } else {
-    const phone = m.carrier.phone ? toE164TZ(m.carrier.phone) : undefined;
-    if (m.carrier.phone && !phone) throw new DomainError("BAD_PHONE", "Enter a valid Tanzanian mobile number for the transporter.");
-    carrier = { kind: "transporter", name: m.carrier.name, phone: phone ?? undefined, plate: m.carrier.plate?.toUpperCase() || undefined, ref: m.carrier.ref || undefined };
+    const phone = toE164TZ(m.carrier.phone);
+    if (!phone) throw new DomainError("BAD_PHONE", "Enter a valid Tanzanian mobile number for who carries them.");
+    carrier = {
+      kind: "transporter",
+      name: m.carrier.name,
+      phone,
+      plate: m.carrier.plate.toUpperCase().replace(/\s+/g, " "),
+      ref: m.carrier.ref || undefined,
+      receiptKey: m.carrier.receiptKey,
+    };
   }
 
   // Only what this person may do (a Tuma courier moves them when it picks them up).
@@ -174,6 +223,19 @@ export async function createManifest(user: CurrentUser, raw: unknown) {
   if (m.carrier.kind === "tuma" && !pool) throw new DomainError("NO_TUMA_COURIERS", "Tuma couriers aren't available yet. Send them with your own courier.", 409);
 
   const id = await db.transaction(async (tx) => {
+    // Someone new carrying for this office joins its dispatcher network (unvetted until Tuma checks them); someone
+    // known gets their latest name and vehicle and another trip.
+    if (carrier.kind === "transporter") {
+      const [d] = await tx
+        .insert(dispatchers)
+        .values({ accountId: acct, name: carrier.name, phone: carrier.phone!, plate: carrier.plate!, trips: 1, lastUsedAt: new Date(), createdBy: user.id })
+        .onConflictDoUpdate({
+          target: [dispatchers.accountId, dispatchers.phone],
+          set: { name: carrier.name, plate: carrier.plate!, trips: sql`${dispatchers.trips} + 1`, lastUsedAt: new Date() },
+        })
+        .returning({ id: dispatchers.id });
+      carrier = { ...carrier, dispatcherId: d.id };
+    }
     let jobId: string | null = null;
     if (pool) {
       // A courier run in Tuma's pool: from this office to each door, in the order chosen.
