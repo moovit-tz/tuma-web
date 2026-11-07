@@ -16,6 +16,7 @@ import { agentMove, agentParcel } from "./agent-parcels";
 import { companyOf } from "./corporate";
 import { rememberCustomers } from "./customers";
 import { issueCompanyInvoice } from "./counter-payments";
+import { autoPayFromWallet } from "./wallet";
 
 /**
  * Anyone with the Tuma app can send a parcel, with no business to set up: they book it ahead from their phone, take
@@ -123,7 +124,8 @@ export const senderBookingSchema = z.object({
   payer: z.enum(["sender", "receiver"]).default("sender"),
   /** Sending for a company: in its name, and it may go on the company's account (the point invoices it). */
   asCompany: z.boolean().default(false),
-  paidWith: z.enum(["at_point", "account"]).default("at_point"),
+  /** At the point (cash or mobile money there), on the company's account, or from my Tuma wallet once it's priced. */
+  paidWith: z.enum(["at_point", "account", "wallet"]).default("at_point"),
   noProhibited: z.literal(true, { message: "Confirm there are no prohibited items" }),
 });
 
@@ -194,7 +196,11 @@ export async function senderBook(user: CurrentUser, raw: unknown) {
   // Booked in the point's books, as if typed at its counter; the sender stays the one who booked it.
   const counter: CurrentUser = { ...user, accountId: drop.accountId, branchId: drop.id, permissions: new Set(["shipment.create", "agent.workspace"]) };
   const { shipment } = await createParcel(counter, order, "app", { charge: 0 });
-  await db.update(shipments).set({ handlingPartnerId: drop.accountId, handlingBranchId: drop.id }).where(eq(shipments.id, shipment.id));
+  await db
+    .update(shipments)
+    // From the wallet: paid the moment the point prices it (if the balance covers it).
+    .set({ handlingPartnerId: drop.accountId, handlingBranchId: drop.id, ...(b.paidWith === "wallet" && b.payer === "sender" ? { prepayMethod: "wallet" } : {}) })
+    .where(eq(shipments.id, shipment.id));
   return senderParcel(user, shipment.waybill);
 }
 
@@ -309,8 +315,13 @@ export async function senderParcel(user: CurrentUser, rawWaybill: string) {
     weightKg: s.actualWeightG / 1000,
     payer: s.paymentTerms === "pay_on_delivery" ? "receiver" : "sender",
     onAccount: s.paymentTerms === "account",
-    // The Tuma point's price, once it has accepted the parcel.
-    total: booked ? null : s.totalCharge,
+    // The Tuma point's price, once it has set it (it may still wait for payment).
+    total: booked && !s.receiveOnPayment ? null : s.totalCharge,
+    paid: !!s.paidAt,
+    paidWith: s.paidAt ? s.prepayMethod : null,
+    fromWallet: s.prepayMethod === "wallet",
+    // Priced and waiting for my payment: I can pay it from my wallet.
+    canPayFromWallet: s.createdBy === user.id && s.paymentTerms === "prepaid" && s.receiveOnPayment && !s.paidAt && s.totalCharge > 0 && s.state === "AWAITING_HANDOVER",
     point: p ?? null,
     canCancel: mine && booked && s.createdBy === user.id,
     live: await liveFor(s.id, true),
@@ -392,7 +403,9 @@ export async function priceDropOff(user: CurrentUser, rawWaybill: string, raw: u
       await issueCompanyInvoice(tx, fresh, { customerId: ids.sender ?? null, actorId: user.id });
     });
   }
-  // Free of charge, on account, or the receiver pays on delivery: in it comes.
+  // Free of charge, on account, or the receiver pays on delivery: in it comes. Booked "from my wallet": paid now
+  // when the wallet covers it (and in it comes); otherwise it waits for payment as usual.
   if (!s.receiveOnPayment) await agentMove(user, waybill, { to: "RECEIVED" });
+  else if (s.prepayMethod === "wallet") await autoPayFromWallet(s.id);
   return agentParcel(user, waybill);
 }

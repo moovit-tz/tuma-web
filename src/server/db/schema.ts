@@ -1236,3 +1236,38 @@ export const parcelRatings = pgTable(
   },
   (t) => [uniqueIndex("parcel_ratings_shipment_uq").on(t.shipmentId), uniqueIndex("parcel_ratings_token_uq").on(t.tokenHash), index("parcel_ratings_account_idx").on(t.accountId, t.ratedAt)],
 );
+
+/**
+ * A sender's Tuma wallet: money they put in ahead (a mobile-money top-up through HuduPay) and spend on their parcels
+ * when a Tuma point prices them, with refunds coming back in. The balance is the sum of the settled entries; a
+ * top-up counts once HuduPay says it's paid. Tuma holds the money and pays the point out as for mobile money.
+ */
+export const walletEntries = pgTable(
+  "wallet_entries",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id),
+    kind: text("kind").notNull(), // topup | parcel | refund
+    /** Signed: + money in (top-up, refund), − money out (a parcel). */
+    amount: integer("amount").notNull(),
+    currency: text("currency").notNull().default("TZS"),
+    status: text("status").notNull().default("paid"), // pending | paid | failed
+    /** Our reference (to HuduPay for a top-up), its payment id, and the phone that paid. */
+    reference: text("reference").notNull(),
+    providerId: text("provider_id"),
+    msisdn: text("msisdn"),
+    shipmentId: uuid("shipment_id").references(() => shipments.id),
+    waybill: text("waybill"),
+    failureMessage: text("failure_message"),
+    createdAt: ts("created_at").notNull().defaultNow(),
+    settledAt: ts("settled_at"),
+  },
+  (t) => [
+    uniqueIndex("wallet_entries_reference_uq").on(t.reference),
+    index("wallet_entries_user_idx").on(t.userId, t.createdAt),
+    // A parcel is charged to a wallet once.
+    uniqueIndex("wallet_entries_parcel_uq").on(t.shipmentId).where(sql`${t.kind} = 'parcel'`),
+  ],
+);

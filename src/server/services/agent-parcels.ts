@@ -6,6 +6,7 @@ import { accounts, branches, codRecords, events, invoices, jobShipments, jobs, k
 import { collect, collection } from "../adapters/hudupay";
 import { issueCompanyInvoice, markPaid, receiveOnceFor, settlePayment } from "./counter-payments";
 import { momoEnabled } from "./agent-payments";
+import { refundToWallet } from "./wallet";
 import { toE164 } from "@/domain/phone";
 import { createParcel, DomainError, transition } from "./shipments";
 import { enqueue } from "../adapters/outbox";
@@ -294,11 +295,14 @@ export async function agentCancel(user: CurrentUser, rawWaybill: string, raw: un
   const [rc] = await db.select({ code: reasonCodes.code, en: reasonCodes.labelEn }).from(reasonCodes).where(and(eq(reasonCodes.code, c.reasonCode), eq(reasonCodes.kind, "cancellation"), eq(reasonCodes.active, true)));
   if (!rc) throw new DomainError("BAD_REASON", "Choose why it's being cancelled.");
   if (rc.code === "CN06" && (c.note?.length ?? 0) < 3) throw new DomainError("NOTE_REQUIRED", "Say why it's being cancelled.");
-  // The sender gets back what they paid at the counter.
-  const refundDue = s.paidAt ? s.totalCharge : 0;
-  await transition(user, s.waybill, "CANCELLED", { source: "field_app", reasonCode: rc.code, note: c.note || rc.en, data: { refundDue } });
+  // The sender gets back what they paid: at the counter, or straight back into their Tuma wallet.
+  const toWallet = !!s.paidAt && s.prepayMethod === "wallet";
+  const refundDue = s.paidAt && !toWallet ? s.totalCharge : 0;
+  await transition(user, s.waybill, "CANCELLED", { source: "field_app", reasonCode: rc.code, note: c.note || rc.en, data: { refundDue, refundedToWallet: toWallet ? s.totalCharge : 0 } });
+  let refundedToWallet = 0;
   await db.transaction(async (tx) => {
     await tx.update(codRecords).set({ status: "none" }).where(eq(codRecords.shipmentId, s.id));
+    if (toWallet) refundedToWallet = await refundToWallet(tx, s);
     if (refundDue > 0) {
       await enqueue(tx, {
         target: "finops",
@@ -309,7 +313,7 @@ export async function agentCancel(user: CurrentUser, rawWaybill: string, raw: un
       });
     }
   });
-  return { ...(await agentParcel(user, s.waybill)), refundDue };
+  return { ...(await agentParcel(user, s.waybill)), refundDue, refundedToWallet };
 }
 
 /* ------------------------------------------------------------------- moves */

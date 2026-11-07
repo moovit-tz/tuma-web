@@ -155,6 +155,13 @@
       "when": 1794006744124,
       "tag": "0021_agent_cancel",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1794020385758,
+      "tag": "0022_sender_wallet",
+      "breakpoints": true
     }
   ]
 }

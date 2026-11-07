@@ -67,7 +67,7 @@ export async function issueCompanyInvoice(tx: Tx, s: Shipment, p: { customerId: 
 }
 
 /** The sender paid: mark the parcel, settle its invoice, post to FinOps and tell both people. Runs once. */
-export async function markPaid(tx: Tx, s: Shipment, p: { method: "cash" | "mobile_money"; reference?: string; actorId: string }) {
+export async function markPaid(tx: Tx, s: Shipment, p: { method: "cash" | "mobile_money" | "wallet"; reference?: string; actorId: string }) {
   const [paid] = await tx
     .update(shipments)
     .set({ paidAt: new Date(), prepayMethod: p.method })
@@ -91,10 +91,11 @@ export async function markPaid(tx: Tx, s: Shipment, p: { method: "cash" | "mobil
       currency: "TZS",
       method: p.method,
       reference: p.reference ?? null,
-      // Mobile money: Tuma's commission comes off the takings before they're paid out. Cash: from the float.
+      // Mobile money and the sender's Tuma wallet: Tuma holds the money, so its commission comes off before the
+      // point is paid out. Cash: the point holds it, so the commission comes from the float.
       commission,
-      commissionFrom: p.method === "mobile_money" ? "collection" : "float",
-      payout: p.method === "mobile_money" ? s.totalCharge - commission : 0,
+      commissionFrom: p.method === "cash" ? "float" : "collection",
+      payout: p.method === "cash" ? 0 : s.totalCharge - commission,
     },
   });
   await notifyPaid(tx, s, { amount: s.totalCharge.toLocaleString("en-US"), method: p.method });
