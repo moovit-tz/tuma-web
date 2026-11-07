@@ -44,7 +44,7 @@ export default async function ParcelsDesk({ params, searchParams }: PageProps<"/
       <PageHeader title={a.desk.title} description={a.desk.sub}>
         {user.permissions.has("shipment.create") && (
           <Button asChild>
-            <Link href={`/${locale}/portal/shipments/new`}>
+            <Link href={`/${locale}/portal/parcels/new`}>
               <Plus /> {t.nav.newShipment}
             </Link>
           </Button>

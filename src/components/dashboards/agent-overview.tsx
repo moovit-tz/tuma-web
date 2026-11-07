@@ -37,7 +37,7 @@ export async function AgentOverview({ locale }: { locale: string }) {
       <DashboardGreeting name={user.name}>
         {canBook && (
           <Button asChild>
-            <Link href={`/${locale}/portal/shipments/new`}>
+            <Link href={`/${locale}/portal/parcels/new`}>
               <Plus /> {t.nav.newShipment}
             </Link>
           </Button>

@@ -3,7 +3,8 @@ import { refresh } from "next/cache";
 import { ZodError } from "zod";
 import { getCurrentUser } from "@/server/auth/current-user";
 import { DomainError } from "@/server/services/shipments";
-import { agentCancel, agentMove, agentParcel, agentPaymentStatus, agentRequestPayment } from "@/server/services/agent-parcels";
+import { agentBook, agentCancel, agentMove, agentParcel, agentPaymentStatus, agentRequestPayment, collectionPoints } from "@/server/services/agent-parcels";
+import { agentCustomers } from "@/server/services/customers";
 import { priceDropOff } from "@/server/services/sender";
 import { requestTrackingOtp } from "@/server/services/tracking";
 import type { ActionResult } from "./shipments";
@@ -82,4 +83,54 @@ export async function agentSendCodeAction(waybill: string) {
     if (!r.ok) throw new DomainError("CODE_NOT_SENT", r.retryInSec ? `Wait ${r.retryInSec}s before sending another code.` : "We couldn't send a code. Try again.");
     return { maskedPhone: r.maskedPhone, devCode: r.devCode };
   });
+}
+
+/* ----------------------------------------------------------------- booking */
+
+/** Book a parcel over the counter (the app's counter form): booked and, normally, received in one go. */
+export async function agentBookAction(input: unknown) {
+  return run(async (u) => {
+    const r = await agentBook(u, input);
+    return { waybill: r.parcel.waybill, awaitingPayment: Boolean(r.parcel.awaitingPayment) };
+  });
+}
+
+/** Saved customers matching a phone or name, for the booking form (phone first, as at the counter). */
+export async function agentCustomerSearchAction(q: string, kind?: "individual" | "company") {
+  try {
+    const user = await getCurrentUser();
+    if (!user || q.trim().length < 3) return [];
+    const r = await agentCustomers(user, { q, kind, limit: 6 });
+    return r.customers.map((c) => ({
+      id: c.id,
+      kind: c.kind as "individual" | "company",
+      name: c.name,
+      phone: c.phone,
+      email: c.email,
+      tin: c.tin,
+      regNo: c.regNo,
+      contactName: c.contactName,
+      region: c.region,
+      district: c.district,
+      landmark: c.landmark,
+      flagged: c.flagged,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+/** Where the receiver can collect in that region: this business's other offices, then Tuma's points. */
+export async function agentCollectionPointsAction(region: string, district?: string) {
+  try {
+    const user = await getCurrentUser();
+    if (!user?.permissions.has("agent.workspace")) return { offices: [], points: [] };
+    const r = await collectionPoints(user, region, district);
+    return {
+      offices: r.offices.map((o) => ({ id: o.id, name: o.name, district: o.district, inDistrict: o.inDistrict })),
+      points: r.points.map((p) => ({ id: p.id, name: p.name, district: p.district, landmark: p.landmark, inDistrict: p.inDistrict })),
+    };
+  } catch {
+    return { offices: [], points: [] };
+  }
 }
