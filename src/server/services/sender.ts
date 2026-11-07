@@ -112,6 +112,19 @@ export const senderBookingSchema = z.object({
     landmark: z.string().trim().max(200).optional(),
     lat: z.coerce.number().min(-12).max(0).optional(),
     lng: z.coerce.number().min(29).max(41).optional(),
+    /** A company receiving it: the name is the company's; who takes it in and its TIN when known. */
+    company: z
+      .object({
+        tin: z
+          .string()
+          .trim()
+          .optional()
+          .transform((v) => v?.replace(/\D/g, "") || undefined)
+          .refine((v) => v == null || v.length === 9, "A TIN has 9 digits"),
+        regNo: z.string().trim().max(40).optional(),
+        contactName: z.string().trim().max(120).optional(),
+      })
+      .optional(),
   }),
   /** To the receiver's door, or collected at a Tuma point of the same business. */
   deliveryMode: z.enum(["door", "wakala_collect"]).default("door"),
@@ -185,6 +198,7 @@ export async function senderBook(user: CurrentUser, raw: unknown) {
       name: b.receiver.name,
       phone: b.receiver.phone,
       language: "sw",
+      company: b.receiver.company ? { tin: b.receiver.company.tin, regNo: b.receiver.company.regNo || undefined, contactName: b.receiver.company.contactName || undefined } : undefined,
       address: { region: b.receiver.region, district: b.receiver.district, landmark: b.receiver.landmark || undefined, lat: b.receiver.lat, lng: b.receiver.lng },
     },
     goodsDescription: b.goods,

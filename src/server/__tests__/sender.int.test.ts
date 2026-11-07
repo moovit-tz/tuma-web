@@ -166,6 +166,13 @@ describe("sending a parcel as a person (no business)", () => {
     await expect(rateMine(them.user, waybill, { stars: 5 })).rejects.toMatchObject({ code: "ALREADY_RATED" });
   });
 
+  it("sends from a person to a company: in the company's name, with who takes it in and its TIN", async () => {
+    const r = await senderBook(me.user, booking(pointId, { receiver: { ...booking(pointId).receiver, name: "Mwanga Traders Ltd", company: { tin: "123-456-789", contactName: "Asha Store" } } }));
+    const [s] = await db.select({ consignee: shipments.consignee }).from(shipments).where(eq(shipments.waybill, r.waybill));
+    expect(s.consignee).toMatchObject({ name: "Mwanga Traders Ltd", company: { tin: "123456789", contactName: "Asha Store" } });
+    await expect(senderBook(me.user, booking(pointId, { receiver: { ...booking(pointId).receiver, company: { tin: "12" } } }))).rejects.toBeTruthy();
+  });
+
   it("lets the sender cancel a booking that hasn't reached the point, with a reason", async () => {
     const r = await senderBook(me.user, booking(pointId, { goods: "A pair of shoes" }));
     await expect(senderCancel(me.user, r.waybill, { reason: "" })).rejects.toBeTruthy();
