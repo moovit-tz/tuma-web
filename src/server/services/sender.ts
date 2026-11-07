@@ -273,6 +273,8 @@ export async function myParcels(user: CurrentUser) {
         direction: (coming ? "coming" : "sent") as Direction,
         // Who's on the other end: the receiver of what I sent, the sender of what's coming.
         other: coming ? r.shipper.name : r.consignee.name,
+        // The receiver's number on what I sent (to send to them again); not the sender's on what's coming.
+        otherPhone: coming ? null : (r.consignee.phone ?? null),
         otherPlace: coming ? r.shipper.address.region : `${r.consignee.address.district}, ${r.consignee.address.region}`,
         goods: r.goods,
         total: r.state === "AWAITING_HANDOVER" ? null : r.total,
