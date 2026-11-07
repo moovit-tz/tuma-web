@@ -5,6 +5,7 @@ import { db } from "../db/client";
 import { accounts, agents, branches, kybApplications, outbox, platformSettings, rolePermissions, roles, shipments, teamInvites, users } from "../db/schema";
 import { appMe, driverContext, finishDriverLogin, swapHandoff, type DriverCtx } from "../services/drivers";
 import { applyKybDecision, submitKyb } from "../services/kyb";
+import { updateWorkflow, workflowFor } from "../services/agent-settings";
 import { acceptInvite, createInvite, createStaffRole, declineInvite, inviteByCode, inviteByToken, invitesFor, resendInvite, revokeInvite, teamOverview } from "../services/team-invites";
 import { addOffice, listOffices, officeDetail, updateOffice } from "../services/branches";
 import { createParcel } from "../services/shipments";
@@ -253,6 +254,12 @@ describe("setting up a business while it's reviewed, and inviting staff", () => 
     await expect(acceptInvite(coder, { code })).rejects.toMatchObject({ code: "ALREADY_JOINED" });
   });
 
+  it("while it's reviewed, what the office does is shown but not changed", async () => {
+    const owner = await userOf(OWNER);
+    expect(await workflowFor(owner)).toMatchObject({ workflow: ["receive", "deliver"], preset: "custom", approved: false, canManage: false });
+    await expect(updateWorkflow(owner, { workflow: ["deliver"] })).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
   it("books parcels up to the allowance, then only finishes the ones in hand", async () => {
     const early = await userOf(OWNER); // loaded while parcels were left, like a request already in flight
     await createParcel(early, parcel());
@@ -293,6 +300,12 @@ describe("setting up a business while it's reviewed, and inviting staff", () => 
     // One head office, still the one opened at submission.
     expect((await db.select().from(branches).where(eq(branches.accountId, accountId))).filter((b) => b.isHead)).toHaveLength(1);
     expect((await db.select().from(agents).where(eq(agents.accountId, accountId))).length).toBe(1);
+    // Now the owner changes what the office does; staff can't.
+    expect(await updateWorkflow(owner.user, { workflow: ["dispatch", "receive", "receive"] })).toMatchObject({ workflow: ["receive", "dispatch"], preset: "dropoff", approved: true });
+    const [g] = await db.select({ workflow: agents.workflow }).from(agents).where(eq(agents.accountId, accountId));
+    expect(g.workflow).toEqual(["receive", "dispatch"]);
+    await expect(updateWorkflow(owner.user, { workflow: [] })).rejects.toThrow();
+    await expect(updateWorkflow(staff.user, { workflow: ["deliver"] })).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 });
 

@@ -6,6 +6,7 @@ import { DomainError } from "@/server/services/shipments";
 import { agentBook, agentCancel, agentMove, agentParcel, agentPaymentStatus, agentRequestPayment, collectionPoints } from "@/server/services/agent-parcels";
 import { agentCustomers, deleteCustomer, dismissDuplicates, mergeCustomers, reportCustomer, updateCustomer } from "@/server/services/customers";
 import { updatePaymentSettings } from "@/server/services/agent-payments";
+import { updateWorkflow } from "@/server/services/agent-settings";
 import { priceDropOff, tumaPoints } from "@/server/services/sender";
 import { createManifest, offloadParcel } from "@/server/services/manifests";
 import { requestTrackingOtp } from "@/server/services/tracking";
@@ -202,4 +203,9 @@ export async function customerNotSameAction(ids: string[]) {
     await dismissDuplicates(u, { ids });
     return null;
   });
+}
+
+/** What the office does with parcels (agent.workflow.manage). */
+export async function workflowAction(workflow: string[]) {
+  return run(async (u) => (await updateWorkflow(u, { workflow })).preset);
 }

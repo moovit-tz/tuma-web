@@ -31,8 +31,11 @@ export default async function PortalLayout({ children, params }: LayoutProps<"/[
     { href: `${base}/money`, label: t.agent.money.nav, icon: "payments", permission: "agent.workspace", group: p.nav.finance },
     { href: `${base}/invoices`, label: p.nav.invoices, icon: "invoices", permission: "partner.finance.manage", unless: "agent.workspace", group: p.nav.finance },
     { href: `${base}/payments`, label: p.nav.payments, icon: "payments", permission: "partner.finance.manage", unless: "agent.workspace", group: p.nav.finance },
+    { href: `${base}/reports`, label: t.agent.rep.nav, icon: "reports", permission: "agent.workspace", also: "report.view", group: p.nav.finance },
+    { href: `${base}/notifications`, label: t.agent.notif.nav, icon: "notifications", permission: "agent.workspace", group: p.nav.operations },
     { href: `${base}/settings/roles`, label: t.nav.roles, icon: "roles", permission: ["roles.manage", "team.manage"], group: t.nav.settingsGroup },
     { href: `${base}/settings/users`, label: t.nav.team, icon: "users", permission: ["users.manage", "team.manage"], group: t.nav.settingsGroup },
+    { href: `${base}/settings/business`, label: t.agent.biz.nav, icon: "settings", permission: "agent.workspace", group: t.nav.settingsGroup },
     { href: `${base}/settings/platform`, label: t.platformSettings.title, icon: "settings", permission: "settings.manage", group: t.nav.settingsGroup },
   ];
   return (
