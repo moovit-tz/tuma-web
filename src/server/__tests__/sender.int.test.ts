@@ -139,9 +139,17 @@ describe("sending a parcel as a person (no business)", () => {
     const priced = await priceDropOff(agent.user, waybill, { price: 9000, weightKg: 3.5 });
     expect(priced.parcel).toMatchObject({ total: 9000, awaitingPayment: true, needsPrice: false, state: "AWAITING_HANDOVER" });
     await expect(priceDropOff(agent.user, waybill, { price: 1 })).resolves.toBeTruthy(); // still in: the price can be corrected before payment
-    await priceDropOff(agent.user, waybill, { price: 9000 });
+    // Accepting can correct what the booking said: what's inside, and what it's worth.
+    await priceDropOff(agent.user, waybill, { price: 9000, goods: "Books · A box of school books", category: "books", declaredValue: 45000 });
+    expect((await agentParcel(agent.user, waybill)).parcel).toMatchObject({ goods: "Books · A box of school books", category: "books", declaredValue: 45000 });
+    // Priced, not paid: the sender has a proforma invoice from the point.
+    const pf = (await senderParcel(me.user, waybill)).document;
+    expect(pf).toMatchObject({ kind: "proforma", number: `PF-${waybill}`, total: 9000, billTo: { name: "Rehema Person" } });
+    expect(pf?.issuer?.business).toBeTruthy();
     const paid = await agentRequestPayment(agent.user, waybill, { method: "cash" });
     expect(paid.parcel).toMatchObject({ state: "RECEIVED", paidWith: "cash" });
+    // Paid: a receipt.
+    expect((await senderParcel(me.user, waybill)).document).toMatchObject({ kind: "receipt", number: `RC-${waybill}`, total: 9000, paidWith: "cash" });
     expect((await senderParcel(me.user, waybill)).total).toBe(9000);
     await expect(senderCancel(me.user, waybill, { reason: "Changed my mind" })).rejects.toMatchObject({ code: "CANNOT_CANCEL" });
   });

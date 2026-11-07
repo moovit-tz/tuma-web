@@ -157,6 +157,8 @@ export async function senderCollectionPoints(user: CurrentUser, f: { dropOffId?:
   return { business: drop.business, ...(await collectionPoints(counter, f.region ?? undefined, f.district ?? undefined)) };
 }
 
+const booked0 = (state: string) => state === "AWAITING_HANDOVER" || state === "CREATED";
+
 async function point(id: string) {
   const [p] = await db
     .select({ id: branches.id, name: branches.name, business: accounts.name, accountId: branches.accountId, region: branches.region, district: branches.district, address: branches.address, payOnDelivery: accounts.payOnDelivery })
@@ -435,13 +437,34 @@ export async function senderParcel(user: CurrentUser, rawWaybill: string) {
   const { s, phone, co } = await own(user, rawWaybill);
   const [p] = s.handlingBranchId
     ? await db
-        .select({ id: branches.id, name: branches.name, business: accounts.name, address: branches.address, district: branches.district, region: branches.region, phone: branches.phone, lat: branches.lat, lng: branches.lng })
+        .select({
+          id: branches.id,
+          name: branches.name,
+          business: accounts.name,
+          tin: accounts.tin,
+          address: branches.address,
+          district: branches.district,
+          region: branches.region,
+          phone: branches.phone,
+          lat: branches.lat,
+          lng: branches.lng,
+        })
         .from(branches)
         .innerJoin(accounts, eq(accounts.id, branches.accountId))
         .where(eq(branches.id, s.handlingBranchId))
     : [];
+  const priced = !(booked0(s.state) && !s.receiveOnPayment) && s.totalCharge > 0;
+  const payer = s.paymentTerms === "pay_on_delivery" ? "receiver" : "sender";
   const mine = s.createdBy === user.id || s.shipper.phone === phone || (!!co?.tin && s.shipper.company?.tin === co.tin);
-  const booked = s.state === "AWAITING_HANDOVER" || s.state === "CREATED";
+  const booked = booked0(s.state);
+  // Whoever pays sees the paperwork: a proforma invoice once the point has priced it, a receipt once it's paid.
+  const [snap] =
+    priced && (mine ? payer === "sender" : payer === "receiver")
+      ? await db.select().from(chargeSnapshots).where(eq(chargeSnapshots.shipmentId, s.id)).orderBy(desc(chargeSnapshots.version)).limit(1)
+      : [];
+  const cod = payer === "receiver" && snap ? (await db.select({ st: codRecords.status }).from(codRecords).where(eq(codRecords.shipmentId, s.id)))[0] : undefined;
+  const settled = payer === "sender" ? !!s.paidAt : ["collected", "deposited", "remitted"].includes(cod?.st ?? "");
+  const { tin: pointTin, ...point } = p ?? { tin: null };
   return {
     waybill: s.waybill,
     state: s.state,
@@ -461,7 +484,22 @@ export async function senderParcel(user: CurrentUser, rawWaybill: string) {
     fromWallet: s.prepayMethod === "wallet",
     // Priced and waiting for my payment: I can pay it from my wallet.
     canPayFromWallet: s.createdBy === user.id && s.paymentTerms === "prepaid" && s.receiveOnPayment && !s.paidAt && s.totalCharge > 0 && s.state === "AWAITING_HANDOVER",
-    point: p ?? null,
+    point: p ? point : null,
+    document: snap
+      ? {
+          kind: settled ? "receipt" : "proforma",
+          number: `${settled ? "RC" : "PF"}-${s.waybill}`,
+          issuedAt: (settled && s.paidAt ? s.paidAt : snap.createdAt).toISOString(),
+          issuer: p ? { business: p.business, office: p.name, tin: pointTin, phone: p.phone, address: [p.address, p.district, p.region].filter(Boolean).join(", ") } : null,
+          billTo: payer === "sender" ? { name: s.shipper.name, phone: s.shipper.phone, tin: s.shipper.company?.tin ?? null } : { name: s.consignee.name, phone: s.consignee.phone, tin: s.consignee.company?.tin ?? null },
+          lines: snap.lines.map((l) => ({ label: l.label, amount: l.amount })),
+          subtotal: snap.subtotal,
+          tax: snap.tax,
+          total: snap.total,
+          currency: snap.currency,
+          paidWith: settled ? (s.prepayMethod ?? null) : null,
+        }
+      : null,
     canCancel: mine && booked && s.createdBy === user.id,
     live: await liveFor(s.id, true),
     // The receiver's rating of the point that handed it over, once it's delivered.
@@ -488,6 +526,10 @@ export const acceptSchema = z.object({
   price: z.coerce.number().int().min(0).max(10_000_000),
   /** What the counter found on the scale, when it differs from the booking. */
   weightKg: z.coerce.number().positive().max(30).optional(),
+  /** What the counter found when it looked: the kind and description of the goods, and what they're worth. */
+  goods: z.string().trim().min(3).max(200).optional(),
+  category: z.string().trim().min(2).max(40).optional(),
+  declaredValue: z.coerce.number().int().min(1).max(1_000_000_000).optional(),
 });
 
 /**
@@ -509,6 +551,9 @@ export async function priceDropOff(user: CurrentUser, rawWaybill: string, raw: u
         totalCharge: a.price,
         actualWeightG: weightG,
         chargeableWeightG: Math.max(weightG, s.volumetricWeightG),
+        goodsDescription: a.goods ?? s.goodsDescription,
+        goodsCategory: a.category ?? s.goodsCategory,
+        declaredValue: a.declaredValue ?? s.declaredValue,
         handlingBranchId: user.branchId ?? s.handlingBranchId,
         // The sender pays now (cash or a mobile-money push) and the parcel is received once it's paid.
         receiveOnPayment: s.paymentTerms === "prepaid" && a.price > 0,
