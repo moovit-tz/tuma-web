@@ -7,8 +7,6 @@ import { allowLookup, isTrackingVerified } from "@/server/services/tracking";
 import { encodeFeed, gtfsFeed } from "@/server/services/live-tracking";
 import { normaliseWaybill } from "@/domain/waybill-number";
 
-export const dynamic = "force-dynamic";
-
 /**
  * GET → GTFS-Realtime VehiclePositions for one parcel: the Tuma courier carrying it (empty feed when none).
  * Protobuf by default; ?format=json for the JSON form. Position is ~1 km unless X-Track-Proof (from the

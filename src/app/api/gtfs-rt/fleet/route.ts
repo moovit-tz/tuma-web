@@ -2,8 +2,6 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getCurrentUser } from "@/server/auth/current-user";
 import { encodeFeed, gtfsFeed } from "@/server/services/live-tracking";
 
-export const dynamic = "force-dynamic";
-
 /**
  * GET → GTFS-Realtime VehiclePositions for every parcel the fleet's couriers carry now (exact positions).
  * For dispatch (dispatch.manage), signed in to the portal. Protobuf by default; ?format=json for JSON.

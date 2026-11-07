@@ -1,5 +1,6 @@
 import "server-only";
 import { NextResponse, type NextRequest } from "next/server";
+import { unstable_rethrow } from "next/navigation";
 import { ZodError } from "zod";
 import { verifyDriverToken } from "../auth/driver-token";
 import { driverContext, type DriverCtx } from "../services/drivers";
@@ -11,6 +12,8 @@ export function apiError(code: string, message: string, status: number, fields?:
 }
 
 export function toResponse(e: unknown) {
+  // Next's own signals (prerender bail-out, redirect, not found) pass through, never become a 500.
+  unstable_rethrow(e);
   if (e instanceof DomainError) return apiError(e.code, e.message, e.status);
   if (e instanceof ZodError) {
     const fields = Object.fromEntries(e.issues.map((i) => [i.path.join(".") || "_", i.message]));

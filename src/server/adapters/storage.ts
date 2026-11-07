@@ -7,7 +7,7 @@ import { ulid } from "../ids";
  * File storage for proof-of-delivery photos. STUB: writes under UPLOAD_DIR (default ./uploads, git-ignored)
  * until object storage is chosen; swap the body of `put` for S3/GCS and keep the returned key format.
  */
-const ROOT = () => path.resolve(process.env.UPLOAD_DIR ?? "uploads");
+const ROOT = () => path.resolve(/*turbopackIgnore: true*/ process.env.UPLOAD_DIR ?? "uploads");
 
 const EXT: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/heic": "heic", "application/pdf": "pdf" };
 /** Photos everywhere; PDFs only for business documents (kind "kyb"). */
