@@ -114,6 +114,8 @@ class OndiOidc implements IdentityProvider {
       state,
       code_challenge: codeChallenge,
       code_challenge_method: "S256",
+      // Ondi's account chooser, as "Continue with Google" shows: pick which signed-in account, or add another.
+      prompt: "select_account",
     }).toString();
     return u.toString();
   }
