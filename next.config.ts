@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
   output: "standalone",
   cacheComponents: true,
   partialPrefetching: true,
-  serverExternalPackages: ["bwip-js"],
+  serverExternalPackages: ["bwip-js", "sharp"],
   // One portal: the former Console and Partner areas now live under /portal.
   async redirects() {
     return [
