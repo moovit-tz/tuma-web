@@ -33,9 +33,15 @@ const IN_HAND = ["RECEIVED", "AT_HUB", "READY_FOR_COLLECTION", "ATTEMPT_FAILED"]
 const ON_THE_WAY = ["IN_TRANSIT", "OUT_FOR_DELIVERY", "RETURNING"] as const;
 const DONE = ["DELIVERED", "RETURNED", "CANCELLED"] as const;
 
-export const AGENT_VIEWS = ["expected", "in_hand", "on_the_way", "done", "all"] as const;
+export const AGENT_VIEWS = ["expected", "in_hand", "to_hand_over", "on_the_way", "done", "all"] as const;
 export type AgentView = (typeof AGENT_VIEWS)[number];
-const VIEW_STATES: Record<Exclude<AgentView, "all">, readonly ShipmentState[]> = {
+/**
+ * Here to be handed to the receiver, not sent on: ready to collect, back after a failed delivery attempt, or arrived
+ * at the office it's to be collected from.
+ */
+const TO_HAND_OVER = sql`(${shipments.state} in ('READY_FOR_COLLECTION', 'ATTEMPT_FAILED') or (${shipments.state} in ('RECEIVED', 'AT_HUB') and ${shipments.deliveryBranchId} is not null and ${shipments.deliveryBranchId} = ${shipments.handlingBranchId}))`;
+
+const VIEW_STATES: Record<Exclude<AgentView, "all" | "to_hand_over">, readonly ShipmentState[]> = {
   expected: EXPECTED,
   in_hand: IN_HAND,
   on_the_way: ON_THE_WAY,
@@ -75,7 +81,7 @@ export async function agentSummary(user: CurrentUser) {
   const month = darMidnight(29);
   const day = sql<string>`to_char(${shipments.createdAt} at time zone 'Africa/Dar_es_Salaam', 'YYYY-MM-DD')`;
   const dday = sql<string>`to_char(${shipments.deliveredAt} at time zone 'Africa/Dar_es_Salaam', 'YYYY-MM-DD')`;
-  const [byState, booked, delivered, periods, trial, coming] = await Promise.all([
+  const [byState, booked, delivered, periods, trial, coming, handOver] = await Promise.all([
     db.select({ state: shipments.state, n: count() }).from(shipments).where(scope).groupBy(shipments.state),
     db.select({ day, n: count(), value: sql<number>`coalesce(sum(${shipments.totalCharge}), 0)::int` }).from(shipments).where(and(scope, gte(shipments.createdAt, week))).groupBy(day),
     db.select({ day: dday, n: count() }).from(shipments).where(and(scope, eq(shipments.state, "DELIVERED"), gte(shipments.deliveredAt, week))).groupBy(dday),
@@ -96,6 +102,7 @@ export async function agentSummary(user: CurrentUser) {
       .select({ n: count() })
       .from(manifests)
       .where(and(eq(manifests.toAccountId, acct), eq(manifests.status, "on_the_way"), user.branchId ? eq(manifests.toBranchId, user.branchId) : undefined)),
+    db.select({ n: count() }).from(shipments).where(and(scope, TO_HAND_OVER)),
   ]);
   const st = Object.fromEntries(byState.map((r) => [r.state, r.n])) as Record<string, number>;
   const sum = (keys: readonly string[]) => keys.reduce((a, k) => a + (st[k] ?? 0), 0);
@@ -107,7 +114,7 @@ export async function agentSummary(user: CurrentUser) {
   });
   const p = periods[0];
   return {
-    counts: { expected: sum(EXPECTED), inHand: sum(IN_HAND), onTheWay: sum(ON_THE_WAY), readyForCollection: st.READY_FOR_COLLECTION ?? 0, manifestsComing: coming[0]?.n ?? 0 },
+    counts: { expected: sum(EXPECTED), inHand: sum(IN_HAND), onTheWay: sum(ON_THE_WAY), readyForCollection: st.READY_FOR_COLLECTION ?? 0, toHandOver: handOver[0]?.n ?? 0, manifestsComing: coming[0]?.n ?? 0 },
     periods: {
       today: { parcels: p?.today ?? 0, value: p?.todayValue ?? 0 },
       week: { parcels: p?.week ?? 0, value: p?.weekValue ?? 0 },
@@ -130,7 +137,8 @@ export async function agentParcels(user: CurrentUser, raw: unknown) {
   const acct = businessOf(user);
   const f = listSchema.parse(raw);
   const where: (SQL | undefined)[] = [mine(acct, user)];
-  if (f.view !== "all") where.push(inArray(shipments.state, [...VIEW_STATES[f.view]]));
+  if (f.view === "to_hand_over") where.push(TO_HAND_OVER);
+  else if (f.view !== "all") where.push(inArray(shipments.state, [...VIEW_STATES[f.view]]));
   if (f.q) {
     const term = `%${f.q}%`;
     where.push(

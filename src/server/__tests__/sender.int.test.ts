@@ -148,6 +148,9 @@ describe("sending a parcel as a person (no business)", () => {
     expect(pf?.issuer?.business).toBeTruthy();
     const paid = await agentRequestPayment(agent.user, waybill, { method: "cash" });
     expect(paid.parcel).toMatchObject({ state: "RECEIVED", paidWith: "cash" });
+    // In hand to be sent on, not handed over here: it isn't on the hand-over list.
+    expect((await agentParcels(agent.user, { view: "in_hand" })).parcels.map((p: { waybill: string }) => p.waybill)).toContain(waybill);
+    expect((await agentParcels(agent.user, { view: "to_hand_over" })).parcels.map((p: { waybill: string }) => p.waybill)).not.toContain(waybill);
     // Paid: a receipt.
     expect((await senderParcel(me.user, waybill)).document).toMatchObject({ kind: "receipt", number: `RC-${waybill}`, total: 9000, paidWith: "cash" });
     expect((await senderParcel(me.user, waybill)).total).toBe(9000);

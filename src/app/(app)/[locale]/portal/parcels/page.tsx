@@ -17,7 +17,11 @@ export const instant = false;
 
 const LIMIT = 100;
 
-const VIEW_ICON: Record<AgentView, LucideIcon> = { expected: Hourglass, in_hand: PackageOpen, on_the_way: Truck, done: CheckCheck, all: Inbox };
+/** The desk's tabs (the app also has a hand-over list). */
+type DeskView = Exclude<AgentView, "to_hand_over">;
+const DESK_VIEWS = AGENT_VIEWS.filter((v): v is DeskView => v !== "to_hand_over");
+
+const VIEW_ICON: Record<DeskView, LucideIcon> = { expected: Hourglass, in_hand: PackageOpen, on_the_way: Truck, done: CheckCheck, all: Inbox };
 
 /**
  * The parcels desk: the office's parcels by where they are (Expected, In hand, On the way, Done, All), the same stages
@@ -31,7 +35,7 @@ export default async function ParcelsDesk({ params, searchParams }: PageProps<"/
   if (!user.permissions.has("agent.workspace")) return <NoAccess locale={locale} />;
   const t = getDict(locale);
   const a = t.agent;
-  const view = (AGENT_VIEWS as readonly string[]).includes(one(sp.view) ?? "") ? (one(sp.view) as AgentView) : "in_hand";
+  const view = (DESK_VIEWS as readonly string[]).includes(one(sp.view) ?? "") ? (one(sp.view) as DeskView) : "in_hand";
   const q = one(sp.q)?.trim().slice(0, 80);
   const [s, list] = await Promise.all([agentSummary(user), agentParcels(user, { view, q, limit: LIMIT })]);
   const base = `/${locale}/portal/parcels`;
@@ -58,7 +62,7 @@ export default async function ParcelsDesk({ params, searchParams }: PageProps<"/
 
       <PageTabs
         label={a.desk.title}
-        items={AGENT_VIEWS.map((v) => ({ href: href(v), label: a.views[v], active: v === view, count: q ? undefined : counts[v] }))}
+        items={DESK_VIEWS.map((v) => ({ href: href(v), label: a.views[v], active: v === view, count: q ? undefined : counts[v] }))}
         aside={
           <form action={base} className="relative w-full sm:w-72">
             <input type="hidden" name="view" value={view} />
