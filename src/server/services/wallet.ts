@@ -83,7 +83,11 @@ export async function walletTopUp(user: CurrentUser, raw: unknown) {
   const msisdn = e164.slice(1);
   const reference = `${TOPUP_PREFIX}${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
   const base = process.env.APP_URL ?? "https://tuma.hudumika.tz";
-  const c = await collect({ reference, amount: b.amount, msisdn, narration: "Tuma wallet top-up", callbackUrl: `${base}/api/hooks/hudupay` });
+  // The adapter's wording is for the counter ("take cash"); someone topping up their own wallet hears it plainly.
+  const c = await collect({ reference, amount: b.amount, msisdn, narration: "Tuma wallet top-up", callbackUrl: `${base}/api/hooks/hudupay` }).catch((e) => {
+    if (e instanceof DomainError && e.code === "MOMO_UNAVAILABLE") throw new DomainError("MOMO_UNAVAILABLE", "Topping up by mobile money isn't available just yet. Please try again a little later.", 503);
+    throw e;
+  });
   const failed = c.status === "FAILED";
   const [e] = await db
     .insert(walletEntries)
