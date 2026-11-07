@@ -1,5 +1,6 @@
 import "server-only";
 import { SignJWT, createRemoteJWKSet, jwtVerify, type JWTPayload } from "jose";
+import { toE164 } from "@/domain/phone";
 
 /**
  * Ondi identity adapter (section 9.5, FR-IDN-01/02).
@@ -141,14 +142,24 @@ class OndiOidc implements IdentityProvider {
   }
 }
 
-function claimsFrom(p: JWTPayload, rolesClaim: string): OndiClaims {
+/**
+ * Ondi's phone claim, only when it's a real mobile number. A Google / Microsoft / Apple sign-up has no number yet, and
+ * Ondi keeps a placeholder there ("federated_google_<id>"); taking that as a phone showed people a 21-digit "+255"
+ * number. Without a real one, Tuma asks for it where it's needed.
+ */
+export function phoneClaim(v: unknown): string | undefined {
+  if (typeof v !== "string" || /[a-z_]/i.test(v)) return undefined;
+  return toE164(v) ?? undefined;
+}
+
+export function claimsFrom(p: JWTPayload, rolesClaim: string): OndiClaims {
   const roles = p[rolesClaim];
   const name = typeof p.name === "string" && p.name.trim() ? p.name.trim() : typeof p.email === "string" ? p.email : "Ondi user";
   return {
     sub: String(p.sub),
     name,
     email: typeof p.email === "string" ? p.email : undefined,
-    phone: typeof p.phone === "string" ? p.phone : undefined,
+    phone: phoneClaim(p.phone),
     picture: typeof p.picture === "string" && /^https:\/\//.test(p.picture) ? p.picture : undefined,
     accountId: null, // Tuma owns account membership (CRM / KYB), not Ondi
     roles: Array.isArray(roles) ? roles.map(String) : [],
