@@ -1,10 +1,11 @@
 import "server-only";
-import { NextResponse, type NextRequest } from "next/server";
+import { after, NextResponse, type NextRequest } from "next/server";
 import { unstable_rethrow } from "next/navigation";
 import { ZodError } from "zod";
 import { verifyDriverToken } from "../auth/driver-token";
 import { driverContext, type DriverCtx } from "../services/drivers";
 import { DomainError } from "../services/shipments";
+import { kickHuduFeed } from "../services/push";
 
 /** JSON error body the app understands: { error: { code, message, fields? } }. */
 export function apiError(code: string, message: string, status: number, fields?: Record<string, string>) {
@@ -38,6 +39,8 @@ export function driverRoute<P>(handler: (ctx: DriverCtx, req: NextRequest, param
       const ctx = await driverContext(userId);
       if (!ctx) return apiError("UNAUTHORIZED", "Sign in again.", 401);
       const out = await handler(ctx, req, await route.params);
+      // Whatever that queued (SMS, push) goes out now, after the response.
+      if (req.method !== "GET") after(kickHuduFeed);
       return NextResponse.json(out ?? { ok: true });
     } catch (e) {
       return toResponse(e);
@@ -49,7 +52,9 @@ export function driverRoute<P>(handler: (ctx: DriverCtx, req: NextRequest, param
 export function publicRoute<P = Record<string, never>>(handler: (req: NextRequest, params: P) => Promise<unknown>) {
   return async (req: NextRequest, route?: { params: Promise<P> }) => {
     try {
-      return NextResponse.json(await handler(req, (await route?.params) ?? ({} as P)));
+      const out = await handler(req, (await route?.params) ?? ({} as P));
+      if (req.method !== "GET") after(kickHuduFeed);
+      return NextResponse.json(out);
     } catch (e) {
       return toResponse(e);
     }

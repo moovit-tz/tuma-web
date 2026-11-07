@@ -7,6 +7,7 @@ import { collect, collection } from "../adapters/hudupay";
 import { enqueue } from "../adapters/outbox";
 import { DomainError } from "./shipments";
 import { markPaid, receiveOnceFor } from "./counter-payments";
+import { queuePush } from "./push";
 import type { CurrentUser } from "../auth/current-user";
 import { toE164 } from "@/domain/phone";
 import { normaliseWaybill } from "@/domain/waybill-number";
@@ -22,6 +23,7 @@ import { normaliseWaybill } from "@/domain/waybill-number";
 type Shipment = typeof shipments.$inferSelect;
 type Entry = typeof walletEntries.$inferSelect;
 type Q = Tx | typeof db;
+const money = (n: number) => n.toLocaleString("en-US");
 
 export const TOPUP_MIN = 1_000;
 export const TOPUP_MAX = 2_000_000;
@@ -130,6 +132,13 @@ export async function settleWalletTopUp(reference: string, status: "SUCCESS" | "
         idempotencyKey: `wallet:${e.id}`,
         payload: { userId: e.userId, amount: e.amount, currency: e.currency, reference: e.reference, providerId: e.providerId },
       });
+      await queuePush(tx, {
+        key: `wallet:${e.id}`,
+        to: { userIds: [e.userId] },
+        template: "push.wallet_topup",
+        variables: { amount: money(e.amount), balance: money(await walletBalance(tx, e.userId)) },
+        data: { type: "wallet" },
+      });
     }
     return u;
   });
@@ -149,7 +158,16 @@ export async function chargeWallet(tx: Tx, userId: string, s: Shipment) {
     .onConflictDoNothing()
     .returning({ id: walletEntries.id });
   if (!e) return false;
-  return markPaid(tx, s, { method: "wallet", reference: `WP-${s.waybill}`, actorId: userId });
+  const paid = await markPaid(tx, s, { method: "wallet", reference: `WP-${s.waybill}`, actorId: userId });
+  await queuePush(tx, {
+    key: `walletpaid:${s.id}`,
+    to: { userIds: [userId] },
+    template: "push.wallet_paid",
+    variables: { amount: money(s.totalCharge), waybill: s.waybill, balance: money(await walletBalance(tx, userId)) },
+    data: { type: "parcel", waybill: s.waybill },
+    waybill: s.waybill,
+  });
+  return paid;
 }
 
 /** Inside a transaction: a parcel paid from the wallet was cancelled, so its charge goes back in. Once. */
@@ -168,6 +186,14 @@ export async function refundToWallet(tx: Tx, s: Shipment) {
     idempotencyKey: `walletrefund:${s.id}`,
     waybill: s.waybill,
     payload: { userId: charge.userId, accountId: s.accountId, waybill: s.waybill, amount: -charge.amount, currency: s.currency },
+  });
+  await queuePush(tx, {
+    key: `walletrefund:${s.id}`,
+    to: { userIds: [charge.userId] },
+    template: "push.wallet_refund",
+    variables: { amount: money(-charge.amount), waybill: s.waybill },
+    data: { type: "wallet" },
+    waybill: s.waybill,
   });
   return -charge.amount;
 }

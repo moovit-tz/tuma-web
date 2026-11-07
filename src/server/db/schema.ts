@@ -1271,3 +1271,24 @@ export const walletEntries = pgTable(
     uniqueIndex("wallet_entries_parcel_uq").on(t.shipmentId).where(sql`${t.kind} = 'parcel'`),
   ],
 );
+
+/**
+ * Phones with the Tuma app that take push notifications: one row per FCM token, owned by the signed-in person. A
+ * token HuduFeed reports dead is switched off; signing out removes it.
+ */
+export const pushDevices = pgTable(
+  "push_devices",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id),
+    token: text("token").notNull(),
+    platform: text("platform").notNull().default("android"), // android | ios
+    appVersion: text("app_version"),
+    createdAt: ts("created_at").notNull().defaultNow(),
+    lastSeenAt: ts("last_seen_at").notNull().defaultNow(),
+    disabledAt: ts("disabled_at"),
+  },
+  (t) => [uniqueIndex("push_devices_token_uq").on(t.token), index("push_devices_user_idx").on(t.userId)],
+);

@@ -1,5 +1,6 @@
 import "server-only";
 import { enqueue } from "./outbox";
+import { queuePush } from "../services/push";
 import { notifications, type Party } from "../db/schema";
 import { maskPhone } from "@/domain/phone";
 import type { Tx } from "../db/client";
@@ -8,6 +9,9 @@ import type { Tx } from "../db/client";
  * Notification decisions (section 7.3). Tuma decides when and with which variables; HuduFeed sends.
  * Template keys match the table in 7.3.
  */
+/** The steps the app pushes to sender and receiver. */
+const PUSH_STATES = new Set(["RECEIVED", "IN_TRANSIT", "OUT_FOR_DELIVERY", "ATTEMPT_FAILED", "READY_FOR_COLLECTION", "DELIVERED", "RETURNED", "CANCELLED"]);
+
 const RECEIVER_TEMPLATES: Record<string, string> = {
   RECEIVED: "parcel.received",
   OUT_FOR_DELIVERY: "parcel.out_for_delivery",
@@ -19,11 +23,22 @@ const RECEIVER_TEMPLATES: Record<string, string> = {
 
 export async function notifyOnState(
   tx: Tx,
-  s: { id: string; waybill: string; consignee: Party },
+  s: { id: string; waybill: string; consignee: Party; shipper?: Party },
   state: string,
   eventId: string,
   vars: Record<string, string> = {},
 ) {
+  // The app: sender and receiver (whoever has it on the number on the parcel) see each step that matters.
+  if (PUSH_STATES.has(state)) {
+    await queuePush(tx, {
+      key: `state:${eventId}`,
+      to: { phones: [s.shipper?.phone, s.consignee.phone] },
+      template: "push.parcel_state",
+      variables: { waybill: s.waybill, state },
+      data: { type: "parcel", waybill: s.waybill, state },
+      waybill: s.waybill,
+    });
+  }
   const template = RECEIVER_TEMPLATES[state];
   if (!template) return;
   const language = s.consignee.language ?? "en";
@@ -53,6 +68,14 @@ export async function notifyPaid(tx: Tx, s: { id: string; waybill: string; shipp
     { to: s.shipper, template: "parcel.receipt", variables: { waybill: s.waybill, amount: vars.amount, method: vars.method, receiver: s.consignee.name, track } },
     { to: s.consignee, template: "parcel.sent_to_you", variables: { waybill: s.waybill, sender: s.shipper.name, track } },
   ];
+  await queuePush(tx, {
+    key: `coming:${s.id}`,
+    to: { phones: [s.consignee.phone] },
+    template: "push.parcel_coming",
+    variables: { waybill: s.waybill, sender: s.shipper.name },
+    data: { type: "parcel", waybill: s.waybill },
+    waybill: s.waybill,
+  });
   for (const m of sends) {
     const language = m.to.language ?? "sw";
     for (const channel of ["sms", "whatsapp"] as const) {

@@ -17,6 +17,7 @@ import { companyOf } from "./corporate";
 import { rememberCustomers } from "./customers";
 import { issueCompanyInvoice } from "./counter-payments";
 import { autoPayFromWallet } from "./wallet";
+import { queuePush } from "./push";
 
 /**
  * Anyone with the Tuma app can send a parcel, with no business to set up: they book it ahead from their phone, take
@@ -201,6 +202,17 @@ export async function senderBook(user: CurrentUser, raw: unknown) {
     // From the wallet: paid the moment the point prices it (if the balance covers it).
     .set({ handlingPartnerId: drop.accountId, handlingBranchId: drop.id, ...(b.paidWith === "wallet" && b.payer === "sender" ? { prepayMethod: "wallet" } : {}) })
     .where(eq(shipments.id, shipment.id));
+  // The point's team hears a parcel is on its way to their counter.
+  await db.transaction((tx) =>
+    queuePush(tx, {
+      key: `booked:${shipment.id}`,
+      to: { account: { id: drop.accountId, permission: "agent.workspace" } },
+      template: "push.booked_here",
+      variables: { waybill: shipment.waybill, point: drop.name, sender: input.shipper.name, receiver: b.receiver.name },
+      data: { type: "agent_parcel", waybill: shipment.waybill },
+      waybill: shipment.waybill,
+    }),
+  );
   return senderParcel(user, shipment.waybill);
 }
 
