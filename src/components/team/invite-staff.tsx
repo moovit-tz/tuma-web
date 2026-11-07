@@ -25,6 +25,7 @@ export function InviteStaff({ roles, offices, business, lockedOffice }: { roles:
   const [office, setOffice] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [link, setLink] = useState<string | null>(null);
+  const [code, setCode] = useState("");
   const [copied, setCopied] = useState(false);
   const [pending, start] = useTransition();
 
@@ -45,6 +46,7 @@ export function InviteStaff({ roles, offices, business, lockedOffice }: { roles:
       const r = await inviteStaffAction({ name, phone, email, roles: picked, branchId: office });
       if (r.ok && r.data) {
         setLink(r.data.link);
+        setCode(r.data.code);
         toast.success(fmt(t.sent, { phone }));
       } else if (!r.ok) {
         setErrors(r.fieldErrors ?? {});
@@ -87,13 +89,18 @@ export function InviteStaff({ roles, offices, business, lockedOffice }: { roles:
               <DialogTitle>{t.linkTitle}</DialogTitle>
               <DialogDescription>{fmt(t.linkSub, { name })}</DialogDescription>
             </DialogHeader>
+            <div className="bg-muted/60 rounded-md border px-3 py-2.5 text-center">
+              <div className="text-muted-foreground text-xs">{t.codeLabel}</div>
+              <div className="font-mono text-2xl font-semibold tracking-[0.2em] select-all">{code}</div>
+              <div className="text-muted-foreground mt-1 text-xs">{t.codeHint}</div>
+            </div>
             <div className="bg-muted/60 rounded-md border px-3 py-2.5 font-mono text-[12.5px] break-all select-all">{link}</div>
             <div className="grid gap-2 sm:grid-cols-2">
               <Button variant="outline" onClick={copy}>
                 {copied ? <Check /> : <Copy />} {copied ? t.copied : t.copy}
               </Button>
               <Button variant="outline" asChild>
-                <a href={`https://wa.me/${phone.replace(/\D/g, "").replace(/^0/, "255")}?text=${encodeURIComponent(fmt(t.whatsappText, { name, business, link }))}`} target="_blank" rel="noreferrer">
+                <a href={`https://wa.me/${phone.replace(/\D/g, "").replace(/^0/, "255")}?text=${encodeURIComponent(fmt(t.whatsappText, { name, business, link, code }))}`} target="_blank" rel="noreferrer">
                   <MessageCircle /> {t.whatsapp}
                 </a>
               </Button>

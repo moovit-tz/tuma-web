@@ -176,6 +176,13 @@
       "when": 1794023624447,
       "tag": "0024_sender_profile",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1794038570533,
+      "tag": "0025_invite_join_code",
+      "breakpoints": true
     }
   ]
 }

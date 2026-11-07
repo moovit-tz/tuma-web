@@ -50,6 +50,32 @@ export type InviteInput = z.input<typeof inviteSchema>;
 
 const hash = (token: string) => createHash("sha256").update(token).digest("hex");
 const newToken = () => randomBytes(24).toString("base64url");
+
+/** Join codes: 8 letters and digits without the look-alikes (0/O, 1/I/L), shown as two groups: "K7QM-4XPR". */
+const CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+export function newJoinCode() {
+  const b = randomBytes(8);
+  const c = [...b].map((x) => CODE_ALPHABET[x % CODE_ALPHABET.length]).join("");
+  return `${c.slice(0, 4)}-${c.slice(4)}`;
+}
+/** However it's typed ("k7qm 4xpr", "K7QM-4XPR"): the 8 characters, or null. */
+export function normaliseJoinCode(raw: string) {
+  const c = raw.toUpperCase().replace(/[\s-]/g, "");
+  return /^[A-Z0-9]{8}$/.test(c) ? c : null;
+}
+const codeHash = (code: string) => hash(`join:${normaliseJoinCode(code)}`);
+
+/** Typing codes is limited per person, so a code can't be guessed by trying many (in-process; enough for one server). */
+const ATTEMPTS = new Map<string, { n: number; until: number }>();
+const MAX_ATTEMPTS = 8;
+const WINDOW_MS = 15 * 60_000;
+function countAttempt(userId: string) {
+  const now = Date.now();
+  const a = ATTEMPTS.get(userId);
+  if (!a || a.until < now) return void ATTEMPTS.set(userId, { n: 1, until: now + WINDOW_MS });
+  if (a.n >= MAX_ATTEMPTS) throw new DomainError("TOO_MANY", "Too many codes tried. Wait 15 minutes, or ask for the code again.", 429);
+  a.n++;
+}
 const expiry = () => new Date(Date.now() + VALID_DAYS * 86400_000);
 
 export function inviteLink(token: string, locale: string) {
@@ -75,24 +101,25 @@ async function checkRolesAndBranch(tx: Tx, user: CurrentUser, accountId: string,
   }
 }
 
-async function sendInvite(tx: Tx, inv: typeof teamInvites.$inferSelect, token: string, inviterName: string) {
+async function sendInvite(tx: Tx, inv: typeof teamInvites.$inferSelect, token: string, code: string, inviterName: string) {
   const [acct] = await tx.select({ name: accounts.name }).from(accounts).where(eq(accounts.id, inv.accountId));
   const link = inviteLink(token, inv.locale);
   await enqueue(tx, {
     target: "hudufeed",
     topic: "notify.send",
     idempotencyKey: `team-invite:${inv.id}:${inv.tokenHash.slice(0, 16)}`,
-    payload: { template: INVITE_TEMPLATE, channel: "sms", language: inv.locale, to: inv.phone, variables: { name: inv.name, business: acct?.name ?? "", inviter: inviterName, link } },
+    payload: { template: INVITE_TEMPLATE, channel: "sms", language: inv.locale, to: inv.phone, variables: { name: inv.name, business: acct?.name ?? "", inviter: inviterName, link, code } },
   });
   return link;
 }
 
-/** Invite someone. Returns the link too, so the inviter can also share it themselves (WhatsApp, copy). */
+/** Invite someone. Returns the link and the join code too, so the inviter can also share them (WhatsApp, copy, say it). */
 export async function createInvite(user: CurrentUser, raw: unknown) {
   const input = inviteSchema.parse(raw);
   const accountId = companyOf(user);
   const branchId = input.branchId ?? user.branchId ?? null;
   const token = newToken();
+  const code = newJoinCode();
   return db.transaction(async (tx) => {
     await checkRolesAndBranch(tx, user, accountId, input.roles, branchId);
     const [member] = await tx
@@ -115,14 +142,15 @@ export async function createInvite(user: CurrentUser, raw: unknown) {
         roles: [...new Set(input.roles)].sort(),
         branchId,
         tokenHash: hash(token),
+        codeHash: codeHash(code),
         locale: user.locale === "en" ? "en" : "sw",
         invitedBy: user.id,
         expiresAt: expiry(),
       })
       .returning();
-    const link = await sendInvite(tx, inv, token, user.name);
+    const link = await sendInvite(tx, inv, token, code, user.name);
     await audit(tx, { actorId: user.id, action: "team.invite", entity: "team_invite", entityId: inv.id, after: { name: inv.name, phone: inv.phone, roles: inv.roles, branchId } });
-    return { id: inv.id, link };
+    return { id: inv.id, link, code };
   });
 }
 
@@ -135,16 +163,17 @@ async function ownInvite(tx: Tx, user: CurrentUser, id: string) {
   return inv;
 }
 
-/** Send it again with a fresh link (the old one stops working) and a new expiry. */
+/** Send it again with a fresh link and code (the old ones stop working) and a new expiry. */
 export async function resendInvite(user: CurrentUser, id: string) {
   const token = newToken();
+  const code = newJoinCode();
   return db.transaction(async (tx) => {
     const inv = await ownInvite(tx, user, id);
     if (inv.status !== "pending") throw new DomainError("CLOSED", "This invitation was already answered or cancelled.", 409);
-    const [next] = await tx.update(teamInvites).set({ tokenHash: hash(token), expiresAt: expiry() }).where(eq(teamInvites.id, id)).returning();
-    const link = await sendInvite(tx, next, token, user.name);
+    const [next] = await tx.update(teamInvites).set({ tokenHash: hash(token), codeHash: codeHash(code), expiresAt: expiry() }).where(eq(teamInvites.id, id)).returning();
+    const link = await sendInvite(tx, next, token, code, user.name);
     await audit(tx, { actorId: user.id, action: "team.invite.resend", entity: "team_invite", entityId: id });
-    return { id, link };
+    return { id, link, code };
   });
 }
 
@@ -296,6 +325,19 @@ export async function inviteByToken(token: string) {
   return inv ? describe(inv) : null;
 }
 
+/**
+ * What a typed join code opens, before accepting: the business, the role and the office. The code stands in for the
+ * link, so it works whatever number or email this person signed in with. Tries are limited per person.
+ */
+export async function inviteByCode(user: CurrentUser, raw: string) {
+  if (!normaliseJoinCode(raw)) throw new DomainError("BAD_CODE", "A join code has 8 letters and numbers, like K7QM-4XPR.", 400);
+  countAttempt(user.id);
+  const [inv] = await db.select().from(teamInvites).where(eq(teamInvites.codeHash, codeHash(raw)));
+  if (!inv) throw new DomainError("NOT_FOUND", "We don't know that code. Check it, or ask for a new one.", 404);
+  ATTEMPTS.delete(user.id);
+  return describe(inv);
+}
+
 /** Open invitations for this person's verified phone or email (shown in the app and on the onboarding page). */
 export async function invitesFor(user: CurrentUser) {
   const [u] = await db.select({ phone: users.phone, email: users.email, accountId: users.accountId }).from(users).where(eq(users.id, user.id));
@@ -315,7 +357,7 @@ export async function invitesFor(user: CurrentUser) {
  * Accept: by the link's token, or by id when the invitation matches the person's phone or email. They join the
  * company with the invitation's roles (kept across Ondi sign-ins) and office.
  */
-export async function acceptInvite(user: CurrentUser, ref: { token: string } | { id: string }) {
+export async function acceptInvite(user: CurrentUser, ref: InviteRef) {
   return db.transaction(async (tx) => {
     const inv = await findForResponse(tx, user, ref);
     if (user.accountId && user.accountId !== inv.accountId) throw new DomainError("OTHER_COMPANY", "You already belong to another business on Tuma.", 409);
@@ -331,7 +373,7 @@ export async function acceptInvite(user: CurrentUser, ref: { token: string } | {
   });
 }
 
-export async function declineInvite(user: CurrentUser, ref: { token: string } | { id: string }) {
+export async function declineInvite(user: CurrentUser, ref: InviteRef) {
   await db.transaction(async (tx) => {
     const inv = await findForResponse(tx, user, ref);
     await tx.update(teamInvites).set({ status: "declined", acceptedBy: user.id, respondedAt: new Date() }).where(eq(teamInvites.id, inv.id));
@@ -339,9 +381,15 @@ export async function declineInvite(user: CurrentUser, ref: { token: string } | 
   });
 }
 
-async function findForResponse(tx: Tx, user: CurrentUser, ref: { token: string } | { id: string }) {
+type InviteRef = { token: string } | { id: string } | { code: string };
+
+async function findForResponse(tx: Tx, user: CurrentUser, ref: InviteRef) {
   let inv: typeof teamInvites.$inferSelect | undefined;
-  if ("token" in ref) {
+  if ("code" in ref) {
+    if (!normaliseJoinCode(ref.code)) throw new DomainError("BAD_CODE", "A join code has 8 letters and numbers, like K7QM-4XPR.", 400);
+    countAttempt(user.id);
+    [inv] = await tx.select().from(teamInvites).where(eq(teamInvites.codeHash, codeHash(ref.code))).for("update");
+  } else if ("token" in ref) {
     [inv] = await tx.select().from(teamInvites).where(eq(teamInvites.tokenHash, hash(ref.token))).for("update");
   } else if (z.uuid().safeParse(ref.id).success) {
     [inv] = await tx.select().from(teamInvites).where(eq(teamInvites.id, ref.id)).for("update");

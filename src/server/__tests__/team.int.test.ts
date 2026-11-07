@@ -5,7 +5,7 @@ import { db } from "../db/client";
 import { accounts, agents, branches, kybApplications, outbox, platformSettings, rolePermissions, roles, shipments, teamInvites, users } from "../db/schema";
 import { appMe, driverContext, finishDriverLogin, swapHandoff, type DriverCtx } from "../services/drivers";
 import { applyKybDecision, submitKyb } from "../services/kyb";
-import { acceptInvite, createInvite, createStaffRole, declineInvite, inviteByToken, invitesFor, resendInvite, revokeInvite, teamOverview } from "../services/team-invites";
+import { acceptInvite, createInvite, createStaffRole, declineInvite, inviteByCode, inviteByToken, invitesFor, resendInvite, revokeInvite, teamOverview } from "../services/team-invites";
 import { addOffice, listOffices, officeDetail, updateOffice } from "../services/branches";
 import { createParcel } from "../services/shipments";
 import { parcelOrderSchema } from "@/domain/order-schema";
@@ -16,7 +16,8 @@ const OWNER = "ondi|team.test.owner";
 const STAFF = "ondi|team.test.staff";
 const OTHER = "ondi|team.test.other";
 const LEGACY = "ondi|team.test.legacy";
-const SUBS = [OWNER, STAFF, OTHER, LEGACY];
+const CODER = "ondi|team.test.coder";
+const SUBS = [OWNER, STAFF, OTHER, LEGACY, CODER];
 
 const pkce = () => {
   const verifier = randomBytes(32).toString("base64url");
@@ -230,6 +231,26 @@ describe("setting up a business while it's reviewed, and inviting staff", () => 
     await declineInvite(other, { token: tokenOf(a.link) });
     await expect(acceptInvite(other, { token: tokenOf(a.link) })).rejects.toMatchObject({ code: "CLOSED" });
     expect(await inviteByToken(tokenOf(a.link))).toMatchObject({ status: "declined" });
+  });
+
+  it("joins with the invitation's code, whatever number they signed in with; a resend replaces the code", async () => {
+    const owner = await userOf(OWNER);
+    const first = await createInvite(owner, { name: "Coder", phone: "0677 555 444", roles: ["agent_rider"] });
+    expect(first.code).toMatch(/^[A-HJKMNP-Z2-9]{4}-[A-HJKMNP-Z2-9]{4}$/);
+    const [sms] = await db.select().from(outbox).where(like(outbox.idempotencyKey, `team-invite:${first.id}:%`));
+    expect(sms.payload).toMatchObject({ variables: { code: first.code } });
+    const { code } = await resendInvite(owner, first.id);
+    // Signed in with a different number from the one invited.
+    const coder = (await signIn(CODER, { name: "Coder", phone: "+255744000999" })).user;
+    expect(await invitesFor(coder)).toEqual([]);
+    await expect(inviteByCode(coder, first.code)).rejects.toMatchObject({ code: "NOT_FOUND" });
+    await expect(inviteByCode(coder, "nope")).rejects.toMatchObject({ code: "BAD_CODE" });
+    expect(await inviteByCode(coder, code.toLowerCase().replace("-", " "))).toMatchObject({ business: "Neema Parcels", roles: ["Courier / rider / driver"], status: "pending" });
+    await acceptInvite(coder, { code });
+    const [u] = await db.select().from(users).where(eq(users.id, CODER));
+    expect(u).toMatchObject({ accountId });
+    expect(u.roles).toContain("agent_rider");
+    await expect(acceptInvite(coder, { code })).rejects.toMatchObject({ code: "ALREADY_JOINED" });
   });
 
   it("books parcels up to the allowance, then only finishes the ones in hand", async () => {

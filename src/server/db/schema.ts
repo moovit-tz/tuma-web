@@ -959,6 +959,8 @@ export const teamInvites = pgTable(
     roles: jsonb("roles").$type<string[]>().notNull(),
     branchId: uuid("branch_id").references(() => branches.id),
     tokenHash: text("token_hash").notNull(),
+    /** The short join code (hashed) the person can type in the app instead of opening the link. */
+    codeHash: text("code_hash"),
     status: text("status").notNull().default("pending"), // pending | accepted | revoked | declined
     locale: text("locale").notNull().default("sw"),
     invitedBy: text("invited_by")
@@ -969,7 +971,7 @@ export const teamInvites = pgTable(
     respondedAt: ts("responded_at"),
     createdAt: ts("created_at").notNull().defaultNow(),
   },
-  (t) => [uniqueIndex("team_invites_token_uq").on(t.tokenHash), index("team_invites_account_idx").on(t.accountId, t.status), index("team_invites_phone_idx").on(t.phone, t.status)],
+  (t) => [uniqueIndex("team_invites_token_uq").on(t.tokenHash), uniqueIndex("team_invites_code_uq").on(t.codeHash), index("team_invites_account_idx").on(t.accountId, t.status), index("team_invites_phone_idx").on(t.phone, t.status)],
 );
 
 /* ------------------------------------------------------------------ Hudumika global references
