@@ -211,6 +211,13 @@
       "when": 1794125353809,
       "tag": "0029_company_tools",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1794133797737,
+      "tag": "0030_admin_foundation",
+      "breakpoints": true
     }
   ]
 }

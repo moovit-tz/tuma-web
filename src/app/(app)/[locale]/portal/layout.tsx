@@ -33,6 +33,11 @@ export default async function PortalLayout({ children, params }: LayoutProps<"/[
     { href: `${base}/payments`, label: p.nav.payments, icon: "payments", permission: "partner.finance.manage", unless: "agent.workspace", group: p.nav.finance },
     { href: `${base}/reports`, label: t.agent.rep.nav, icon: "reports", permission: "agent.workspace", also: "report.view", group: p.nav.finance },
     { href: `${base}/notifications`, label: t.agent.notif.nav, icon: "notifications", permission: "agent.workspace", group: p.nav.operations },
+    { href: `${base}/admin/tower`, label: t.admin.nav.tower, icon: "tower", permission: "tower.view", group: t.admin.nav.group },
+    { href: `${base}/admin/support`, label: t.admin.nav.support, icon: "support", permission: "support.view", group: t.admin.nav.group },
+    { href: `${base}/admin/finance`, label: t.admin.nav.finance, icon: "finance", permission: "finance.view", group: t.admin.nav.group },
+    { href: `${base}/admin/approvals`, label: t.admin.nav.approvals, icon: "roles", permission: ["approvals.decide", "users.manage", "finance.reconcile"], group: t.admin.nav.group },
+    { href: `${base}/admin/access`, label: t.admin.nav.access, icon: "access", permission: "access.review", group: t.admin.nav.group },
     { href: `${base}/settings/roles`, label: t.nav.roles, icon: "roles", permission: ["roles.manage", "team.manage"], group: t.nav.settingsGroup },
     { href: `${base}/settings/users`, label: t.nav.team, icon: "users", permission: ["users.manage", "team.manage"], group: t.nav.settingsGroup },
     { href: `${base}/settings/business`, label: t.agent.biz.nav, icon: "settings", permission: "agent.workspace", group: t.nav.settingsGroup },
@@ -54,7 +59,7 @@ export default async function PortalLayout({ children, params }: LayoutProps<"/[
         { key: "team", href: `${base}/settings/users`, permission: ["users.manage", "team.manage"] },
         { key: "roles", href: `${base}/settings/roles`, permission: ["roles.manage", "team.manage"] },
       ]}
-      gate={["shipment.read.own_account", "shipment.read.all", "partner.cargo.read", "team.manage", "partner.branches.manage"]}
+      gate={["shipment.read.own_account", "shipment.read.all", "tower.view", "support.view", "finance.view", "access.review", "approvals.decide", "partner.cargo.read", "team.manage", "partner.branches.manage"]}
       search={<PortalSearch />}
     >
       {children}

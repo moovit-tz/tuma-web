@@ -50,8 +50,19 @@ export async function deleteRoleAction(key: string) {
   return guarded((user) => deleteRole(user, key));
 }
 
-export async function setUserRolesAction(userId: string, roleKeys: string[]) {
-  return guarded((user) => setUserRoles(user, userId, roleKeys));
+/** Saves the roles; `data.pending` when a staff role was asked for and waits for a second person to approve. */
+export async function setUserRolesAction(userId: string, roleKeys: string[]): Promise<ActionResult<{ pending: boolean }>> {
+  try {
+    const user = await getCurrentUser();
+    if (!user) return { ok: false, error: "Your session has ended. Sign in again." };
+    const r = await setUserRoles(user, userId, roleKeys);
+    refresh();
+    return { ok: true, data: r };
+  } catch (e) {
+    if (e instanceof DomainError) return { ok: false, error: e.message };
+    console.error(e);
+    return { ok: false, error: "Something went wrong. Try again." };
+  }
 }
 
 export async function addTeamMemberAction(input: unknown): Promise<ActionResult> {

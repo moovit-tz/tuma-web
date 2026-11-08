@@ -7,6 +7,7 @@ import { accounts, auditLog, branches, rolePermissions, roles, users } from "../
 import { audit } from "../audit";
 import { ROLES_TAG } from "../rbac";
 import { DomainError } from "./shipments";
+import { requestApproval, staffRoleKeys } from "./admin/approvals";
 import type { CurrentUser } from "../auth/current-user";
 import { PARTNER_GRANTABLE, PERMISSION_KEYS, type Permission } from "@/domain/roles";
 
@@ -225,9 +226,9 @@ export async function assignableKeys(tx: Tx, scope: RoleScope) {
  * Assign roles to a user. With the Ondi stub this is the source of the user's role claims.
  * With real Ondi, either this writes back to Ondi or Ondi owns it (open question Q2).
  */
-export async function setUserRoles(user: CurrentUser, userId: string, roleKeys: string[]) {
+export async function setUserRoles(user: CurrentUser, userId: string, roleKeys: string[], reason?: string): Promise<{ pending: boolean }> {
   const scope = requireScope(user, "users");
-  await db.transaction(async (tx) => {
+  return db.transaction(async (tx) => {
     const [target] = await tx.select().from(users).where(eq(users.id, userId));
     if (!target || (scope.kind === "account" && target.accountId !== scope.accountId)) throw new DomainError("NOT_FOUND", "User not found.", 404);
     const allowed = await assignableKeys(tx, scope);
@@ -239,9 +240,27 @@ export async function setUserRoles(user: CurrentUser, userId: string, roleKeys: 
     // Record them as Tuma's grants too: with real Ondi, roles are rebuilt from the claim plus these at every sign-in,
     // so a role assigned here would otherwise vanish the next time the person signs in.
     const granted = [...new Set([...target.grantedRoles.filter((k) => clean.includes(k)), ...roleKeys])].sort();
+    // Four-eyes: giving someone a staff (console) role waits for a second person to approve it. Taking roles away
+    // doesn't.
+    const staff = scope.kind === "platform" ? await staffRoleKeys(tx) : [];
+    const added = clean.filter((k) => !target.roles.includes(k) && staff.includes(k));
+    if (added.length) {
+      if (target.id === user.id) throw new DomainError("OWN_ROLES", "You can't give yourself a staff role. Ask another admin.", 403);
+      const row = await requestApproval(
+        tx,
+        user,
+        { kind: "role_grant", subjectId: userId, payload: { roles: clean, added, before: target.roles }, reason: reason?.trim() || `Give ${added.join(", ")}` },
+        async (t) => {
+          await t.update(users).set({ roles: clean, grantedRoles: granted }).where(eq(users.id, userId));
+          await audit(t, { actorId: user.id, action: "user.roles", entity: "user", entityId: userId, before: { roles: target.roles }, after: { roles: clean } });
+        },
+      );
+      return { pending: !!row };
+    }
     await tx.update(users).set({ roles: clean, grantedRoles: granted }).where(eq(users.id, userId));
     await assertAdminRemains(tx, scope);
     await audit(tx, { actorId: user.id, action: "user.roles", entity: "user", entityId: userId, before: { roles: target.roles }, after: { roles: clean } });
+    return { pending: false };
   });
 }
 

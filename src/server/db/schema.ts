@@ -1424,3 +1424,43 @@ export const pushDevices = pgTable(
   },
   (t) => [uniqueIndex("push_devices_token_uq").on(t.token), index("push_devices_user_idx").on(t.userId)],
 );
+
+/**
+ * Four-eyes: something sensitive one person asked for (a staff role for someone, a wallet adjustment) waits here until a
+ * second person with approvals.decide approves it. Nobody decides their own. Approval applies it.
+ */
+export const approvalRequests = pgTable(
+  "approval_requests",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    kind: text("kind").notNull(), // role_grant | wallet_adjust
+    /** Who or what it is about: the user, or the wallet's owner. */
+    subjectId: text("subject_id").notNull(),
+    payload: jsonb("payload").$type<Record<string, unknown>>().notNull(),
+    reason: text("reason").notNull(),
+    status: text("status").notNull().default("pending"), // pending | approved | rejected | cancelled
+    requestedBy: text("requested_by").notNull(),
+    requestedAt: ts("requested_at").notNull().defaultNow(),
+    decidedBy: text("decided_by"),
+    decidedAt: ts("decided_at"),
+    decisionNote: text("decision_note"),
+  },
+  (t) => [index("approval_requests_status_idx").on(t.status, t.requestedAt), index("approval_requests_subject_idx").on(t.subjectId)],
+);
+
+/** A reviewer's look at one staff member's access: kept as it is, or their staff roles taken away. */
+export const accessReviews = pgTable(
+  "access_reviews",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id),
+    reviewerId: text("reviewer_id").notNull(),
+    decision: text("decision").notNull(), // keep | revoke
+    roles: jsonb("roles").$type<string[]>().notNull(),
+    note: text("note"),
+    at: ts("at").notNull().defaultNow(),
+  },
+  (t) => [index("access_reviews_user_idx").on(t.userId, t.at)],
+);

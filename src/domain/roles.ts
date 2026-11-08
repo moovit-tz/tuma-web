@@ -64,6 +64,14 @@ export const PERMISSIONS = [
   { key: "agent.wallet.manage", group: "Parcel agent", label: "Float wallet", description: "Top up the float that pays Tuma's commission, and see its statement." },
   { key: "agent.workflow.manage", group: "Parcel agent", label: "Operations workflow", description: "Choose which steps (receive, dispatch, offload, deliver) the office runs." },
   { key: "kyb.review", group: "Administration", label: "Review business applications", description: "Follow KYB applications and their ComplyOS decisions." },
+  // Tuma admin (the staff console): operations, support, finance, risk and compliance
+  { key: "tower.view", group: "Tuma admin", label: "Control tower", description: "Parcels in flight, the ones at risk of missing their time, open exceptions and couriers online." },
+  { key: "support.view", group: "Tuma admin", label: "Support desk", description: "The support inbox and the customer view (their parcels, wallet, cases and tickets)." },
+  { key: "pii.view", group: "Tuma admin", label: "See personal details", description: "Phone numbers and names unmasked. Without it they show masked; revealing one is logged with a reason." },
+  { key: "finance.view", group: "Tuma admin", label: "Finance ledger", description: "Every money movement: wallets, mobile-money collections, cash on delivery and invoices." },
+  { key: "finance.reconcile", group: "Tuma admin", label: "Reconcile payments", description: "Recheck stuck mobile-money payments with HuduPay and request wallet adjustments." },
+  { key: "approvals.decide", group: "Tuma admin", label: "Approve requests", description: "Approve or reject what someone else asked for (staff roles, wallet adjustments). Never your own." },
+  { key: "access.review", group: "Tuma admin", label: "Review staff access", description: "Confirm or revoke what each staff member can do, on a regular review." },
 ] as const satisfies readonly PermissionDef[];
 
 export type Permission = (typeof PERMISSIONS)[number]["key"];
@@ -129,10 +137,23 @@ export const DEFAULT_ROLES: RoleSeed[] = [
     name: "Control tower operator",
     description: "Watches SLAs and manages exceptions.",
     surface: "console",
-    permissions: ["shipment.read.all", ...LIFECYCLE_ALL, "shipment.override", "shipment.edit_consignee", "shipment.cancel", "shipment.bulk_action", "exception.manage", "dispatch.manage", "drivers.manage", "cod.read", "report.view", "report.export", "label.print", "dev.simulate"],
+    permissions: ["shipment.read.all", "tower.view", ...LIFECYCLE_ALL, "shipment.override", "shipment.edit_consignee", "shipment.cancel", "shipment.bulk_action", "exception.manage", "dispatch.manage", "drivers.manage", "cod.read", "report.view", "report.export", "label.print", "dev.simulate"],
   },
-  { key: "service_agent", name: "Service agent", description: "Bliss user handling customer cases.", surface: "console", permissions: ["shipment.read.all", "exception.manage"] },
-  { key: "finance_officer", name: "Finance officer", description: "Reviews billable events and COD.", surface: "console", permissions: ["shipment.read.all", "cod.read", "report.view", "report.export"] },
+  { key: "service_agent", name: "Service agent", description: "Bliss user handling customer cases.", surface: "console", permissions: ["shipment.read.all", "exception.manage", "support.view"] },
+  {
+    key: "finance_officer",
+    name: "Finance officer",
+    description: "Reviews billable events and COD, reconciles mobile-money payments.",
+    surface: "console",
+    permissions: ["shipment.read.all", "cod.read", "report.view", "report.export", "finance.view", "finance.reconcile"],
+  },
+  {
+    key: "compliance_officer",
+    name: "Compliance officer",
+    description: "Reviews businesses, staff access and the audit trail; approves sensitive requests.",
+    surface: "console",
+    permissions: ["shipment.read.all", "kyb.review", "audit.read", "access.review", "approvals.decide", "pii.view", "support.view", "finance.view"],
+  },
   { key: "account_manager", name: "Account manager", description: "Follows merchant performance.", surface: "console", permissions: ["shipment.read.all", "report.view", "report.export"] },
   {
     key: "partner_admin",

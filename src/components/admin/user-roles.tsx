@@ -33,7 +33,7 @@ export function UserRoles({ userId, current, roles }: { userId: string; current:
           onClick={() =>
             start(async () => {
               const r = await setUserRolesAction(userId, sel);
-              if (r.ok) toast.success(t.roles.updated);
+              if (r.ok) toast.success(r.data?.pending ? t.admin.approvals.sentForApproval : t.roles.updated);
               else {
                 toast.error(r.error);
                 setSel(current);
