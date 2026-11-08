@@ -11,12 +11,17 @@ import { toE164TZ } from "@/domain/phone";
 import { TZ_REGIONS } from "@/domain/pricing";
 import { DEFAULT_ROLES } from "@/domain/roles";
 import { normaliseTin } from "@/domain/agents";
+import { submitCompanyKyb } from "./kyb";
+import { getSetting } from "../settings";
 
 /**
  * Companies that send parcels on Tuma (not agents: they don't handle parcels). The person who registers it becomes its
  * admin (corporate_admin): they book parcels in the company's name at Tuma points, may put them on the company's
- * account (the point invoices the company), add their team (corporate_sender) and everyone sees all the company's
- * parcels. Customers rather than operators, so the account is open straight away; the TIN is what invoices go to.
+ * account (the point invoices the company) and add their team (corporate_sender). A member chooses per parcel
+ * whether it goes on the company's account or is their own; the admin sees every company parcel.
+ *
+ * The company is vetted (KYC with ComplyOS) before it sends freely: it starts pending and may send
+ * pendingCompanyParcelAllowance parcels on its account meanwhile. Approval opens it fully.
  */
 
 export const CORPORATE_ADMIN = "corporate_admin";
@@ -37,6 +42,11 @@ export const companySchema = z.object({
     .trim()
     .transform((v, c) => toE164TZ(v) ?? (c.addIssue({ code: "custom", message: "Enter a valid Tanzanian mobile number." }), z.NEVER)),
   email: z.union([z.email(), z.literal("")]).optional().transform((v) => v || undefined),
+  /** Certificate of incorporation or business licence: key from the kyb upload. */
+  licenceFile: z
+    .string()
+    .regex(/^kyb\/\d{4}\/\d{2}\/[0-9A-Z]{26}\.(jpg|png|webp|heic|pdf)$/, "Upload the document again.")
+    .optional(),
 });
 
 /** A company already on Tuma by its TIN (any kind of account), or a business application with it. */
@@ -60,8 +70,9 @@ export async function registerCompany(user: CurrentUser, raw: unknown) {
   const other = await companyOnTuma(c.tin);
   if (other) throw new DomainError("COMPANY_ON_TUMA", `${other} is already on Tuma. Ask its admin to add you to the team with your phone number.`, 409);
   const accountId = `acc_co_${ulid().toLowerCase()}`;
+  let ref = "";
   await db.transaction(async (tx) => {
-    await tx.insert(accounts).values({ id: accountId, type: "shipper", name: c.name, tin: c.tin, status: "active" });
+    await tx.insert(accounts).values({ id: accountId, type: "shipper", name: c.name, tin: c.tin, status: "pending" });
     await tx.insert(branches).values({
       accountId,
       name: c.name,
@@ -82,16 +93,39 @@ export async function registerCompany(user: CurrentUser, raw: unknown) {
       .update(users)
       .set({ accountId, branchId: null, roles: [...new Set([...(u?.roles ?? []), CORPORATE_ADMIN])] })
       .where(eq(users.id, user.id));
-    await audit(tx, { actorId: user.id, action: "company.register", entity: "account", entityId: accountId, after: { name: c.name, tin: c.tin } });
+    const [me] = await tx.select({ name: users.name, phone: users.phone, email: users.email }).from(users).where(eq(users.id, user.id));
+    const kyb = await submitCompanyKyb(tx, {
+      userId: user.id,
+      accountId,
+      locale: user.locale,
+      name: c.name,
+      tin: c.tin,
+      regNo: c.regNo,
+      licenceFile: c.licenceFile,
+      office: { region: c.region, district: c.district, street: c.street, phone: c.phone },
+      contact: { name: me?.name || c.name, phone: me?.phone || c.phone, email: c.email ?? me?.email ?? undefined },
+    });
+    ref = kyb.ref;
+    await audit(tx, { actorId: user.id, action: "company.register", entity: "account", entityId: accountId, after: { name: c.name, tin: c.tin, kyb: kyb.ref } });
   });
-  return { accountId, name: c.name };
+  return { accountId, name: c.name, status: "pending" as const, kybRef: ref, allowance: await getSetting("pendingCompanyParcelAllowance") };
 }
 
-/** The company this person sends for: its name, TIN, registration, head office phone. Null when they don't. */
+/** The company this person sends for: its name, TIN, head office, and where its KYC stands. Null when they don't. */
 export async function companyOf(user: CurrentUser) {
   if (!user.accountId || !user.permissions.has("corporate.send")) return null;
   const [a] = await db
-    .select({ id: accounts.id, name: accounts.name, tin: accounts.tin, phone: branches.phone, region: branches.region, district: branches.district, address: branches.address })
+    .select({
+      id: accounts.id,
+      name: accounts.name,
+      tin: accounts.tin,
+      status: accounts.status,
+      policy: accounts.companyPolicy,
+      phone: branches.phone,
+      region: branches.region,
+      district: branches.district,
+      address: branches.address,
+    })
     .from(accounts)
     .leftJoin(branches, and(eq(branches.accountId, accounts.id), eq(branches.isHead, true)))
     .where(and(eq(accounts.id, user.accountId), eq(accounts.type, "shipper")));

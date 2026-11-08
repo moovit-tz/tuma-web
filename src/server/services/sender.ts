@@ -2,7 +2,7 @@ import "server-only";
 import { and, desc, eq, gte, inArray, isNotNull, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "../db/client";
-import { accounts, branches, locations, chargeSnapshots, codRecords, events, shipments, users, walletEntries } from "../db/schema";
+import { accounts, branches, departments, locations, chargeSnapshots, codRecords, events, shipments, users, walletEntries } from "../db/schema";
 import type { CurrentUser } from "../auth/current-user";
 import { toE164 } from "@/domain/phone";
 import { TZ_REGIONS } from "@/domain/pricing";
@@ -145,6 +145,8 @@ export const senderBookingSchema = z.object({
   asCompany: z.boolean().default(false),
   /** At the point (cash or mobile money there), on the company's account, or from my Tuma wallet once it's priced. */
   paidWith: z.enum(["at_point", "account", "wallet"]).default("at_point"),
+  /** Sending for a company: the department it's charged to (the sender's own when left out). */
+  departmentId: z.uuid().optional(),
   noProhibited: z.literal(true, { message: "Confirm there are no prohibited items" }),
 });
 
@@ -170,6 +172,55 @@ async function point(id: string) {
   return p;
 }
 
+type SenderBooking = z.infer<typeof senderBookingSchema>;
+type Company = NonNullable<Awaited<ReturnType<typeof companyOf>>>;
+
+/**
+ * Before a parcel goes on a company's account: the allowance while the company's KYC is reviewed, then its policy
+ * (how it may be paid, the most it may be worth, a department, parcels per person a month) and the department's
+ * monthly budget. Returns the department it's charged to.
+ */
+async function companyRules(user: CurrentUser, co: Company, b: SenderBooking): Promise<string | null> {
+  if (co.status === "pending" && user.trial && user.trial.remaining <= 0) {
+    throw new DomainError(
+      "KYC_PENDING_LIMIT",
+      `${co.name} can send ${user.trial.allowance} parcels on its account while we check its documents. That's used up: send this one as yourself, or wait for the approval.`,
+      403,
+    );
+  }
+  if (co.status !== "active" && co.status !== "pending") throw new DomainError("COMPANY_CLOSED", `${co.name} can't send on Tuma right now.`, 403);
+  const p = co.policy ?? {};
+  const way = b.payer === "receiver" ? null : b.paidWith === "at_point" ? "point" : b.paidWith;
+  if (way && p.payWith?.length && !p.payWith.includes(way)) throw new DomainError("POLICY_PAYMENT", `${co.name}'s policy doesn't allow paying this way.`, 403);
+  if (p.maxDeclaredValue && b.declaredValue > p.maxDeclaredValue) {
+    throw new DomainError("POLICY_VALUE", `${co.name}'s policy allows parcels worth up to TZS ${p.maxDeclaredValue.toLocaleString("en-US")}.`, 403);
+  }
+  const [me] = await db.select({ departmentId: users.departmentId }).from(users).where(eq(users.id, user.id));
+  const departmentId = b.departmentId ?? me?.departmentId ?? null;
+  const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+  if (departmentId) {
+    const [d] = await db.select().from(departments).where(and(eq(departments.id, departmentId), eq(departments.accountId, co.id), eq(departments.active, true)));
+    if (!d) throw new DomainError("DEPARTMENT", "Pick one of the company's departments.");
+    if (d.monthlyBudget) {
+      const [{ spent }] = await db
+        .select({ spent: sql<number>`coalesce(sum(${shipments.totalCharge}), 0)::int` })
+        .from(shipments)
+        .where(and(eq(shipments.departmentId, d.id), gte(shipments.createdAt, monthStart), sql`${shipments.state} <> 'CANCELLED'`));
+      if (spent >= d.monthlyBudget) throw new DomainError("BUDGET_USED", `${d.name} has used its budget for this month.`, 403);
+    }
+  } else if (p.requireDepartment) {
+    throw new DomainError("DEPARTMENT", "Pick the department this parcel is for.");
+  }
+  if (p.monthlyParcelsPerSender) {
+    const [{ n }] = await db
+      .select({ n: sql<number>`count(*)::int` })
+      .from(shipments)
+      .where(and(eq(shipments.companyAccountId, co.id), eq(shipments.createdBy, user.id), gte(shipments.createdAt, monthStart), sql`${shipments.state} <> 'CANCELLED'`));
+    if (n >= p.monthlyParcelsPerSender) throw new DomainError("POLICY_MONTHLY", `You've sent the ${p.monthlyParcelsPerSender} parcels a month ${co.name} allows each person.`, 403);
+  }
+  return departmentId;
+}
+
 /**
  * Book a parcel ahead. It is written in the drop-off office's books (that business prices and handles it) and waits
  * there as Expected; the sender is who booked it. Nothing is charged until the counter accepts it.
@@ -180,6 +231,7 @@ export async function senderBook(user: CurrentUser, raw: unknown) {
   const co = b.asCompany ? await companyOf(user) : null;
   if (b.asCompany && !co) throw new DomainError("NOT_COMPANY", "You don't send for a company on Tuma.", 403);
   if (b.paidWith === "account" && (!co || b.payer !== "sender")) throw new DomainError("ACCOUNT_COMPANIES_ONLY", "Only a company can put a parcel on its account.");
+  const departmentId = co ? await companyRules(user, co, b) : null;
   if (!me?.phone && !co?.phone) throw new DomainError("PHONE_REQUIRED", "Add your phone number in your profile first: the Tuma point and the receiver need it.");
   const drop = await point(b.dropOffId);
   if (!drop) throw new DomainError("POINT_NOT_FOUND", "That Tuma point isn't taking parcels. Pick another.");
@@ -241,7 +293,12 @@ export async function senderBook(user: CurrentUser, raw: unknown) {
   await db
     .update(shipments)
     // From the wallet: paid the moment the point prices it (if the balance covers it).
-    .set({ handlingPartnerId: drop.accountId, handlingBranchId: drop.id, goodsPhoto: b.photo ?? null, ...(b.paidWith === "wallet" && b.payer === "sender" ? { prepayMethod: "wallet" } : {}) })
+    .set({
+      handlingPartnerId: drop.accountId,
+      handlingBranchId: drop.id,
+      goodsPhoto: b.photo ?? null,
+      companyAccountId: co?.id ?? null,
+      departmentId, ...(b.paidWith === "wallet" && b.payer === "sender" ? { prepayMethod: "wallet" } : {}) })
     .where(eq(shipments.id, shipment.id));
   // The point's team hears a parcel is on its way to their counter.
   await db.transaction((tx) =>
@@ -273,11 +330,11 @@ function phoneOf(user: CurrentUser) {
 async function senderScope(user: CurrentUser) {
   const phone = await phoneOf(user);
   const co = await companyOf(user);
-  // A company's team sees every parcel sent in its name.
+  // The company's admin sees every parcel sent on its account; the rest of the team, the ones they sent.
   const sentBy = or(
     eq(shipments.createdBy, user.id),
     phone ? sql`${shipments.shipper}->>'phone' = ${phone}` : undefined,
-    co?.tin ? sql`${shipments.shipper}->'company'->>'tin' = ${co.tin}` : undefined,
+    co && user.permissions.has("corporate.manage") ? eq(shipments.companyAccountId, co.id) : undefined,
   )!;
   const toMe = phone ? sql`${shipments.consignee}->>'phone' = ${phone}` : sql`false`;
   return { phone, co, sentBy, toMe };
@@ -291,6 +348,7 @@ export async function myParcels(user: CurrentUser) {
       id: shipments.id,
       waybill: shipments.waybill,
       state: shipments.state,
+      companyAccountId: shipments.companyAccountId,
       shipper: shipments.shipper,
       consignee: shipments.consignee,
       goods: shipments.goodsDescription,
@@ -313,7 +371,7 @@ export async function myParcels(user: CurrentUser) {
   );
   return {
     parcels: rows.map((r) => {
-      const coming = phone != null && r.consignee.phone === phone && r.createdBy !== user.id && !(co?.tin && r.shipper.company?.tin === co.tin);
+      const coming = phone != null && r.consignee.phone === phone && r.createdBy !== user.id && !(co && r.companyAccountId === co.id);
       return {
         waybill: r.waybill,
         state: r.state,
@@ -375,6 +433,7 @@ export async function senderNotifications(user: CurrentUser): Promise<{ notifica
         consignee: shipments.consignee,
         shipper: shipments.shipper,
         createdBy: shipments.createdBy,
+        companyAccountId: shipments.companyAccountId,
         point: branches.name,
         collectBranch: sql<string | null>`(select b.name from branches b where b.id = ${shipments.deliveryBranchId})`,
         collectLocation: sql<string | null>`(select l.name from locations l where l.id = ${shipments.deliveryLocationId})`,
@@ -403,7 +462,7 @@ export async function senderNotifications(user: CurrentUser): Promise<{ notifica
   ]);
   const list: SenderNotification[] = [
     ...moves.map((m) => {
-      const coming = phone != null && m.consignee.phone === phone && m.createdBy !== user.id && !(co?.tin && m.shipper.company?.tin === co.tin);
+      const coming = phone != null && m.consignee.phone === phone && m.createdBy !== user.id && !(co && m.companyAccountId === co.id);
       return {
         id: m.id,
         kind: "parcel" as const,
@@ -447,7 +506,7 @@ async function own(user: CurrentUser, rawWaybill: string) {
           eq(shipments.createdBy, user.id),
           phone ? sql`${shipments.shipper}->>'phone' = ${phone}` : undefined,
           phone ? sql`${shipments.consignee}->>'phone' = ${phone}` : undefined,
-          co?.tin ? sql`${shipments.shipper}->'company'->>'tin' = ${co.tin}` : undefined,
+          co && user.permissions.has("corporate.manage") ? eq(shipments.companyAccountId, co.id) : undefined,
         ),
       ),
     );
@@ -478,7 +537,7 @@ export async function senderParcel(user: CurrentUser, rawWaybill: string) {
     : [];
   const priced = !(booked0(s.state) && !s.receiveOnPayment) && s.totalCharge > 0;
   const payer = s.paymentTerms === "pay_on_delivery" ? "receiver" : "sender";
-  const mine = s.createdBy === user.id || s.shipper.phone === phone || (!!co?.tin && s.shipper.company?.tin === co.tin);
+  const mine = s.createdBy === user.id || s.shipper.phone === phone || (!!co && s.companyAccountId === co.id && user.permissions.has("corporate.manage"));
   const booked = booked0(s.state);
   // Whoever pays sees the paperwork: a proforma invoice once the point has priced it, a receipt once it's paid.
   const [snap] =

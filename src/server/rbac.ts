@@ -29,14 +29,18 @@ export async function resolvePermissions(roleKeys: string[]): Promise<Set<Permis
 
 export type Trial = { allowance: number; used: number; remaining: number };
 
-/** Parcels a business under review has handled (booked, or assigned to it to handle) against its allowance. */
-export async function trialFor(accountId: string): Promise<Trial> {
+/**
+ * Parcels a business under review has used of its allowance: an agent office, the ones it booked or was given to
+ * handle; a sending company, the ones sent on its account.
+ */
+export async function trialFor(accountId: string, type?: string | null): Promise<Trial> {
+  const company = type === "shipper";
   const [allowance, [{ used }]] = await Promise.all([
-    getSetting("pendingParcelAllowance"),
+    getSetting(company ? "pendingCompanyParcelAllowance" : "pendingParcelAllowance"),
     db
       .select({ used: sql<number>`count(*)::int` })
       .from(shipments)
-      .where(or(eq(shipments.accountId, accountId), eq(shipments.handlingPartnerId, accountId))),
+      .where(company ? eq(shipments.companyAccountId, accountId) : or(eq(shipments.accountId, accountId), eq(shipments.handlingPartnerId, accountId))),
   ]);
   return { allowance, used, remaining: Math.max(0, allowance - used) };
 }
@@ -53,11 +57,11 @@ export async function effectivePermissions(
 ): Promise<{ permissions: Set<Permission>; accountStatus: string | null; trial: Trial | null }> {
   const [permissions, acct] = await Promise.all([
     resolvePermissions(roleKeys),
-    accountId ? db.select({ status: accounts.status }).from(accounts).where(eq(accounts.id, accountId)).then((r) => r[0]) : Promise.resolve(undefined),
+    accountId ? db.select({ status: accounts.status, type: accounts.type }).from(accounts).where(eq(accounts.id, accountId)).then((r) => r[0]) : Promise.resolve(undefined),
   ]);
   const accountStatus = acct?.status ?? null;
   if (accountStatus !== "pending") return { permissions, accountStatus, trial: null };
-  const trial = await trialFor(accountId!);
+  const trial = await trialFor(accountId!, acct?.type);
   // Allowance 0 and nothing in hand: set-up only. Parcels already taken in can always be finished.
   const open = trial.allowance > 0 || trial.used > 0 ? TRIAL_PERMISSIONS.filter((p) => trial.remaining > 0 || !TRIAL_INTAKE.includes(p)) : [];
   const allowed = new Set<Permission>([...SETUP_PERMISSIONS, ...open]);

@@ -1,5 +1,5 @@
 import "server-only";
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db, type Tx } from "../db/client";
 import { shipments, users, walletEntries } from "../db/schema";
@@ -30,18 +30,30 @@ export const TOPUP_MAX = 2_000_000;
 /** Top-up references start with this so the HuduPay callback knows they're wallet money, not a parcel. */
 export const TOPUP_PREFIX = "WT-";
 
-/** Serialises wallet writes for one person inside a transaction (no overdrawing from two phones at once). */
-const lock = (tx: Tx, userId: string) => tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`wallet:${userId}`}))`);
+/** Serialises wallet writes for one wallet inside a transaction (no overdrawing from two phones at once). */
+const lock = (tx: Tx, key: string) => tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`wallet:${key}`}))`);
 
+/** A person's own wallet (a company's money, kept with accountId, isn't theirs). */
 export async function walletBalance(q: Q, userId: string) {
   const [r] = await q
     .select({ n: sql<number>`coalesce(sum(${walletEntries.amount}), 0)::int` })
     .from(walletEntries)
-    .where(and(eq(walletEntries.userId, userId), eq(walletEntries.status, "paid")));
+    .where(and(eq(walletEntries.userId, userId), isNull(walletEntries.accountId), eq(walletEntries.status, "paid")));
   return r?.n ?? 0;
 }
 
-const entryOut = (e: Entry) => ({
+/** A company's wallet: deposits by its admins, less the company parcels paid from it. */
+export async function companyBalance(q: Q, accountId: string) {
+  const [r] = await q
+    .select({ n: sql<number>`coalesce(sum(${walletEntries.amount}), 0)::int` })
+    .from(walletEntries)
+    .where(and(eq(walletEntries.accountId, accountId), eq(walletEntries.status, "paid")));
+  return r?.n ?? 0;
+}
+
+const balanceOf = (q: Q, e: { userId: string; accountId: string | null }) => (e.accountId ? companyBalance(q, e.accountId) : walletBalance(q, e.userId));
+
+export const entryOut = (e: Entry) => ({
   id: e.id,
   kind: e.kind as "topup" | "parcel" | "refund",
   amount: e.amount,
@@ -57,7 +69,7 @@ const entryOut = (e: Entry) => ({
 export async function myWallet(user: CurrentUser) {
   const [balance, entries, [me]] = await Promise.all([
     walletBalance(db, user.id),
-    db.select().from(walletEntries).where(eq(walletEntries.userId, user.id)).orderBy(desc(walletEntries.createdAt)).limit(50),
+    db.select().from(walletEntries).where(and(eq(walletEntries.userId, user.id), isNull(walletEntries.accountId))).orderBy(desc(walletEntries.createdAt)).limit(50),
     db.select({ phone: users.phone }).from(users).where(eq(users.id, user.id)),
   ]);
   return {
@@ -73,18 +85,22 @@ export async function myWallet(user: CurrentUser) {
 const topUpSchema = z.object({
   amount: z.coerce.number().int().min(TOPUP_MIN, `Top up at least TZS ${TOPUP_MIN.toLocaleString("en-US")}`).max(TOPUP_MAX, `Top up at most TZS ${TOPUP_MAX.toLocaleString("en-US")}`),
   phone: z.string().trim().min(9).max(20),
+  /** Deposit into the company's wallet (its admins, once the company is approved). */
+  forCompany: z.boolean().default(false),
 });
 
 /** Push a prompt to the phone for the top-up; the app polls [walletTopUpStatus] until it's paid or failed. */
 export async function walletTopUp(user: CurrentUser, raw: unknown) {
   const b = topUpSchema.parse(raw);
+  if (b.forCompany && (!user.accountId || !user.permissions.has("corporate.manage"))) throw new DomainError("FORBIDDEN", "Only the company's admin can deposit into its wallet.", 403);
+  if (b.forCompany && user.accountStatus === "pending") throw new DomainError("KYC_PENDING", "The company wallet opens once the company is approved.", 409);
   const e164 = toE164(b.phone);
   if (!e164 || !e164.startsWith("+255")) throw new DomainError("BAD_PHONE", "Mobile money works with Tanzanian numbers for now.");
   const msisdn = e164.slice(1);
   const reference = `${TOPUP_PREFIX}${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
   const base = process.env.APP_URL ?? "https://tuma.hudumika.tz";
   // The adapter's wording is for the counter ("take cash"); someone topping up their own wallet hears it plainly.
-  const c = await collect({ reference, amount: b.amount, msisdn, narration: "Tuma wallet top-up", callbackUrl: `${base}/api/hooks/hudupay` }).catch((e) => {
+  const c = await collect({ reference, amount: b.amount, msisdn, narration: b.forCompany ? "Tuma company wallet deposit" : "Tuma wallet top-up", callbackUrl: `${base}/api/hooks/hudupay` }).catch((e) => {
     if (e instanceof DomainError && e.code === "MOMO_UNAVAILABLE") throw new DomainError("MOMO_UNAVAILABLE", "Topping up by mobile money isn't available just yet. Please try again a little later.", 503);
     throw e;
   });
@@ -93,6 +109,7 @@ export async function walletTopUp(user: CurrentUser, raw: unknown) {
     .insert(walletEntries)
     .values({
       userId: user.id,
+      accountId: b.forCompany ? user.accountId : null,
       kind: "topup",
       amount: b.amount,
       status: failed ? "failed" : "pending",
@@ -111,10 +128,10 @@ export async function walletTopUpStatus(user: CurrentUser, id: string) {
   if (!/^[0-9a-f-]{36}$/i.test(id)) throw new DomainError("NOT_FOUND", "That top-up isn't yours.", 404);
   const [e] = await db.select().from(walletEntries).where(and(eq(walletEntries.id, id), eq(walletEntries.userId, user.id), eq(walletEntries.kind, "topup")));
   if (!e) throw new DomainError("NOT_FOUND", "That top-up isn't yours.", 404);
-  if (e.status !== "pending" || !e.providerId) return { topUp: entryOut(e), balance: await walletBalance(db, user.id) };
+  if (e.status !== "pending" || !e.providerId) return { topUp: entryOut(e), balance: await balanceOf(db, e) };
   const c = await collection(e.providerId, e.createdAt).catch(() => null);
   const settled = c ? await settleWalletTopUp(e.reference, c.status, c.failureMessage) : null;
-  return { topUp: entryOut(settled ?? e), balance: await walletBalance(db, user.id) };
+  return { topUp: entryOut(settled ?? e), balance: await balanceOf(db, e) };
 }
 
 /** HuduPay's outcome for a top-up (callback or poll). Settles once; a success posts to FinOps. */
@@ -134,13 +151,13 @@ export async function settleWalletTopUp(reference: string, status: "SUCCESS" | "
         target: "finops",
         topic: "wallet.topup",
         idempotencyKey: `wallet:${e.id}`,
-        payload: { userId: e.userId, amount: e.amount, currency: e.currency, reference: e.reference, providerId: e.providerId },
+        payload: { userId: e.userId, accountId: e.accountId, amount: e.amount, currency: e.currency, reference: e.reference, providerId: e.providerId },
       });
       await queuePush(tx, {
         key: `wallet:${e.id}`,
         to: { userIds: [e.userId] },
         template: "push.wallet_topup",
-        variables: { amount: money(e.amount), balance: money(await walletBalance(tx, e.userId)) },
+        variables: { amount: money(e.amount), balance: money(await balanceOf(tx, e)) },
         data: { type: "wallet" },
       });
     }
@@ -149,16 +166,18 @@ export async function settleWalletTopUp(reference: string, status: "SUCCESS" | "
 }
 
 /**
- * Inside a transaction: pay the parcel from its booker's wallet if the balance covers it. False (nothing changed)
- * when it doesn't, or the parcel is already paid.
+ * Inside a transaction: pay the parcel from its booker's wallet (or, for a company parcel, the company's) if the
+ * balance covers it. False (nothing changed) when it doesn't, or the parcel is already paid.
  */
 export async function chargeWallet(tx: Tx, userId: string, s: Shipment) {
   if (s.paidAt || s.totalCharge <= 0) return false;
-  await lock(tx, userId);
-  if ((await walletBalance(tx, userId)) < s.totalCharge) return false;
+  const accountId = s.companyAccountId ?? null;
+  const owner = { userId, accountId };
+  await lock(tx, accountId ?? userId);
+  if ((await balanceOf(tx, owner)) < s.totalCharge) return false;
   const [e] = await tx
     .insert(walletEntries)
-    .values({ userId, kind: "parcel", amount: -s.totalCharge, reference: `WP-${s.waybill}`, shipmentId: s.id, waybill: s.waybill, settledAt: new Date() })
+    .values({ userId, accountId, kind: "parcel", amount: -s.totalCharge, reference: `WP-${s.waybill}`, shipmentId: s.id, waybill: s.waybill, settledAt: new Date() })
     .onConflictDoNothing()
     .returning({ id: walletEntries.id });
   if (!e) return false;
@@ -167,7 +186,7 @@ export async function chargeWallet(tx: Tx, userId: string, s: Shipment) {
     key: `walletpaid:${s.id}`,
     to: { userIds: [userId] },
     template: "push.wallet_paid",
-    variables: { amount: money(s.totalCharge), waybill: s.waybill, balance: money(await walletBalance(tx, userId)) },
+    variables: { amount: money(s.totalCharge), waybill: s.waybill, balance: money(await balanceOf(tx, owner)) },
     data: { type: "parcel", waybill: s.waybill },
     waybill: s.waybill,
   });
@@ -180,7 +199,7 @@ export async function refundToWallet(tx: Tx, s: Shipment) {
   if (!charge) return 0;
   const [e] = await tx
     .insert(walletEntries)
-    .values({ userId: charge.userId, kind: "refund", amount: -charge.amount, reference: `WR-${s.waybill}`, shipmentId: s.id, waybill: s.waybill, settledAt: new Date() })
+    .values({ userId: charge.userId, accountId: charge.accountId, kind: "refund", amount: -charge.amount, reference: `WR-${s.waybill}`, shipmentId: s.id, waybill: s.waybill, settledAt: new Date() })
     .onConflictDoNothing()
     .returning({ id: walletEntries.id });
   if (!e) return 0;
@@ -189,7 +208,7 @@ export async function refundToWallet(tx: Tx, s: Shipment) {
     topic: "wallet.refund",
     idempotencyKey: `walletrefund:${s.id}`,
     waybill: s.waybill,
-    payload: { userId: charge.userId, accountId: s.accountId, waybill: s.waybill, amount: -charge.amount, currency: s.currency },
+    payload: { userId: charge.userId, companyAccountId: charge.accountId, accountId: s.accountId, waybill: s.waybill, amount: -charge.amount, currency: s.currency },
   });
   await queuePush(tx, {
     key: `walletrefund:${s.id}`,
@@ -207,15 +226,16 @@ export async function payFromWallet(user: CurrentUser, rawWaybill: string) {
   const waybill = normaliseWaybill(rawWaybill).waybill;
   const paid = await db.transaction(async (tx) => {
     const [s] = await tx.select().from(shipments).where(eq(shipments.waybill, waybill)).for("update");
-    if (!s || s.createdBy !== user.id) throw new DomainError("NOT_FOUND", "We couldn't find that parcel among yours.", 404);
+    const companyParcel = !!s?.companyAccountId && s.companyAccountId === user.accountId && (s.createdBy === user.id || user.permissions.has("corporate.manage"));
+    if (!s || (s.createdBy !== user.id && !companyParcel)) throw new DomainError("NOT_FOUND", "We couldn't find that parcel among yours.", 404);
     if (s.paidAt) throw new DomainError("ALREADY_PAID", "This parcel is already paid for.", 409);
     if (s.paymentTerms !== "prepaid" || !s.receiveOnPayment || s.totalCharge <= 0) throw new DomainError("NOTHING_DUE", "There's nothing to pay for this parcel yet.");
     const ok = await chargeWallet(tx, user.id, s);
-    if (!ok) throw new DomainError("LOW_BALANCE", "Your wallet doesn't cover this parcel. Top it up first.", 402);
-    return s.id;
+    if (!ok) throw new DomainError("LOW_BALANCE", s.companyAccountId ? "The company wallet doesn't cover this parcel. Ask your admin to deposit." : "Your wallet doesn't cover this parcel. Top it up first.", 402);
+    return s;
   });
-  await receiveOnceFor(paid);
-  return { balance: await walletBalance(db, user.id) };
+  await receiveOnceFor(paid.id);
+  return { balance: await balanceOf(db, { userId: user.id, accountId: paid.companyAccountId }) };
 }
 
 /** After the point prices a parcel booked "from my wallet": pay it now if the wallet covers it. */

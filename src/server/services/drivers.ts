@@ -216,6 +216,8 @@ export async function appMe(ctx: DriverCtx) {
   if (ctx.user.permissions.has("agent.workspace") && ctx.user.accountId) modules.push("payments");
   // Sending for a company: the company's sender home.
   if (ctx.user.permissions.has("corporate.send") && ctx.user.accountId) modules.push("corporate");
+  // Running the company: staff, departments, policies, wallet, invoices, reports.
+  if (ctx.user.permissions.has("corporate.manage") && ctx.user.accountId) modules.push("company_admin");
   const [[u], [acct], [kyb]] = await Promise.all([
     db.select({ email: users.email, phone: users.phone, avatarUrl: users.avatarUrl, sender: users.senderProfile }).from(users).where(eq(users.id, ctx.user.id)),
     ctx.user.accountId

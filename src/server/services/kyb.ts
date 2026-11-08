@@ -251,7 +251,7 @@ export async function applyKybDecision(raw: unknown, actorId = "complyos") {
 
     const final = d.decision === "approved" || d.decision === "rejected";
     let accountId: string | null = null;
-    if (d.decision === "approved") accountId = await activateAgent(tx, a);
+    if (d.decision === "approved") accountId = a.accountKind === "company" ? await activateCompany(tx, a) : await activateAgent(tx, a);
     await tx
       .update(kybApplications)
       .set({
@@ -344,7 +344,12 @@ export async function ensureWorkspace(userId: string): Promise<boolean> {
   const [a] = await db
     .select()
     .from(kybApplications)
-    .where(and(eq(kybApplications.userId, userId), inArray(kybApplications.status, ["submitted", "in_review", "needs_info"]), isNull(kybApplications.accountId)))
+    .where(and(
+          eq(kybApplications.userId, userId),
+          ne(kybApplications.accountKind, "company"),
+          inArray(kybApplications.status, ["submitted", "in_review", "needs_info"]),
+          isNull(kybApplications.accountId),
+        ))
     .orderBy(desc(kybApplications.submittedAt))
     .limit(1);
   if (!a) {
@@ -382,6 +387,85 @@ async function activateAgent(tx: Tx, a: App): Promise<string> {
     payload: { ...base, siteId: branch.id, office: a.office, workflow: a.workflow },
   });
   return accountId;
+}
+
+/** Approval of a sending company: its account opens fully (the parcel allowance no longer applies). */
+async function activateCompany(tx: Tx, a: App): Promise<string> {
+  if (!a.accountId) throw new DomainError("NO_ACCOUNT", "This company has no account to approve.", 409);
+  await tx.update(accounts).set({ status: "active", syncedAt: new Date() }).where(eq(accounts.id, a.accountId));
+  await enqueue(tx, {
+    target: "crm",
+    topic: "account.create",
+    idempotencyKey: `crm-account:${a.accountId}`,
+    payload: { accountId: a.accountId, ref: a.ref, name: a.businessName, type: "shipper", tin: a.tin, contact: a.contact },
+  });
+  return a.accountId;
+}
+
+/**
+ * Inside the company's registration: its KYC application, sent to ComplyOS for review. The company may send a few
+ * parcels on its account while it waits (pendingCompanyParcelAllowance). Reuses a closed application of the same
+ * person (one turned down before), as the table keeps one per person.
+ */
+export async function submitCompanyKyb(
+  tx: Tx,
+  c: {
+    userId: string;
+    accountId: string;
+    locale: string;
+    name: string;
+    tin: string;
+    regNo?: string;
+    licenceFile?: string | null;
+    office: { region: string; district: string; street: string; phone: string };
+    contact: { name: string; phone: string; email?: string };
+  },
+) {
+  const fields = {
+    accountKind: "company",
+    businessName: c.name,
+    businessType: "company",
+    tin: c.tin,
+    licenceNumber: null,
+    licenceFile: c.licenceFile ?? null,
+    registration: c.regNo ? { source: "brela" as const, number: c.regNo, name: c.name, kind: "company" as const } : null,
+    office: c.office as App["office"],
+    contact: c.contact,
+    workflow: [] as string[],
+    accountId: c.accountId,
+    status: "submitted" as const,
+    decisionNote: null,
+    decidedAt: null,
+    submittedAt: new Date(),
+    updatedAt: new Date(),
+  };
+  const [existing] = await tx.select().from(kybApplications).where(eq(kybApplications.userId, c.userId)).for("update");
+  if (existing && ((OPEN as readonly string[]).includes(existing.status) || existing.status === "approved")) {
+    throw new DomainError("ALREADY_SUBMITTED", "You already have a business application on Tuma.", 409);
+  }
+  const [a] = existing
+    ? await tx.update(kybApplications).set({ ...fields, version: existing.version + 1 }).where(eq(kybApplications.id, existing.id)).returning()
+    : await tx.insert(kybApplications).values({ ...fields, ref: newRef(), userId: c.userId }).returning();
+  await tx.insert(kybEvents).values({ applicationId: a.id, status: "submitted", source: "tuma", note: "Company registered" });
+  await enqueue(tx, { target: "complyos", topic: "kyb.submitted", idempotencyKey: `kyb:${a.ref}:v${a.version}`, payload: kybSubmission({ ...a, applicantId: c.userId }) });
+  await enqueue(tx, {
+    target: "hudufeed",
+    topic: "notify.send",
+    idempotencyKey: `kyb-received:${a.ref}:v${a.version}`,
+    payload: { template: KYB_RECEIVED_TEMPLATE, channel: "sms", language: c.locale, to: c.contact.phone, variables: { ref: a.ref, business: a.businessName } },
+  });
+  return a;
+}
+
+/** A company's KYC as its admin sees it: where the review is and what the reviewer said. Null before it applied. */
+export async function companyKyb(accountId: string) {
+  const [a] = await db
+    .select()
+    .from(kybApplications)
+    .where(and(eq(kybApplications.accountId, accountId), eq(kybApplications.accountKind, "company")))
+    .orderBy(desc(kybApplications.submittedAt))
+    .limit(1);
+  return a ? { ref: a.ref, status: a.status, note: a.decisionNote, submittedAt: a.submittedAt.toISOString(), decidedAt: a.decidedAt?.toISOString() ?? null, hasDocument: !!a.licenceFile } : null;
 }
 
 /* --------------------------------------------------------- review (staff) */

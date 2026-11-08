@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createHash, randomBytes } from "node:crypto";
 import { eq, inArray, sql } from "drizzle-orm";
 import { db } from "../db/client";
-import { accounts, agents, branches, customerRatings, locations, customers, parcelRatings, invoices, kybApplications, parcelPayments, paymentSettings, platformSettings, rolePermissions, roles, shipments, users } from "../db/schema";
+import { accounts, agents, branches, departments, customerRatings, locations, customers, parcelRatings, invoices, kybApplications, parcelPayments, paymentSettings, platformSettings, rolePermissions, roles, shipments, users } from "../db/schema";
 import { driverContext, finishDriverLogin, swapHandoff, type DriverCtx } from "../services/drivers";
 import { submitKyb } from "../services/kyb";
 import { agentParcel, agentParcels, agentRequestPayment } from "../services/agent-parcels";
@@ -10,6 +10,10 @@ import { rateCustomer } from "../services/customer-ratings";
 import { myRatings, rateMine } from "../services/ratings";
 import { myParcels, priceDropOff, senderBook, senderCancel, senderCollectionPoints, senderParcel, tumaPoints } from "../services/sender";
 import { companyCheck, registerCompany } from "../services/corporate";
+import { companyHome, companyInvoices, companyKycDocument, companyReport, companyWallet, createDepartment, setCompanyPolicy, setStaffDepartment, updateDepartment } from "../services/company";
+import { myPlaces, removePlace, savePlace } from "../services/saved-places";
+import { walletTopUp } from "../services/wallet";
+import { applyKybDecision } from "../services/kyb";
 import { teamOverview } from "../services/team-invites";
 import { verifyDriverToken } from "../auth/driver-token";
 import { DEFAULT_ROLES } from "@/domain/roles";
@@ -34,7 +38,9 @@ async function cleanup() {
   const mine = await db.select({ accountId: users.accountId }).from(users).where(inArray(users.id, SUBS));
   const accts = [...new Set([...apps, ...mine].map((r) => r.accountId).filter((a): a is string => !!a))];
   await db.execute(sql`delete from kyb_events where application_id in (select id from kyb_applications where user_id in (${sql.join(SUBS.map((s) => sql`${s}`), sql`, `)}))`);
-  await db.update(users).set({ accountId: null, branchId: null }).where(inArray(users.id, SUBS));
+  await db.update(users).set({ accountId: null, branchId: null, departmentId: null }).where(inArray(users.id, SUBS));
+  await db.execute(sql`delete from saved_places where user_id in (${sql.join(SUBS.map((s) => sql`${s}`), sql`, `)})`);
+  await db.execute(sql`delete from wallet_entries where user_id in (${sql.join(SUBS.map((s) => sql`${s}`), sql`, `)})`);
   await db.delete(kybApplications).where(inArray(kybApplications.userId, SUBS));
   if (accts.length) {
     const ids = sql`(select id from shipments where account_id in (${sql.join(accts.map((a) => sql`${a}`), sql`, `)}))`;
@@ -48,6 +54,7 @@ async function cleanup() {
     await db.delete(shipments).where(inArray(shipments.accountId, accts));
     await db.delete(customers).where(inArray(customers.accountId, accts));
     await db.delete(agents).where(inArray(agents.accountId, accts));
+    await db.delete(departments).where(inArray(departments.accountId, accts));
     await db.delete(branches).where(inArray(branches.accountId, accts));
     await db.delete(accounts).where(inArray(accounts.id, accts));
   }
@@ -232,13 +239,95 @@ describe("sending a parcel as a person (no business)", () => {
     expect(accepted.parcel.invoice).toMatchObject({ total: 15000 });
     expect(accepted.parcel.shipper).toMatchObject({ company: { tin: "565676787", contactName: "Asha Boss" } });
 
-    // A colleague on the team sees the company's parcels.
+    // The admin monitors every parcel on the company's account; a colleague sees the ones they sent.
     await db.update(users).set({ accountId: co.accountId, roles: ["corporate_sender"] }).where(eq(users.id, MATE));
     const mate = (await driverContext(MATE))!;
     const list = await myParcels(mate.user);
     expect(list.company).toEqual({ name: "Kilimo Supplies Ltd" });
-    expect(list.parcels.find((p) => p.waybill === r.waybill)).toMatchObject({ direction: "sent", bookedBy: "Asha Boss" });
-    expect((await senderParcel(mate.user, r.waybill)).direction).toBe("sent");
+    expect(list.parcels.find((p) => p.waybill === r.waybill)).toBeUndefined();
+    const m = await senderBook(mate.user, booking(pointId, { asCompany: true, goods: "Seed samples" }));
+    expect((await senderParcel(mate.user, m.waybill)).direction).toBe("sent");
+    const all = await myParcels(boss.user);
+    expect(all.parcels.find((p) => p.waybill === m.waybill)).toMatchObject({ direction: "sent", bookedBy: "Juma Mate" });
+    // Sent as themself instead: it's theirs alone, not the company's.
+    const own = await senderBook(mate.user, booking(pointId, { goods: "A gift for mum" }));
+    expect((await myParcels(boss.user)).parcels.find((p) => p.waybill === own.waybill)).toBeUndefined();
+    expect((await senderParcel(mate.user, own.waybill)).sender).toMatchObject({ name: "Juma Mate" });
+  });
+
+  it("vets a new company: pending with a KYC application, 5 parcels on its account until ComplyOS approves", async () => {
+    const [acct] = await db.select({ status: accounts.status }).from(accounts).where(eq(accounts.name, "Kilimo Supplies Ltd"));
+    expect(acct.status).toBe("pending");
+    const boss = (await driverContext(BOSS))!;
+    const home = await companyHome(boss.user);
+    expect(home).toMatchObject({ admin: true, company: { status: "pending" }, kyc: { status: "submitted" }, trial: { allowance: 5, used: 2 } });
+    // Three more fit the allowance; the sixth is refused with a way out.
+    for (const g of ["One", "Two", "Three"]) await senderBook(boss.user, booking(pointId, { asCompany: true, goods: `Box ${g}` }));
+    const full = (await driverContext(BOSS))!;
+    expect(full.user.trial).toMatchObject({ remaining: 0 });
+    await expect(senderBook(full.user, booking(pointId, { asCompany: true }))).rejects.toMatchObject({ code: "KYC_PENDING_LIMIT" });
+    // As themself it still goes; the company wallet waits for approval.
+    await expect(senderBook(full.user, booking(pointId, { goods: "My own" }))).resolves.toBeTruthy();
+    await expect(walletTopUp(full.user, { amount: 5000, phone: "0715100200", forCompany: true })).rejects.toMatchObject({ code: "KYC_PENDING" });
+    // A document, then approval opens it fully.
+    await companyKycDocument(full.user, { licenceFile: "kyb/2026/11/01JC0000000000000000000000.pdf" });
+    const [app] = await db.select().from(kybApplications).where(eq(kybApplications.userId, BOSS));
+    expect(app).toMatchObject({ accountKind: "company", licenceFile: "kyb/2026/11/01JC0000000000000000000000.pdf" });
+    await applyKybDecision({ eventId: "co-approve-1", ref: app.ref, decision: "approved" });
+    const open = (await driverContext(BOSS))!;
+    expect(open.user.accountStatus).toBe("active");
+    await expect(senderBook(open.user, booking(pointId, { asCompany: true, goods: "After approval" }))).resolves.toBeTruthy();
+  });
+
+  it("runs the company: departments with budgets, staff in them, a policy the team books under, reports and invoices", async () => {
+    const boss = (await driverContext(BOSS))!;
+    const mate = (await driverContext(MATE))!;
+    await expect(createDepartment(mate.user, { name: "Sales" })).rejects.toMatchObject({ code: "FORBIDDEN" });
+    const { departments: ds } = await createDepartment(boss.user, { name: "Sales", monthlyBudget: 10000 });
+    await expect(createDepartment(boss.user, { name: "Sales" })).rejects.toMatchObject({ code: "DEPARTMENT_EXISTS" });
+    const sales = ds.find((d) => d.name === "Sales")!;
+    const { staff } = await setStaffDepartment(boss.user, MATE, { departmentId: sales.id });
+    expect(staff.find((x) => x.id === MATE)).toMatchObject({ department: { name: "Sales" }, admin: false });
+    // Charged to the sender's department; once it has spent its budget, it stops.
+    const d1 = await senderBook(mate.user, booking(pointId, { asCompany: true, goods: "Brochures" }));
+    const [s1] = await db.select({ departmentId: shipments.departmentId }).from(shipments).where(eq(shipments.waybill, d1.waybill));
+    expect(s1.departmentId).toBe(sales.id);
+    await priceDropOff(agent.user, d1.waybill, { price: 12000 });
+    await expect(senderBook(mate.user, booking(pointId, { asCompany: true }))).rejects.toMatchObject({ code: "BUDGET_USED" });
+    await updateDepartment(boss.user, sales.id, { monthlyBudget: null });
+    // The policy: how it's paid, what it's worth, a department each, parcels a month per person.
+    await setCompanyPolicy(boss.user, { payWith: ["account"], maxDeclaredValue: 50000, requireDepartment: true, monthlyParcelsPerSender: 50 });
+    await expect(senderBook(mate.user, booking(pointId, { asCompany: true, paidWith: "wallet" }))).rejects.toMatchObject({ code: "POLICY_PAYMENT" });
+    await expect(senderBook(mate.user, booking(pointId, { asCompany: true, paidWith: "account", declaredValue: 90000 }))).rejects.toMatchObject({ code: "POLICY_VALUE" });
+    await expect(senderBook(boss.user, booking(pointId, { asCompany: true, paidWith: "account" }))).rejects.toMatchObject({ code: "DEPARTMENT" });
+    await expect(senderBook(boss.user, booking(pointId, { asCompany: true, paidWith: "account", departmentId: sales.id }))).resolves.toBeTruthy();
+    await setCompanyPolicy(boss.user, { monthlyParcelsPerSender: 1 });
+    await expect(senderBook(mate.user, booking(pointId, { asCompany: true, paidWith: "account" }))).rejects.toMatchObject({ code: "POLICY_MONTHLY" });
+
+    const rep = await companyReport(boss.user, {});
+    expect(rep.totals.parcels).toBeGreaterThanOrEqual(8);
+    expect(rep.byDepartment.find((d) => d.name === "Sales")).toMatchObject({ parcels: 2, spend: 12000 });
+    expect(rep.byPerson.map((p) => p.name)).toContain("Juma Mate");
+    const inv = await companyInvoices(boss.user);
+    expect(inv.invoices.length).toBeGreaterThanOrEqual(1);
+    expect(inv.owed).toBeGreaterThanOrEqual(15000);
+    await expect(companyInvoices(mate.user)).rejects.toMatchObject({ code: "FORBIDDEN" });
+    expect((await companyWallet(boss.user))).toMatchObject({ balance: 0, open: true });
+  });
+
+  it("saves home, work and favourite places; home is one, so saving again moves it", async () => {
+    const pin = { region: "Dar es Salaam", district: "Kinondoni", lat: -6.77, lng: 39.24 };
+    await savePlace(me.user, { kind: "home", line: "Mikocheni B, Dar es Salaam", ...pin });
+    await savePlace(me.user, { kind: "home", line: "Sinza, Dar es Salaam", ...pin });
+    await savePlace(me.user, { kind: "favourite", label: "Mum's", line: "Mbezi Beach", ...pin });
+    await expect(savePlace(me.user, { kind: "work", line: "Posta", region: "Nowhere", district: "X", lat: 0, lng: 0 })).rejects.toBeTruthy();
+    const { places } = await myPlaces(me.user);
+    expect(places.map((p) => [p.kind, p.label, p.line])).toEqual([
+      ["home", "Home", "Sinza, Dar es Salaam"],
+      ["favourite", "Mum's", "Mbezi Beach"],
+    ]);
+    const after = await removePlace(me.user, places[1].id);
+    expect(after.places).toHaveLength(1);
   });
 });
 

@@ -109,8 +109,58 @@ export const accounts = pgTable("accounts", {
   payOnDelivery: boolean("pay_on_delivery").notNull().default(false),
   /** Short code in this business's invoice numbers (INV-KPL-2611-0001), so no two invoices in Tuma share a number. */
   invoiceCode: varchar("invoice_code", { length: 6 }).unique(),
+  /** A sending company's rules for its team (see CompanyPolicy). Null = no limits. */
+  companyPolicy: jsonb("company_policy").$type<CompanyPolicy>(),
   syncedAt: ts("synced_at").notNull().defaultNow(),
 });
+
+/**
+ * What a sending company allows its team: how its parcels may be paid, the most one parcel may be worth, whether
+ * each must be charged to a department, and how many parcels one person may send on the account in a month.
+ */
+export type CompanyPolicy = {
+  payWith?: ("account" | "point" | "wallet")[];
+  maxDeclaredValue?: number | null;
+  requireDepartment?: boolean;
+  monthlyParcelsPerSender?: number | null;
+};
+
+/** A person's saved places (home, work, favourites): picked on the map, offered first when they book. */
+export const savedPlaces = pgTable(
+  "saved_places",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    kind: text("kind").notNull(), // home | work | favourite
+    label: text("label").notNull(),
+    line: text("line").notNull(),
+    region: text("region").notNull(),
+    district: text("district").notNull(),
+    lat: doublePrecision("lat").notNull(),
+    lng: doublePrecision("lng").notNull(),
+    createdAt: ts("created_at").notNull().defaultNow(),
+  },
+  (t) => [index("saved_places_user_idx").on(t.userId), uniqueIndex("saved_places_one_home_uq").on(t.userId, t.kind).where(sql`${t.kind} in ('home','work')`)],
+);
+
+/** A sending company's departments: staff belong to one, and its parcels are charged to one for the reports. */
+export const departments = pgTable(
+  "departments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    accountId: text("account_id")
+      .notNull()
+      .references(() => accounts.id),
+    name: text("name").notNull(),
+    /** What the department may send in a month (TZS); null = no budget. */
+    monthlyBudget: integer("monthly_budget"),
+    active: boolean("active").notNull().default(true),
+    createdAt: ts("created_at").notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("departments_name_uq").on(t.accountId, t.name)],
+);
 
 /**
  * Roles are data: admins create them and grant permissions from the code catalog
@@ -151,6 +201,8 @@ export const users = pgTable("users", {
   accountId: text("account_id").references(() => accounts.id),
   /** Set when the person works at one branch: they then see only that branch's cargo and vehicles. */
   branchId: uuid("branch_id"),
+  /** Their department in a sending company. */
+  departmentId: uuid("department_id"),
   /** Role keys from the Ondi claim. While Ondi is stubbed, admins assign them in the console. */
   roles: jsonb("roles").$type<string[]>().notNull(),
   /**
@@ -230,6 +282,10 @@ export const shipments = pgTable(
     handlingPartnerId: text("handling_partner_id"),
     /** The partner's own client, when the partner booked it for one of their customers. */
     partnerClientId: uuid("partner_client_id"),
+    /** Sent on a company's account (not the sender's own): the company sees it, it counts in its reports. */
+    companyAccountId: text("company_account_id"),
+    /** The company department it is charged to. */
+    departmentId: uuid("department_id"),
     /** Vehicle the cargo is currently loaded on (partner fleet). */
     vehicleId: uuid("vehicle_id"),
     /** The partner branch handling the cargo now. */
@@ -295,6 +351,7 @@ export const shipments = pgTable(
     index("shipments_state_idx").on(t.state),
     index("shipments_partner_idx").on(t.handlingPartnerId, t.state),
     index("shipments_merchant_ref_idx").on(t.accountId, t.merchantRef),
+    index("shipments_company_idx").on(t.companyAccountId, t.createdAt),
     index("shipments_consignee_phone_idx").on(sql`(${t.consignee}->>'phone')`),
   ],
 );
@@ -1317,9 +1374,12 @@ export const walletEntries = pgTable(
   "wallet_entries",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    /** Who: their own wallet, or (with accountId) the person who moved the company's money. */
     userId: text("user_id")
       .notNull()
       .references(() => users.id),
+    /** Set for a company's wallet: the balance is the company's, not the person's. */
+    accountId: text("account_id"),
     kind: text("kind").notNull(), // topup | parcel | refund
     /** Signed: + money in (top-up, refund), − money out (a parcel). */
     amount: integer("amount").notNull(),
@@ -1338,6 +1398,7 @@ export const walletEntries = pgTable(
   (t) => [
     uniqueIndex("wallet_entries_reference_uq").on(t.reference),
     index("wallet_entries_user_idx").on(t.userId, t.createdAt),
+    index("wallet_entries_account_idx").on(t.accountId, t.createdAt),
     // A parcel is charged to a wallet once.
     uniqueIndex("wallet_entries_parcel_uq").on(t.shipmentId).where(sql`${t.kind} = 'parcel'`),
   ],

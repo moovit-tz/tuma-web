@@ -27,6 +27,8 @@ export const SETTINGS = {
   },
   /** Parcels a business may take in while its application is still being reviewed. 0 = none until approval. */
   pendingParcelAllowance: { schema: z.coerce.number().int().min(0).max(10_000), fallback: 20 },
+  /** Parcels a sending company may send on its account while its KYC is being reviewed. */
+  pendingCompanyParcelAllowance: { schema: z.coerce.number().int().min(0).max(10_000), fallback: 5 },
   /** What a parcel can hold, offered as pills when an agent receives one. The key is stored as the parcel's category. */
   goodsTypes: {
     schema: z

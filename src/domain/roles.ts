@@ -56,7 +56,8 @@ export const PERMISSIONS = [
   { key: "partner.clients.manage", group: "Partner", label: "Manage clients", description: "The partner's own customer book." },
   { key: "partner.finance.manage", group: "Partner", label: "Invoices and payments", description: "Invoice clients, record payments, reconcile." },
   { key: "partner.dispatch.manage", group: "Partner", label: "Dispatch to drivers", description: "Create jobs for the company's own drivers, approve drivers and follow their runs." },
-  { key: "corporate.send", group: "Company", label: "Send for the company", description: "Book parcels in the company's name, pay on its account, and follow all its parcels." },
+  { key: "corporate.send", group: "Company", label: "Send for the company", description: "Book parcels in the company's name, pay on its account, and follow the ones you sent." },
+  { key: "corporate.manage", group: "Company", label: "Manage the company", description: "See every parcel sent on the company's account; manage staff, departments, policies, the company wallet, invoices and reports." },
   { key: "team.manage", group: "Partner", label: "Manage team and roles", description: "Create roles for your own company and assign them to your team." },
   // Parcel agents (self-onboarded through KYB in the Tuma app)
   { key: "agent.workspace", group: "Parcel agent", label: "Agent workspace", description: "Open the agent dashboard and parcel operations in the Tuma app." },
@@ -164,9 +165,9 @@ export const DEFAULT_ROLES: RoleSeed[] = [
   {
     key: "corporate_admin",
     name: "Company admin",
-    description: "Runs a company's sending on Tuma: books parcels in its name, manages its team and sees its reports.",
+    description: "Runs a company's sending on Tuma: sees all its parcels, manages its staff, departments, policies, wallet and invoices, and sees its reports.",
     surface: "partner",
-    permissions: ["corporate.send", "team.manage", "report.view"],
+    permissions: ["corporate.send", "corporate.manage", "team.manage", "report.view"],
   },
   {
     key: "corporate_sender",
@@ -236,7 +237,7 @@ export const PARTNER_GRANTABLE: Permission[] = [
  * clients, and look at reports. Everything that moves parcels or money waits for approval. Applied to every person
  * in the company, whatever their roles grant (src/server/rbac.ts).
  */
-export const SETUP_PERMISSIONS: Permission[] = ["team.manage", "partner.branches.manage", "partner.clients.manage", "report.view"];
+export const SETUP_PERMISSIONS: Permission[] = ["team.manage", "partner.branches.manage", "partner.clients.manage", "report.view", "corporate.manage"];
 
 /**
  * While under review a business may also handle a limited number of parcels (the pendingParcelAllowance setting).
@@ -253,6 +254,8 @@ export const TRIAL_PERMISSIONS: Permission[] = [
   "partner.cargo.read",
   "partner.cargo.operate",
   "label.print",
+  // A company under review sends on its account up to its own allowance (pendingCompanyParcelAllowance).
+  "corporate.send",
 ];
 /** The ones that take in a new parcel. They close when the allowance is used up; parcels in hand can still be finished. */
 export const TRIAL_INTAKE: Permission[] = ["shipment.create", "shipment.receive"];
