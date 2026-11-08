@@ -168,7 +168,9 @@ describe("a sender's Tuma wallet", () => {
     const { notifications: n } = await senderNotifications(me.user);
     const parcel = n.filter((x) => x.kind === "parcel");
     expect(parcel.length).toBeGreaterThan(0);
-    expect(parcel.some((x) => x.state === "RECEIVED" && x.direction === "sent")).toBe(true);
+    const got = parcel.find((x) => x.state === "RECEIVED" && x.direction === "sent");
+    // Enough to say it in words: who it's for and which point has it.
+    expect(got).toMatchObject({ receiver: expect.any(String), point: expect.any(String) });
     expect(parcel.some((x) => x.state === "CREATED")).toBe(false);
     const money = n.filter((x) => x.kind === "wallet");
     expect(money.some((x) => x.entry === "topup" && x.amount === 20000)).toBe(true);

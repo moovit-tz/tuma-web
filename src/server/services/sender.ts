@@ -339,7 +339,21 @@ export async function myParcels(user: CurrentUser) {
 
 /** A sender's notification: one of their parcels moved, or money in or out of their wallet. */
 export type SenderNotification =
-  | { id: string; kind: "parcel"; at: string; waybill: string; state: string | null; receiver: string | null; note: string | null; direction: Direction }
+  | {
+      id: string;
+      kind: "parcel";
+      at: string;
+      waybill: string;
+      state: string | null;
+      receiver: string | null;
+      /** Who sent it, for a parcel coming to me ("A parcel has been sent to you from …"). */
+      sender: string | null;
+      /** The Tuma point holding it at that moment, and where the receiver collects it (when collected). */
+      point: string | null;
+      collectAt: string | null;
+      note: string | null;
+      direction: Direction;
+    }
   | { id: string; kind: "wallet"; at: string; entry: "topup" | "parcel" | "refund"; amount: number; waybill: string | null };
 
 /**
@@ -361,9 +375,13 @@ export async function senderNotifications(user: CurrentUser): Promise<{ notifica
         consignee: shipments.consignee,
         shipper: shipments.shipper,
         createdBy: shipments.createdBy,
+        point: branches.name,
+        collectBranch: sql<string | null>`(select b.name from branches b where b.id = ${shipments.deliveryBranchId})`,
+        collectLocation: sql<string | null>`(select l.name from locations l where l.id = ${shipments.deliveryLocationId})`,
       })
       .from(events)
       .innerJoin(shipments, eq(events.shipmentId, shipments.id))
+      .leftJoin(branches, eq(branches.id, shipments.handlingBranchId))
       .where(
         and(
           eq(shipments.type, "parcel"),
@@ -393,6 +411,9 @@ export async function senderNotifications(user: CurrentUser): Promise<{ notifica
         waybill: m.waybill,
         state: m.state,
         receiver: coming ? null : (m.consignee.name ?? null) || null,
+        sender: coming ? (m.shipper.name ?? null) || null : null,
+        point: m.point ?? null,
+        collectAt: m.collectBranch ?? m.collectLocation ?? null,
         note: m.note,
         direction: (coming ? "coming" : "sent") as Direction,
       };
