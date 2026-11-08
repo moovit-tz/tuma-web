@@ -276,12 +276,22 @@ export async function agentParcel(user: CurrentUser, rawWaybill: string) {
   const failReasons = moves.includes("ATTEMPT_FAILED")
     ? await db.select({ code: reasonCodes.code, en: reasonCodes.labelEn, sw: reasonCodes.labelSw }).from(reasonCodes).where(and(eq(reasonCodes.active, true), eq(reasonCodes.kind, "failed_delivery"))).orderBy(asc(reasonCodes.code))
     : [];
-  const agent = await counterAgent(s);
+  const [agent, [office]] = await Promise.all([
+    counterAgent(s),
+    s.handlingBranchId
+      ? db
+          .select({ name: branches.name, business: accounts.name, phone: branches.phone })
+          .from(branches)
+          .innerJoin(accounts, eq(accounts.id, branches.accountId))
+          .where(eq(branches.id, s.handlingBranchId))
+      : Promise.resolve([]),
+  ]);
   return {
     parcel: {
       waybill: s.waybill,
       state: s.state,
       agent,
+      office: office ?? null,
       serviceLevel: s.serviceLevel,
       paymentTerms: s.paymentTerms,
       paidWith: s.prepayMethod,
