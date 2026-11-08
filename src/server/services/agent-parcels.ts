@@ -221,6 +221,26 @@ function movesFor(user: CurrentUser, s: Placed): ShipmentState[] {
   });
 }
 
+/**
+ * The agent who took the parcel in at the counter (who received it, or booked it there): their name and phone, for the
+ * receipt. Null until someone at the point has handled it.
+ */
+export async function counterAgent(s: { id: string; createdBy: string; handlingPartnerId: string | null; accountId: string }) {
+  const [r] = await db
+    .select({ name: users.name, phone: users.phone })
+    .from(events)
+    .innerJoin(users, sql`${users.id} = ${events.actorId}`)
+    .where(and(eq(events.shipmentId, s.id), eq(events.stateAfter, "RECEIVED")))
+    .orderBy(asc(events.occurredAt))
+    .limit(1);
+  if (r) return r;
+  const [c] = await db
+    .select({ name: users.name, phone: users.phone })
+    .from(users)
+    .where(and(eq(users.id, s.createdBy), inArray(users.accountId, [s.handlingPartnerId ?? s.accountId, s.accountId])));
+  return c ?? null;
+}
+
 export async function agentParcel(user: CurrentUser, rawWaybill: string) {
   const s = await load(user, rawWaybill);
   const [evts, cod, delivery, inv] = await Promise.all([
@@ -256,10 +276,12 @@ export async function agentParcel(user: CurrentUser, rawWaybill: string) {
   const failReasons = moves.includes("ATTEMPT_FAILED")
     ? await db.select({ code: reasonCodes.code, en: reasonCodes.labelEn, sw: reasonCodes.labelSw }).from(reasonCodes).where(and(eq(reasonCodes.active, true), eq(reasonCodes.kind, "failed_delivery"))).orderBy(asc(reasonCodes.code))
     : [];
+  const agent = await counterAgent(s);
   return {
     parcel: {
       waybill: s.waybill,
       state: s.state,
+      agent,
       serviceLevel: s.serviceLevel,
       paymentTerms: s.paymentTerms,
       paidWith: s.prepayMethod,

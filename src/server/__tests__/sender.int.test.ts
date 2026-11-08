@@ -237,6 +237,8 @@ describe("sending a parcel as a person (no business)", () => {
     const accepted = await priceDropOff(agent.user, r.waybill, { price: 15000 });
     expect(accepted.parcel).toMatchObject({ state: "RECEIVED", total: 15000, paymentTerms: "account" });
     expect(accepted.parcel.invoice).toMatchObject({ total: 15000 });
+    // The receipt names the agent who took it in.
+    expect(accepted.parcel.agent).toMatchObject({ name: "Halima Point", phone: "+255713500600" });
     expect(accepted.parcel.shipper).toMatchObject({ company: { tin: "565676787", contactName: "Asha Boss" } });
 
     // The admin monitors every parcel on the company's account; a colleague sees the ones they sent.

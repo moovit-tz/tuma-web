@@ -42,6 +42,9 @@ export const companySchema = z.object({
     .trim()
     .transform((v, c) => toE164TZ(v) ?? (c.addIssue({ code: "custom", message: "Enter a valid Tanzanian mobile number." }), z.NEVER)),
   email: z.union([z.email(), z.literal("")]).optional().transform((v) => v || undefined),
+  /** The head office's pin on the map. */
+  lat: z.number().min(-90).max(90).optional(),
+  lng: z.number().min(-180).max(180).optional(),
   /** Certificate of incorporation or business licence: key from the kyb upload. */
   licenceFile: z
     .string()
@@ -82,6 +85,7 @@ export async function registerCompany(user: CurrentUser, raw: unknown) {
       district: c.district,
       address: c.street,
       phone: c.phone,
+      ...(c.lat != null && c.lng != null ? { lat: c.lat, lng: c.lng } : {}),
     });
     for (const key of CORPORATE_ROLES) {
       const seed = DEFAULT_ROLES.find((r) => r.key === key)!;

@@ -13,7 +13,7 @@ import { createParcel, DomainError, transition } from "./shipments";
 import { liveFor, liveForMany } from "./live-tracking";
 import { myRatingFor, ratingScores } from "./ratings";
 
-import { agentMove, agentParcel, collectionPoints } from "./agent-parcels";
+import { agentMove, agentParcel, collectionPoints, counterAgent } from "./agent-parcels";
 import { companyOf } from "./corporate";
 import { rememberCustomers } from "./customers";
 import { issueCompanyInvoice } from "./counter-payments";
@@ -547,6 +547,7 @@ export async function senderParcel(user: CurrentUser, rawWaybill: string) {
   const cod = payer === "receiver" && snap ? (await db.select({ st: codRecords.status }).from(codRecords).where(eq(codRecords.shipmentId, s.id)))[0] : undefined;
   const settled = payer === "sender" ? !!s.paidAt : ["collected", "deposited", "remitted"].includes(cod?.st ?? "");
   const { tin: pointTin, ...point } = p ?? { tin: null };
+  const agent = snap ? await counterAgent(s) : null;
   return {
     waybill: s.waybill,
     state: s.state,
@@ -573,6 +574,7 @@ export async function senderParcel(user: CurrentUser, rawWaybill: string) {
           number: `${settled ? "RC" : "PF"}-${s.waybill}`,
           issuedAt: (settled && s.paidAt ? s.paidAt : snap.createdAt).toISOString(),
           issuer: p ? { business: p.business, office: p.name, tin: pointTin, phone: p.phone, address: [p.address, p.district, p.region].filter(Boolean).join(", ") } : null,
+          agent,
           billTo: payer === "sender" ? { name: s.shipper.name, phone: s.shipper.phone, tin: s.shipper.company?.tin ?? null } : { name: s.consignee.name, phone: s.consignee.phone, tin: s.consignee.company?.tin ?? null },
           lines: snap.lines.map((l) => ({ label: l.label, amount: l.amount })),
           subtotal: snap.subtotal,

@@ -6,7 +6,8 @@ import { cn } from "@/lib/utils";
 /**
  * The Terms-page layout, shared by Terms, Privacy, Track, Contact and Report lost item:
  *  navbar · dark title band with the trade-corridor map cropped on the right · fixed sidebar · scrolling main column · footer.
- * On large screens the page itself never scrolls; only the main column does (with a hidden scrollbar).
+ * On large screens the page itself never scrolls; only the main column does (with a hidden scrollbar). On phones the
+ * whole page scrolls as one (a nested scroll area traps the thumb).
  */
 export function BandLayout({
   locale,
@@ -48,7 +49,7 @@ export function BandLayout({
       />
       <div
         className={cn(
-          "mx-auto grid min-h-0 w-full max-w-6xl flex-1",
+          "mx-auto grid w-full max-w-6xl flex-1 lg:min-h-0",
           sidebar && "lg:grid-cols-[280px_minmax(0,1fr)] lg:gap-12",
         )}
       >
@@ -65,7 +66,7 @@ export function BandLayout({
         <div
           id={scrollId}
           className={cn(
-            "no-scrollbar order-1 min-h-0 overflow-y-auto overscroll-contain px-4 py-6 sm:px-6 lg:order-2",
+            "no-scrollbar order-1 px-4 py-6 sm:px-6 lg:order-2 lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain",
             sidebar && "lg:pl-0",
           )}
         >
