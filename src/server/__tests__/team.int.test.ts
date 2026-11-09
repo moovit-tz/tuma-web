@@ -6,7 +6,7 @@ import { accounts, agents, branches, kybApplications, outbox, platformSettings, 
 import { appMe, driverContext, finishDriverLogin, swapHandoff, type DriverCtx } from "../services/drivers";
 import { applyKybDecision, submitKyb } from "../services/kyb";
 import { updateWorkflow, workflowFor } from "../services/agent-settings";
-import { acceptInvite, createInvite, createStaffRole, declineInvite, inviteByCode, inviteByToken, invitesFor, resendInvite, revokeInvite, teamOverview } from "../services/team-invites";
+import { acceptInvite, createInvite, lookupPerson, createStaffRole, declineInvite, inviteByCode, inviteByToken, invitesFor, resendInvite, revokeInvite, teamOverview } from "../services/team-invites";
 import { addOffice, listOffices, officeDetail, updateOffice } from "../services/branches";
 import { createParcel } from "../services/shipments";
 import { parcelOrderSchema } from "@/domain/order-schema";
@@ -206,6 +206,16 @@ describe("setting up a business while it's reviewed, and inviting staff", () => 
     expect(perms.has("team.manage")).toBe(false);
     expect(await invitesFor(await userOf(STAFF))).toEqual([]);
     await expect(acceptInvite(await userOf(STAFF), { id: me.invites[0].id })).rejects.toMatchObject({ code: "ALREADY_JOINED" });
+  });
+
+  it("looks a number up for a phone-first invite: the Ondi name, and whether they're on the team", async () => {
+    const owner = await userOf(OWNER);
+    expect(await lookupPerson(owner, "0712 000 111")).toMatchObject({ found: true, name: "Juma Staff", onTeam: true });
+    expect(await lookupPerson(owner, "0799 999 999")).toMatchObject({ found: true, onTeam: false, otherBusiness: false });
+    expect(await lookupPerson(owner, "0788 000 000")).toEqual({ phone: "+255788000000", found: false });
+    await expect(lookupPerson(owner, "12")).rejects.toMatchObject({ code: "VALIDATION" });
+    // Someone who can't manage the team can't look people up.
+    await expect(lookupPerson(await userOf(STAFF), "0712 000 111")).rejects.toBeTruthy();
   });
 
   it("offers office staff, courier and store keeper; only the owner makes a custom kind of staff", async () => {

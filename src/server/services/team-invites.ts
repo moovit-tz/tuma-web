@@ -12,6 +12,7 @@ import type { CurrentUser } from "../auth/current-user";
 import { toE164TZ } from "@/domain/phone";
 import { AGENT_CUSTOM_GRANTABLE, AGENT_STAFF_ROLES, type Permission } from "@/domain/roles";
 import { updateTag } from "next/cache";
+import { allowLookup } from "./tracking";
 import { ROLES_TAG } from "../rbac";
 import { CORPORATE_ROLES } from "./corporate";
 
@@ -406,4 +407,20 @@ async function findForResponse(tx: Tx, user: CurrentUser, ref: InviteRef) {
   if (inv.status !== "pending") throw new DomainError("CLOSED", "This invitation was cancelled or already answered.", 409);
   if (inv.expiresAt.getTime() < Date.now()) throw new DomainError("EXPIRED", "This invitation has expired. Ask for a new one.", 410);
   return inv;
+}
+
+/**
+ * Phone-first invites: who is this number on Tuma? Tuma keeps a copy of each person's Ondi profile when they sign in,
+ * so the inviter sees the name Ondi has instead of typing it. Ondi itself has no lookup by phone, on purpose (it would
+ * be a phone-enumeration oracle); here it is limited to people who can manage a team, rate-limited per inviter, and
+ * returns only the name and whether they're already on this team or another business.
+ */
+export async function lookupPerson(user: CurrentUser, rawPhone: string) {
+  const accountId = companyOf(user);
+  const phone = toE164TZ(rawPhone);
+  if (!phone) throw new DomainError("VALIDATION", "Enter a valid phone number.", 400);
+  if (!allowLookup(`team-lookup:${user.id}`)) throw new DomainError("RATE_LIMITED", "Too many lookups. Wait a minute.", 429);
+  const [u] = await db.select({ name: users.name, accountId: users.accountId, active: users.active }).from(users).where(eq(users.phone, phone)).limit(1);
+  if (!u || !u.active) return { phone, found: false as const };
+  return { phone, found: true as const, name: u.name ?? "", onTeam: u.accountId === accountId, otherBusiness: !!u.accountId && u.accountId !== accountId };
 }
