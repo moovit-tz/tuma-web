@@ -32,6 +32,11 @@
   --color-sidebar-muted: var(--sidebar-muted);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent: var(--sidebar-accent);
+  --color-rail: var(--rail);
+  --color-rail-foreground: var(--rail-foreground);
+  --color-rail-muted: var(--rail-muted);
+  --color-rail-border: var(--rail-border);
+  --color-rail-hover: var(--rail-hover);
   --color-brand-red: var(--brand-red);
   --color-brand-tan: var(--brand-tan);
   --color-parcel: var(--parcel);
@@ -67,6 +72,12 @@
   --ring: #cf2a2a;
   --radius: 0.5rem;
   --sunken: #eaeae5;
+  /* The portal's sidebar: light in light mode, black in dark mode. */
+  --rail: #ffffff;
+  --rail-foreground: #16171b;
+  --rail-muted: #74766f;
+  --rail-border: #e2e2dc;
+  --rail-hover: #f1f1ec;
   --sidebar: #000000;
   --sidebar-foreground: #f2f0ea;
   --sidebar-muted: #a59b87;
@@ -103,6 +114,11 @@
     --ring: #ff5757;
     --sunken: #1c1c1f;
     --sidebar-accent: #121212;
+    --rail: #000000;
+    --rail-foreground: #f2f0ea;
+    --rail-muted: #a59b87;
+    --rail-border: #26262a;
+    --rail-hover: #141416;
     --parcel: #ff5757;
     --cargo: #b8ae99;
     --ok: #4cc38a;
@@ -133,6 +149,11 @@
   --ring: #ff5757;
   --sunken: #1c1c1f;
   --sidebar-accent: #121212;
+  --rail: #000000;
+  --rail-foreground: #f2f0ea;
+  --rail-muted: #a59b87;
+  --rail-border: #26262a;
+  --rail-hover: #141416;
   --parcel: #ff5757;
   --cargo: #b8ae99;
   --ok: #4cc38a;

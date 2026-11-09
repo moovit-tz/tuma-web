@@ -87,7 +87,7 @@ const collapseStore = {
 };
 
 /**
- * The portal frame, after the MySafari parcel portal: a fixed dark sidebar that collapses to icons,
+ * The portal frame: a fixed sidebar (light or dark with the theme) that collapses to icons,
  * a fixed top bar with the page title, search and actions, and a main area that scrolls on its own.
  */
 export function PortalFrame({ nav, systemGroup, user, quickActions, search, children }: Props) {
@@ -218,11 +218,11 @@ function Sidebar({
         href={item.href}
         aria-current={isActive ? "page" : undefined}
         className={cn(
-          "flex items-center gap-3.5 border-l-4 outline-none transition-colors focus-visible:bg-white/[0.08]",
+          "flex items-center gap-3.5 border-l-4 outline-none transition-colors focus-visible:bg-rail-hover",
           collapsed ? "justify-center px-0 py-3.5" : sub ? "py-2.5 pr-5 pl-[3.25rem] text-[13.5px]" : "px-5 py-3 text-[14px]",
           isActive
-            ? cn("border-brand-red text-sidebar-foreground font-semibold", sub ? "bg-brand-red/[0.08]" : "bg-brand-red/[0.16]")
-            : "text-sidebar-foreground/60 hover:text-sidebar-foreground border-transparent hover:bg-white/[0.05]",
+            ? cn("border-brand-red text-rail-foreground font-semibold", sub ? "bg-brand-red/[0.07]" : "bg-brand-red/[0.11]")
+            : "text-rail-foreground/60 hover:text-rail-foreground border-transparent hover:bg-rail-hover",
         )}
       >
         {(!sub || collapsed) && <Icon className="size-[19px] shrink-0" aria-hidden />}
@@ -251,7 +251,7 @@ function Sidebar({
     if (flat)
       return (
         <li key={e.label} className="mt-3 first:mt-0">
-          <p className="text-sidebar-muted px-6 pt-2 pb-1 text-[11px] font-semibold tracking-[0.08em] uppercase">{e.label}</p>
+          <p className="text-rail-muted px-6 pt-2 pb-1 text-[11px] font-semibold tracking-[0.08em] uppercase">{e.label}</p>
           <ul>{e.items.map((i) => link(i))}</ul>
         </li>
       );
@@ -265,8 +265,8 @@ function Sidebar({
           aria-expanded={isOpen}
           onClick={() => setOpen(isOpen ? null : e.label)}
           className={cn(
-            "flex w-full items-center gap-3.5 border-l-4 px-5 py-3 text-left text-[14px] outline-none transition-colors focus-visible:bg-white/[0.08]",
-            holdsActive ? "border-brand-red text-sidebar-foreground bg-white/[0.04] font-semibold" : "text-sidebar-foreground/60 hover:text-sidebar-foreground border-transparent hover:bg-white/[0.05]",
+            "flex w-full items-center gap-3.5 border-l-4 px-5 py-3 text-left text-[14px] outline-none transition-colors focus-visible:bg-rail-hover",
+            holdsActive ? "border-brand-red text-rail-foreground bg-rail-hover font-semibold" : "text-rail-foreground/60 hover:text-rail-foreground border-transparent hover:bg-rail-hover",
           )}
         >
           <Icon className="size-[19px] shrink-0" aria-hidden />
@@ -274,19 +274,19 @@ function Sidebar({
           <ChevronDown className={cn("size-4 opacity-60 transition-transform duration-200", isOpen && "rotate-180")} aria-hidden />
         </button>
         <div className={cn("grid transition-[grid-template-rows] duration-200", isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
-          <ul className="overflow-hidden bg-black/30">{e.items.map((i) => link(i, true))}</ul>
+          <ul className="overflow-hidden bg-rail-hover/60">{e.items.map((i) => link(i, true))}</ul>
         </div>
       </li>
     );
   };
 
-  const label = (text: string) => !collapsed && <p className="text-sidebar-muted mb-2 px-6 font-mono text-[10.5px] tracking-[0.14em] uppercase">{text}</p>;
+  const label = (text: string) => !collapsed && <p className="text-rail-muted mb-2 px-6 font-mono text-[10.5px] tracking-[0.14em] uppercase">{text}</p>;
 
   return (
-    <div className="bg-sidebar text-sidebar-foreground border-sidebar-border flex h-full flex-col border-r">
-      <div className={cn("border-sidebar-border flex h-16 shrink-0 items-center border-b", collapsed ? "justify-center" : "justify-between pr-3 pl-5")}>
+    <div className="bg-rail text-rail-foreground border-rail-border flex h-full flex-col border-r">
+      <div className={cn("border-rail-border flex h-16 shrink-0 items-center border-b", collapsed ? "justify-center" : "justify-between pr-3 pl-5")}>
         {collapsed ? (
-          <button type="button" onClick={onToggle} aria-label={t.shell.expand} className="rounded-md p-1.5 outline-none hover:bg-white/[0.08] focus-visible:bg-white/[0.08]">
+          <button type="button" onClick={onToggle} aria-label={t.shell.expand} className="rounded-md p-1.5 outline-none hover:bg-rail-hover focus-visible:bg-rail-hover">
             <TumaMark className="size-8" />
           </button>
         ) : (
@@ -298,7 +298,7 @@ function Sidebar({
               type="button"
               onClick={mobile ? onClose : onToggle}
               aria-label={mobile ? t.shell.closeMenu : t.shell.collapse}
-              className="text-sidebar-foreground/60 hover:text-sidebar-foreground rounded-md p-2 outline-none hover:bg-white/[0.08] focus-visible:bg-white/[0.08]"
+              className="text-rail-foreground/60 hover:text-rail-foreground rounded-md p-2 outline-none hover:bg-rail-hover focus-visible:bg-rail-hover"
             >
               {mobile ? <X className="size-5" /> : <ChevronsLeft className="size-5" />}
             </button>
@@ -311,7 +311,7 @@ function Sidebar({
         {label(t.shell.menu)}
         <ul className="flex flex-col">{sections.main.map(entry)}</ul>
         {sections.system.length > 0 && (
-          <div className={cn("border-sidebar-border mt-6 border-t pt-6", collapsed && "mt-4 pt-4")}>
+          <div className={cn("border-rail-border mt-6 border-t pt-6", collapsed && "mt-4 pt-4")}>
             {label(t.shell.system)}
             <ul className="flex flex-col">{sections.system.map((i) => link(i))}</ul>
           </div>
@@ -319,7 +319,7 @@ function Sidebar({
         </TooltipProvider>
       </nav>
 
-      <div className="border-sidebar-border shrink-0 border-t bg-white/[0.03] p-3">
+      <div className="border-rail-border shrink-0 border-t bg-rail-hover/50 p-3">
         {/* Phones: the theme sits in the menu, so the top bar stays uncluttered. */}
         {mobile && (
           <div className="mb-3">
@@ -333,7 +333,7 @@ function Sidebar({
           {!collapsed && (
             <div className="min-w-0 flex-1 leading-tight">
               <p className="truncate text-sm font-semibold">{user.name}</p>
-              <p className="text-sidebar-muted truncate text-xs">{user.company ?? user.roleLabel}</p>
+              <p className="text-rail-muted truncate text-xs">{user.company ?? user.roleLabel}</p>
             </div>
           )}
           {/* Phones keep the language switch here so the top bar stays uncluttered. */}
@@ -342,7 +342,7 @@ function Sidebar({
             <button
               title={t.common.signOut}
               aria-label={t.common.signOut}
-              className="text-sidebar-foreground/60 rounded-md p-2 outline-none transition-colors hover:bg-red-500/15 hover:text-red-300 focus-visible:bg-red-500/15"
+              className="text-rail-foreground/60 rounded-md p-2 outline-none transition-colors hover:bg-red-500/15 hover:text-brand-red focus-visible:bg-red-500/15"
             >
               <LogOut className="size-[18px]" />
             </button>
