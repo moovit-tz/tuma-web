@@ -9,7 +9,7 @@ import { issueCompanyInvoice, markPaid, receiveOnceFor, settlePayment } from "./
 import { momoEnabled, momoOffError, ownParcels, seesAllMoney } from "./agent-payments";
 import { refundToWallet } from "./wallet";
 import { toE164 } from "@/domain/phone";
-import { createParcel, DomainError, transition } from "./shipments";
+import { createParcel, DomainError, offlineTime, transition } from "./shipments";
 import { enqueue } from "../adapters/outbox";
 import { verifyTrackingOtp } from "./tracking";
 import { trialFor } from "../rbac";
@@ -404,7 +404,10 @@ export const moveSchema = z.object({
   code: z.string().trim().max(12).optional(),
   /** An optional proof-of-delivery photo, uploaded first (POST /api/driver/uploads kind=pod). */
   photo: z.string().regex(/^pod\/[\w/.-]+$/).max(200).optional(),
+  /** Done without network and synced later: when it really happened at the counter (the app's clock). */
+  doneAt: z.coerce.date().optional(),
 });
+
 
 const CODE_ERRORS = {
   invalid: "That's not the receiver's code. Check the SMS with them, or send a new one.",
@@ -434,8 +437,12 @@ export async function agentMove(user: CurrentUser, rawWaybill: string, raw: unkn
   if (m.to === "RECEIVED" && !s.handlingPartnerId) {
     await db.update(shipments).set({ handlingPartnerId: user.accountId, handlingBranchId: user.branchId ?? null }).where(eq(shipments.id, s.id));
   }
+  const doneAt = offlineTime(m.doneAt);
   await transition(user, s.waybill, m.to, {
     source: "field_app",
+    occurredAt: doneAt,
+    offline: !!doneAt,
+    data: doneAt ? { offline: true } : undefined,
     reasonCode: m.reasonCode,
     note: m.note,
     collectMethod: m.collectMethod,

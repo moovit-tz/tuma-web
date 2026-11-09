@@ -6,7 +6,7 @@ import { accounts, branches, dispatchers, jobShipments, jobs, manifestItems, man
 import { audit } from "../audit";
 import { ulid } from "../ids";
 import type { CurrentUser } from "../auth/current-user";
-import { DomainError, transition } from "./shipments";
+import { DomainError, offlineTime, transition } from "./shipments";
 import { smallestFor } from "./dispatch";
 import { normaliseWaybill } from "@/domain/waybill-number";
 import { canTransition, type ShipmentState } from "@/domain/states";
@@ -395,7 +395,7 @@ export async function manifestDetail(user: CurrentUser, id: string) {
 
 /* ---------------------------------------------------------------- offload */
 
-export const offloadSchema = z.object({ waybill: z.string().trim().min(1) });
+export const offloadSchema = z.object({ waybill: z.string().trim().min(1), doneAt: z.coerce.date().optional() });
 
 /**
  * The point a manifest is going to checks a parcel in (scanned, or picked when the label won't read): it becomes this
@@ -404,7 +404,10 @@ export const offloadSchema = z.object({ waybill: z.string().trim().min(1) });
  */
 export async function offloadParcel(user: CurrentUser, id: string, raw: unknown) {
   const acct = businessOf(user);
-  const { waybill } = normaliseWaybill(offloadSchema.parse(raw).waybill);
+  const input = offloadSchema.parse(raw);
+  const { waybill } = normaliseWaybill(input.waybill);
+  // Checked in without network and synced later: when it really arrived.
+  const doneAt = offlineTime(input.doneAt);
   if (!z.string().uuid().safeParse(id).success) throw new DomainError("NOT_FOUND", "We couldn't find that manifest.", 404);
   const [mf] = await db
     .select()
@@ -428,9 +431,15 @@ export async function offloadParcel(user: CurrentUser, id: string, raw: unknown)
 
   await db.transaction(async (tx) => {
     await tx.update(shipments).set({ handlingPartnerId: acct, handlingBranchId: mf.toBranchId, deliveryBranchId: collectHere ? mf.toBranchId : s.deliveryBranchId }).where(eq(shipments.id, s.id));
-    await tx.update(manifestItems).set({ arrivedAt: new Date(), arrivedBy: user.id }).where(and(eq(manifestItems.manifestId, mf.id), eq(manifestItems.shipmentId, s.id)));
+    await tx.update(manifestItems).set({ arrivedAt: doneAt ?? new Date(), arrivedBy: user.id }).where(and(eq(manifestItems.manifestId, mf.id), eq(manifestItems.shipmentId, s.id)));
   });
-  await transition(user, waybill, next, { source: "scan", note: `Checked in from ${mf.ref}`, data: { manifest: mf.ref } });
+  await transition(user, waybill, next, {
+    source: "scan",
+    note: `Checked in from ${mf.ref}`,
+    occurredAt: doneAt,
+    offline: !!doneAt,
+    data: { manifest: mf.ref, ...(doneAt ? { offline: true } : {}) },
+  });
   const [left] = (await db.execute(sql`select count(*)::int n from ${manifestItems} where manifest_id = ${mf.id} and arrived_at is null`)) as unknown as { n: number }[];
   if (left.n === 0) await db.update(manifests).set({ status: "arrived", arrivedAt: new Date() }).where(eq(manifests.id, mf.id));
   return { checkedIn: { waybill, state: next, receiver: s.consignee.name }, manifest: await manifestDetail(user, mf.id) };

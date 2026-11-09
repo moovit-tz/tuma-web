@@ -1733,3 +1733,21 @@ export const payoutLines = pgTable(
   },
   (t) => [uniqueIndex("payout_lines_source_uq").on(t.sourceType, t.sourceId), index("payout_lines_payout_idx").on(t.payoutId)],
 );
+
+/**
+ * Requests the app sent with an Idempotency-Key (the offline outbox replays them when the network is back): the
+ * answer is kept, so a request sent twice is done once and answered the same both times. Cleared after 30 days.
+ */
+export const idempotencyKeys = pgTable(
+  "idempotency_keys",
+  {
+    userId: text("user_id").notNull(),
+    key: text("key").notNull(),
+    method: text("method").notNull(),
+    path: text("path").notNull(),
+    status: integer("status").notNull(),
+    body: jsonb("body"),
+    createdAt: ts("created_at").notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.key] }), index("idempotency_keys_created_idx").on(t.createdAt)],
+);

@@ -257,6 +257,15 @@ export async function createParcel(
   return { shipment: created, duplicateRef };
 }
 
+/** A time the app says something was done offline: kept if it's within the last week and not in the future. */
+export function offlineTime(at: Date | undefined) {
+  if (!at) return undefined;
+  const now = Date.now();
+  const t = at.getTime();
+  if (Number.isNaN(t) || t > now + 2 * 60_000 || t < now - 7 * 24 * 3600_000) return undefined;
+  return at;
+}
+
 /* ------------------------------------------------------------- lifecycle */
 
 type TransitionOpts = {
@@ -265,6 +274,8 @@ type TransitionOpts = {
   source: "manual" | "scan" | "field_app" | "portal" | "system";
   locationId?: string;
   occurredAt?: Date;
+  /** Done offline and synced later: the device time is expected to be behind, not a skewed clock. */
+  offline?: boolean;
   pod?: { method: "otp" | "signature" | "photo" | "counter"; receiverName?: string; photo?: string };
   /** Where the device was when the event happened (field app). */
   lat?: number;
@@ -310,7 +321,7 @@ export async function transition(user: CurrentUser | "system", waybill: string, 
       type: eventTypeFor(to),
       stateAfter: to,
       occurredAt,
-      clockSkew: Math.abs(occurredAt.getTime() - now.getTime()) > 10 * 60 * 1000, // FR-TRK-06
+      clockSkew: !opts.offline && Math.abs(occurredAt.getTime() - now.getTime()) > 10 * 60 * 1000, // FR-TRK-06
       source: opts.source,
       actorType: user === "system" ? "system" : "user",
       actorId: user === "system" ? null : user.id,

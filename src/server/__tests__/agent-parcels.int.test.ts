@@ -1,4 +1,8 @@
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { NextRequest } from "next/server";
+
+// Route handlers run outside a request here: what they'd do after the response is skipped.
+vi.mock("next/server", async (orig) => ({ ...(await orig<typeof import("next/server")>()), after: () => {} }));
 import { createHash, randomBytes } from "node:crypto";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { db } from "../db/client";
@@ -25,6 +29,14 @@ async function signIn(sub: string): Promise<DriverCtx> {
   return (await driverContext(await verifyDriverToken(token)))!;
 }
 
+/** A bearer token for [sub], as the app holds it. */
+async function tokenFor(sub: string) {
+  const verifier = randomBytes(32).toString("base64url");
+  const challenge = createHash("sha256").update(verifier).digest("base64url");
+  const code = await finishDriverLogin({ sub, name: "Juma Counter", email: "juma@example.test", phone: "+255711000777", roles: [] }, challenge);
+  return (await swapHandoff(code, verifier)).token;
+}
+
 async function cleanup() {
   const rows = await db.select({ accountId: users.accountId }).from(users).where(inArray(users.id, SUBS));
   const apps = await db.select({ accountId: kybApplications.accountId }).from(kybApplications).where(inArray(kybApplications.userId, SUBS));
@@ -46,6 +58,7 @@ async function cleanup() {
     await db.delete(branches).where(inArray(branches.accountId, accts));
     await db.delete(accounts).where(inArray(accounts.id, accts));
   }
+  await db.execute(sql`delete from idempotency_keys where user_id in (${sql.join(SUBS.map((s) => sql`${s}`), sql`, `)})`);
   await db.execute(sql`delete from driver_handoffs where user_id in (${sql.join(SUBS.map((s) => sql`${s}`), sql`, `)})`);
   await db.delete(users).where(inArray(users.id, SUBS));
 }
@@ -439,16 +452,47 @@ describe("parcel work at the agent counter (app)", () => {
 
   it("shows counter staff only the payments and invoices on their own parcels; the owner sees the business's", async () => {
     const all = await paymentRecords(me.user, { kind: "payments" });
-    expect(all.payments.length).toBeGreaterThan(0);
+    expect(all.payments?.length).toBeGreaterThan(0);
     const staff = { ...me.user, id: `staff-${Date.now()}`, permissions: new Set([...me.user.permissions].filter((p) => p !== "agent.wallet.manage" && p !== "report.view")) } as typeof me.user;
     expect((await paymentRecords(staff, { kind: "payments" })).payments).toEqual([]);
     expect((await paymentRecords(staff, { kind: "invoices" })).invoices).toEqual([]);
-    await expect(paymentDetail(staff, all.payments[0].waybill)).rejects.toMatchObject({ code: "NOT_FOUND" });
+    await expect(paymentDetail(staff, all.payments![0].waybill)).rejects.toMatchObject({ code: "NOT_FOUND" });
     const s = await paymentSettingsFor(staff);
     expect(s.scope).toBe("mine");
     expect(s.collected.month.total).toBe(0);
     expect((await paymentSettingsFor(me.user)).scope).toBe("business");
     expect((await agentSummary(staff)).moneyScope).toBe("mine");
+  });
+
+  it("syncs a move made offline once, at the time it was made, however many times the app sends it", async () => {
+    const { parcel } = await agentBook(me.user, booking({ payer: "sender", paidWith: "cash" }));
+    const before = await agentParcel(me.user, parcel.waybill);
+    const to = before.moves.find((m: string) => m !== "DELIVERED" && m !== "ATTEMPT_FAILED");
+    expect(to).toBeTruthy();
+    const doneAt = new Date(Date.now() - 45 * 60_000);
+    const { POST } = await import("@/app/api/app/agent/parcels/[waybill]/route");
+    const token = await tokenFor(OWNER);
+    const send = () =>
+      POST(
+        new NextRequest(`http://test/api/app/agent/parcels/${parcel.waybill}`, {
+          method: "POST",
+          headers: { authorization: `Bearer ${token}`, "idempotency-key": "offline-test-key-1", "content-type": "application/json" },
+          body: JSON.stringify({ to, doneAt: doneAt.toISOString() }),
+        }),
+        { params: Promise.resolve({ waybill: parcel.waybill }) },
+      );
+    const first = await send();
+    expect(first.status).toBe(200);
+    const again = await send();
+    expect(again.status).toBe(200);
+    expect(again.headers.get("idempotent-replay")).toBe("true");
+    expect(await again.json()).toEqual(await first.json());
+    const [s] = await db.select({ id: shipments.id }).from(shipments).where(eq(shipments.waybill, parcel.waybill));
+    const moved = await db.select().from(events).where(and(eq(events.shipmentId, s.id), sql`${events.stateAfter} = ${to}`));
+    expect(moved).toHaveLength(1);
+    expect(moved[0].occurredAt.getTime()).toBe(doneAt.getTime());
+    expect(moved[0].clockSkew).toBe(false);
+    expect(moved[0].data).toMatchObject({ offline: true });
   });
 
   it("suggests merging customers with the same name, and a merged number still finds the one kept", async () => {
