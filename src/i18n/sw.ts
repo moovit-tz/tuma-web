@@ -1195,6 +1195,10 @@ const sw: Dict = {
       door: "Hadi mlangoni",
       collect: "Kuchukua kituoni",
       showing: "Inaonyesha {n} vya karibuni",
+      print: "Chapisha orodha",
+      printedAt: "Imechapishwa {at} na {name} · vifurushi {n}",
+      countedBy: "Imehesabiwa na",
+      signature: "Sahihi",
     },
     parcel: {
       dispatch: "Safirisha",

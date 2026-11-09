@@ -1193,6 +1193,10 @@ const en = {
       door: "To the door",
       collect: "Collect at a point",
       showing: "Showing the latest {n}",
+      print: "Print list",
+      printedAt: "Printed {at} by {name} · {n} parcels",
+      countedBy: "Counted by",
+      signature: "Signature",
     },
     parcel: {
       dispatch: "Dispatch",
