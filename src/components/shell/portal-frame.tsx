@@ -2,7 +2,7 @@
 import { useMemo, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Boxes, Building, Building2, ChevronDown, ChevronsLeft, HandCoins, LayoutDashboard, LogOut, Menu, Package, PackagePlus, RadioTower, Receipt, Search, ShieldCheck, TriangleAlert, Truck, Users, Wallet, X, type LucideIcon, Send, Bike, Settings2, ClipboardList, ChartColumn, Bell, LifeBuoy, Landmark, UserCheck } from "lucide-react";
+import { Boxes, Building, Building2, ChevronDown, ChevronsLeft, HandCoins, LayoutDashboard, LogOut, Menu, Package, PackagePlus, RadioTower, Receipt, Search, ShieldCheck, TriangleAlert, Truck, Users, Wallet, X, type LucideIcon, Send, Bike, Settings2, ClipboardList, ChartColumn, Bell, LifeBuoy, Landmark, UserCheck, SlidersHorizontal, Siren } from "lucide-react";
 import { useI18n } from "@/i18n/client";
 import { TumaMark, TumaWordmark } from "@/components/brand/logo";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -37,6 +37,8 @@ export const NAV_ICONS = {
   support: LifeBuoy,
   finance: Landmark,
   access: UserCheck,
+  grants: SlidersHorizontal,
+  breakglass: Siren,
 } satisfies Record<string, LucideIcon>;
 
 export type NavItem = { href: string; label: string; icon: keyof typeof NAV_ICONS; exact?: boolean; group?: string };

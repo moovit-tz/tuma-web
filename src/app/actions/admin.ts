@@ -58,3 +58,25 @@ export async function recheckPaymentAction(source: "momo" | "topup", reference: 
 export async function walletAdjustmentAction(input: { userId: string; amount: number; reason: string; waybill?: string }) {
   return run((u) => requestWalletAdjustment(u, { ...input, waybill: input.waybill || undefined }));
 }
+
+/* -------------------------------------------------- grants and break-glass */
+
+export async function grantChangeAction(roleKey: string, permission: string, v: Record<string, string>) {
+  const { requestGrantChange } = await import("@/server/services/admin/grants");
+  return run((u) => requestGrantChange(u, { roleKey, permission, scope: v.scope, maxAmount: v.maxAmount, reason: v.reason }));
+}
+
+export async function breakglassAction(v: Record<string, string>) {
+  const { requestElevation } = await import("@/server/services/admin/breakglass");
+  return run((u) => requestElevation(u, v));
+}
+
+export async function endBreakglassAction(id: string) {
+  const { endElevation } = await import("@/server/services/admin/breakglass");
+  return run((u) => endElevation(u, id));
+}
+
+export async function reviewBreakglassAction(id: string) {
+  const { reviewElevation } = await import("@/server/services/admin/breakglass");
+  return run((u) => reviewElevation(u, id));
+}

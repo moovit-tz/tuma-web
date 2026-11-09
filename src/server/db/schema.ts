@@ -9,6 +9,7 @@
 import { sql } from "drizzle-orm";
 import type { AppLocale, ChargeLine } from "../../domain/types";
 import {
+  bigint,
   bigserial,
   boolean,
   doublePrecision,
@@ -186,6 +187,13 @@ export const rolePermissions = pgTable(
       .notNull()
       .references(() => roles.key, { onDelete: "cascade", onUpdate: "cascade" }),
     permission: text("permission").notNull(),
+    /**
+     * Where the grant applies: "all", or a comma-separated list of "region:<name>" / "country:<CC>". Screens that list
+     * parcels or money for the whole network filter to it.
+     */
+    scope: text("scope").notNull().default("all"),
+    /** The most money (TZS) one action under this grant may move or approve; null = no limit. */
+    maxAmount: bigint("max_amount", { mode: "number" }),
   },
   (t) => [primaryKey({ columns: [t.roleKey, t.permission] })],
 );
@@ -1463,4 +1471,28 @@ export const accessReviews = pgTable(
     at: ts("at").notNull().defaultNow(),
   },
   (t) => [index("access_reviews_user_idx").on(t.userId, t.at)],
+);
+
+/**
+ * Break-glass: someone on call takes a staff role for a few hours (1–8) with a reason, without waiting for a second
+ * person. It ends by itself at `expiresAt` (or earlier when ended), and every one shows in the access review.
+ */
+export const accessElevations = pgTable(
+  "access_elevations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id),
+    roleKey: text("role_key").notNull(),
+    reason: text("reason").notNull(),
+    startedAt: ts("started_at").notNull().defaultNow(),
+    expiresAt: ts("expires_at").notNull(),
+    endedAt: ts("ended_at"),
+    endedBy: text("ended_by"),
+    /** Set when a reviewer has looked at it in the access review. */
+    reviewedBy: text("reviewed_by"),
+    reviewedAt: ts("reviewed_at"),
+  },
+  (t) => [index("access_elevations_user_idx").on(t.userId, t.expiresAt)],
 );

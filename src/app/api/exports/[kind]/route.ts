@@ -3,7 +3,9 @@ import { getCurrentUser } from "@/server/auth/current-user";
 import { paymentRecords } from "@/server/services/agent-payments";
 import { agentReport } from "@/server/services/agent-parcels";
 import { DomainError } from "@/server/services/shipments";
-import { csvResponse, toCsv } from "@/lib/csv";
+import { csvResponse, toCsv, watermark } from "@/lib/csv";
+import { db } from "@/server/db/client";
+import { audit } from "@/server/audit";
 
 const MAX_PAGES = 50; // 5,000 rows
 
@@ -17,6 +19,11 @@ export async function GET(req: NextRequest, ctx: RouteContext<"/api/exports/[kin
   const { kind } = await ctx.params;
   const q = Object.fromEntries(req.nextUrl.searchParams);
   const day = new Date().toISOString().slice(0, 10);
+  // Every export carries who took it and when, and is logged.
+  const send = async (name: string, body: string, rows: number) => {
+    await db.transaction((tx) => audit(tx, { actorId: user.id, action: "export.csv", entity: "export", entityId: kind, after: { file: name, rows, query: q } }));
+    return csvResponse(name, body + watermark(user.name, user.id));
+  };
   try {
     if (kind === "payments") {
       const rows: unknown[][] = [];
@@ -28,7 +35,7 @@ export async function GET(req: NextRequest, ctx: RouteContext<"/api/exports/[kin
         if (page.length < 100) break;
         before = page[page.length - 1].at;
       }
-      return csvResponse(`tuma-payments-${day}.csv`, toCsv(["paid_at", "waybill", "amount_tzs", "method", "paid_by", "terms"], rows));
+      return send(`tuma-payments-${day}.csv`, toCsv(["paid_at", "waybill", "amount_tzs", "method", "paid_by", "terms"], rows), rows.length);
     }
     if (kind === "invoices") {
       const rows: unknown[][] = [];
@@ -40,12 +47,12 @@ export async function GET(req: NextRequest, ctx: RouteContext<"/api/exports/[kin
         if (page.length < 100) break;
         before = page[page.length - 1].at;
       }
-      return csvResponse(`tuma-invoices-${day}.csv`, toCsv(["number", "issued", "due", "bill_to", "status", "total_tzs", "tax_tzs", "paid_tzs", "owed_tzs", "overdue"], rows));
+      return send(`tuma-invoices-${day}.csv`, toCsv(["number", "issued", "due", "bill_to", "status", "total_tzs", "tax_tzs", "paid_tzs", "owed_tzs", "overdue"], rows), rows.length);
     }
     if (kind === "report") {
       const r = await agentReport(user, { period: q.period });
       const rows: unknown[][] = r.series.map((d) => [d.day, d.parcels, d.value, d.delivered]);
-      return csvResponse(`tuma-report-${r.period}-${day}.csv`, toCsv(["day", "parcels_booked", "value_tzs", "delivered"], rows));
+      return send(`tuma-report-${r.period}-${day}.csv`, toCsv(["day", "parcels_booked", "value_tzs", "delivered"], rows), rows.length);
     }
     return new Response("Not found", { status: 404 });
   } catch (e) {

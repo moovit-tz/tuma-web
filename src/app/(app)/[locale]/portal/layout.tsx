@@ -38,6 +38,8 @@ export default async function PortalLayout({ children, params }: LayoutProps<"/[
     { href: `${base}/admin/finance`, label: t.admin.nav.finance, icon: "finance", permission: "finance.view", group: t.admin.nav.group },
     { href: `${base}/admin/approvals`, label: t.admin.nav.approvals, icon: "roles", permission: ["approvals.decide", "users.manage", "finance.reconcile"], group: t.admin.nav.group },
     { href: `${base}/admin/access`, label: t.admin.nav.access, icon: "access", permission: "access.review", group: t.admin.nav.group },
+    { href: `${base}/admin/grants`, label: t.staff.nav.grants, icon: "grants", permission: "roles.manage", group: t.admin.nav.group },
+    { href: `${base}/admin/breakglass`, label: t.staff.nav.breakglass, icon: "breakglass", permission: ["breakglass.request", "access.review"], group: t.admin.nav.group },
     { href: `${base}/settings/roles`, label: t.nav.roles, icon: "roles", permission: ["roles.manage", "team.manage"], group: t.nav.settingsGroup },
     { href: `${base}/settings/users`, label: t.nav.team, icon: "users", permission: ["users.manage", "team.manage"], group: t.nav.settingsGroup },
     { href: `${base}/settings/business`, label: t.agent.biz.nav, icon: "settings", permission: "agent.workspace", group: t.nav.settingsGroup },
@@ -60,7 +62,7 @@ export default async function PortalLayout({ children, params }: LayoutProps<"/[
         { key: "team", href: `${base}/settings/users`, permission: ["users.manage", "team.manage"] },
         { key: "roles", href: `${base}/settings/roles`, permission: ["roles.manage", "team.manage"] },
       ]}
-      gate={["shipment.read.own_account", "shipment.read.all", "tower.view", "support.view", "finance.view", "access.review", "approvals.decide", "partner.cargo.read", "team.manage", "partner.branches.manage"]}
+      gate={["shipment.read.own_account", "shipment.read.all", "tower.view", "support.view", "finance.view", "access.review", "approvals.decide", "breakglass.request", "partner.cargo.read", "team.manage", "partner.branches.manage"]}
       search={<PortalSearch />}
     >
       {children}

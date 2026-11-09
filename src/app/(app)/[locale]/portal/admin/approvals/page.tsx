@@ -24,8 +24,12 @@ export default async function ApprovalsPage({ params, searchParams }: PageProps<
   const rows = await listApprovals(user, tab);
   const base = `/${locale}/portal/admin/approvals`;
   const change = (r: (typeof rows)[number]) => {
-    const pl = r.payload as { roles?: string[]; amount?: number; accountId?: string };
+    const pl = r.payload as { roles?: string[]; amount?: number; accountId?: string; permission?: string; scope?: string; maxAmount?: number | null; summary?: string };
     if (r.kind === "role_grant") return fmt(a.roles, { roles: (pl.roles ?? []).join(", ") || t.common.none });
+    if (r.kind === "grant_limit")
+      return `${pl.permission} @ ${pl.scope === "all" ? t.staff.grants.everywhere : pl.scope} · ${pl.maxAmount == null ? t.staff.grants.noLimit : `≤ ${money(pl.maxAmount, locale)}`}`;
+    // Other kinds describe themselves (payouts, releases, settlements, price changes).
+    if (pl.summary) return pl.amount ? `${pl.summary} · ${money(Math.abs(pl.amount), locale)}` : pl.summary;
     const amt = money(Math.abs(pl.amount ?? 0), locale);
     return `${fmt((pl.amount ?? 0) > 0 ? a.credit : a.debit, { amount: amt })}${pl.accountId ? ` (${a.company})` : ""}`;
   };

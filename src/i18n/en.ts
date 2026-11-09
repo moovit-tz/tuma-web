@@ -1,3 +1,4 @@
+import consoleEn from "./console/en";
 const en = {
   brand: { tagline: "Parcel and cargo, one waybill.", by: "by Moovit" },
   common: {
@@ -1620,7 +1621,7 @@ const en = {
       pending: "Waiting",
       decided: "Decided",
       sentForApproval: "Sent for approval. It takes effect once someone else approves it.",
-      kinds: { role_grant: "Staff roles", wallet_adjust: "Wallet adjustment" } as Record<string, string>,
+      kinds: { role_grant: "Staff roles", wallet_adjust: "Wallet adjustment", grant_limit: "Grant scope and limit", payout: "Payout", risk_release: "Release a hold", claim_settle: "Claim settlement", price_publish: "Publish prices" } as Record<string, string>,
       about: "For",
       requestedBy: "Asked by",
       reason: "Reason",
@@ -1851,6 +1852,7 @@ const en = {
       change: "Change",
     },
   },
+  staff: consoleEn,
 };
 
 export default en;

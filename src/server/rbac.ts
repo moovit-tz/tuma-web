@@ -67,3 +67,53 @@ export async function effectivePermissions(
   const allowed = new Set<Permission>([...SETUP_PERMISSIONS, ...open]);
   return { permissions: new Set([...permissions].filter((p) => allowed.has(p))), accountStatus, trial };
 }
+
+/** What one permission allows: where (null = everywhere) and up to how much money per action (null = no limit). */
+export type Grant = { regions: string[] | null; countries: string[] | null; max: number | null };
+
+/**
+ * The scope and money limit of each permission the roles give. When several roles grant the same permission the
+ * widest wins: any "all" scope means everywhere, and any grant without a limit means no limit.
+ */
+async function grantRowsFor(roleKeys: string[]) {
+  "use cache";
+  cacheTag(ROLES_TAG);
+  cacheLife("minutes");
+  if (roleKeys.length === 0) return [];
+  return db
+    .select({ permission: rolePermissions.permission, scope: rolePermissions.scope, max: rolePermissions.maxAmount })
+    .from(rolePermissions)
+    .innerJoin(roles, eq(roles.key, rolePermissions.roleKey))
+    .where(and(inArray(rolePermissions.roleKey, roleKeys), eq(roles.active, true)));
+}
+
+export function parseScope(scope: string): { regions: string[] | null; countries: string[] | null } {
+  const parts = scope
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (!parts.length || parts.includes("all")) return { regions: null, countries: null };
+  const regions = parts.filter((p) => p.startsWith("region:")).map((p) => p.slice(7).trim());
+  const countries = parts.filter((p) => p.startsWith("country:")).map((p) => p.slice(8).trim().toUpperCase());
+  return { regions: regions.length ? regions : null, countries: countries.length ? countries : null };
+}
+
+export async function resolveGrants(roleKeys: string[]): Promise<Map<Permission, Grant>> {
+  const out = new Map<Permission, Grant>();
+  for (const r of await grantRowsFor([...roleKeys].sort())) {
+    if (!isPermission(r.permission)) continue;
+    const g = { ...parseScope(r.scope), max: r.max };
+    const prev = out.get(r.permission);
+    if (!prev) {
+      out.set(r.permission, g);
+      continue;
+    }
+    const everywhere = (!prev.regions && !prev.countries) || (!g.regions && !g.countries);
+    out.set(r.permission, {
+      regions: everywhere ? null : prev.regions || g.regions ? [...new Set([...(prev.regions ?? []), ...(g.regions ?? [])])] : null,
+      countries: everywhere ? null : prev.countries || g.countries ? [...new Set([...(prev.countries ?? []), ...(g.countries ?? [])])] : null,
+      max: prev.max === null || g.max === null ? null : Math.max(prev.max, g.max),
+    });
+  }
+  return out;
+}

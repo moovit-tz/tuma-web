@@ -7,6 +7,10 @@ import { audit } from "../../audit";
 import { enqueue } from "../../adapters/outbox";
 import { DomainError } from "../shipments";
 import type { CurrentUser } from "../../auth/current-user";
+import { updateTag } from "next/cache";
+import { ROLES_TAG } from "../../rbac";
+import { applyApprovedGrantChange, checkLimit } from "./grants";
+import { approvalAppliers } from "./approval-registry";
 
 /**
  * Four-eyes approvals. Some changes are too sensitive for one person: giving someone a staff (console) role, and
@@ -16,7 +20,7 @@ import type { CurrentUser } from "../../auth/current-user";
  * Bootstrap: while nobody else can approve (a new installation), the change applies at once and the audit says so.
  */
 
-export type ApprovalKind = "role_grant" | "wallet_adjust";
+export type ApprovalKind = "role_grant" | "wallet_adjust" | "grant_limit" | "payout" | "risk_release" | "claim_settle" | "price_publish";
 type Row = typeof approvalRequests.$inferSelect;
 
 /** Someone other than [userId] who can approve (an active user whose roles give approvals.decide). */
@@ -87,13 +91,19 @@ export async function decideApproval(user: CurrentUser, id: string, raw: unknown
     if (!r) throw new DomainError("NOT_FOUND", "No such request.", 404);
     if (r.status !== "pending") throw new DomainError("DECIDED", "This request was already decided.", 409);
     if (r.requestedBy === user.id) throw new DomainError("OWN_REQUEST", "Someone else has to approve your own request.", 403);
+    // Money waits for someone whose approval limit covers it.
+    const amount = Number((r.payload as { amount?: unknown }).amount ?? 0);
+    if (d.approve && Number.isFinite(amount) && amount !== 0) checkLimit(user, "approvals.decide", amount);
     if (d.approve) await applyApproved(tx, r, user.id);
     await tx
       .update(approvalRequests)
       .set({ status: d.approve ? "approved" : "rejected", decidedBy: user.id, decidedAt: new Date(), decisionNote: d.note ?? null })
       .where(eq(approvalRequests.id, id));
     await audit(tx, { actorId: user.id, action: `approval.${r.kind}.${d.approve ? "approved" : "rejected"}`, entity: "approval", entityId: id, after: { note: d.note ?? null } });
-    return { id, status: d.approve ? "approved" : "rejected" };
+    return { id, status: d.approve ? "approved" : "rejected", kind: r.kind };
+  }).then((res) => {
+    if (res.kind === "grant_limit" && res.status === "approved") updateTag(ROLES_TAG);
+    return { id: res.id, status: res.status };
   });
 }
 
@@ -121,6 +131,16 @@ async function applyApproved(tx: Tx, r: Row, approverId: string) {
   }
   if (r.kind === "wallet_adjust") {
     await applyWalletAdjustment(tx, r.id, r.subjectId, r.payload as WalletAdjust, approverId);
+    return;
+  }
+  if (r.kind === "grant_limit") {
+    await applyApprovedGrantChange(tx, r.payload, approverId, r.id);
+    return;
+  }
+  await import("./appliers"); // every feature registers what approving its kind does
+  const apply = approvalAppliers.get(r.kind);
+  if (apply) {
+    await apply(tx, r, approverId);
     return;
   }
   throw new DomainError("UNKNOWN_KIND", `Can't apply a ${r.kind} request.`, 400);
@@ -166,6 +186,7 @@ async function applyWalletAdjustment(tx: Tx, ref: string, userId: string, a: Wal
 export async function requestWalletAdjustment(user: CurrentUser, raw: unknown) {
   if (!user.permissions.has("finance.reconcile")) throw new DomainError("FORBIDDEN", "You can't adjust wallets.", 403);
   const a = walletAdjustSchema.parse(raw);
+  checkLimit(user, "finance.reconcile", a.amount);
   const [u] = await db.select({ id: users.id }).from(users).where(eq(users.id, a.userId));
   if (!u) throw new DomainError("NOT_FOUND", "No such person.", 404);
   return db.transaction(async (tx) => {

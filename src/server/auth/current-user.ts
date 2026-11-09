@@ -2,10 +2,10 @@ import "server-only";
 import { cache } from "react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { eq } from "drizzle-orm";
+import { and, eq, gt, isNull } from "drizzle-orm";
 import { db } from "../db/client";
-import { users } from "../db/schema";
-import { effectivePermissions, type Trial } from "../rbac";
+import { accessElevations, users } from "../db/schema";
+import { effectivePermissions, resolveGrants, type Grant, type Trial } from "../rbac";
 import { ensureWorkspace } from "../services/kyb";
 import { SESSION_COOKIE, verifySession } from "./session-token";
 import type { Permission } from "@/domain/roles";
@@ -18,6 +18,10 @@ export type CurrentUser = {
   branchId?: string | null;
   roles: string[];
   permissions: Set<Permission>;
+  /** Scope and money limit per permission. Missing (older callers, tests) = everywhere, no limit. */
+  grants?: Map<Permission, Grant>;
+  /** Break-glass roles held right now, with when each ends. */
+  elevated?: { roleKey: string; expiresAt: string }[];
   /** The company's state; "pending" while its application is reviewed (set-up only). Null without a company. */
   accountStatus?: string | null;
   /** A business under review: its parcel allowance and how much is used. */
@@ -39,7 +43,13 @@ export const getCurrentUser = cache(async function getCurrentUser(): Promise<Cur
   if (!row || !row.active) return null;
   // An application sent before workspaces existed: open its workspace so they land on their business home.
   if (!row.accountId && (await ensureWorkspace(row.id))) [row] = await db.select().from(users).where(eq(users.id, session.sub)).limit(1);
-  const { permissions, accountStatus, trial } = await effectivePermissions(row.roles, row.accountId);
+  // Break-glass: a staff role taken for a few hours counts until it ends.
+  const elevated = await db
+    .select({ roleKey: accessElevations.roleKey, expiresAt: accessElevations.expiresAt })
+    .from(accessElevations)
+    .where(and(eq(accessElevations.userId, row.id), isNull(accessElevations.endedAt), gt(accessElevations.expiresAt, new Date())));
+  const roleKeys = [...new Set([...row.roles, ...elevated.map((e) => e.roleKey)])];
+  const [{ permissions, accountStatus, trial }, grants] = await Promise.all([effectivePermissions(roleKeys, row.accountId), resolveGrants(roleKeys)]);
   return {
     id: row.id,
     name: row.name,
@@ -47,6 +57,8 @@ export const getCurrentUser = cache(async function getCurrentUser(): Promise<Cur
     branchId: row.branchId,
     roles: row.roles,
     permissions,
+    grants,
+    elevated: elevated.map((e) => ({ roleKey: e.roleKey, expiresAt: e.expiresAt.toISOString() })),
     accountStatus,
     trial,
     locale: row.locale,

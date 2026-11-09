@@ -2,6 +2,7 @@ import "server-only";
 import { sql } from "drizzle-orm";
 import { db } from "../../db/client";
 import { DomainError } from "../shipments";
+import { regionScope } from "./grants";
 import type { CurrentUser } from "../../auth/current-user";
 
 /**
@@ -60,7 +61,8 @@ export async function towerView(user: CurrentUser) {
       (select e.lat from events e where e.shipment_id = s.id and e.lat is not null order by e.occurred_at desc limit 1) as lat,
       (select e.lng from events e where e.shipment_id = s.id and e.lng is not null order by e.occurred_at desc limit 1) as lng
     from shipments s left join locations dl on dl.id = s.delivery_location_id
-    where s.state::text in (${liveList})`;
+    where s.state::text in (${liveList})
+      and ${regionScope(user, "tower.view", sql`coalesce(dl.region, s.consignee->'address'->>'region')`)}`;
   const [risk, kpis, regions, couriers] = await Promise.all([
     db.execute<RiskRow>(sql`
       with l as (${live})

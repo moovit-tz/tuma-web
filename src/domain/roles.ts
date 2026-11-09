@@ -72,6 +72,7 @@ export const PERMISSIONS = [
   { key: "finance.reconcile", group: "Tuma admin", label: "Reconcile payments", description: "Recheck stuck mobile-money payments with HuduPay and request wallet adjustments." },
   { key: "approvals.decide", group: "Tuma admin", label: "Approve requests", description: "Approve or reject what someone else asked for (staff roles, wallet adjustments). Never your own." },
   { key: "access.review", group: "Tuma admin", label: "Review staff access", description: "Confirm or revoke what each staff member can do, on a regular review." },
+  { key: "breakglass.request", group: "Tuma admin", label: "Break-glass access", description: "Take a staff role for 1–8 hours in an emergency, with a reason. It ends by itself and shows in the access review." },
 ] as const satisfies readonly PermissionDef[];
 
 export type Permission = (typeof PERMISSIONS)[number]["key"];
@@ -217,6 +218,13 @@ export const DEFAULT_ROLES: RoleSeed[] = [
     description: "Looks after the parcels kept at a parcel agent office: checks them in, keeps them and gets them ready for collection.",
     surface: "partner",
     permissions: ["agent.workspace", "partner.cargo.read", "partner.cargo.operate", "shipment.receive", "shipment.hub_scan", "shipment.collection", "label.print"],
+  },
+  {
+    key: "on_call",
+    name: "On-call",
+    description: "Watches the network out of hours; can take a staff role for a few hours in an emergency (break-glass).",
+    surface: "console",
+    permissions: ["shipment.read.all", "tower.view", "breakglass.request"],
   },
   {
     key: "tuma_admin",

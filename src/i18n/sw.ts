@@ -1,4 +1,5 @@
 import type { Dict } from "./en";
+import consoleSw from "./console/sw";
 
 /** Swahili. Draft translations — have a native speaker on the operations team review before launch. */
 const sw: Dict = {
@@ -1622,7 +1623,7 @@ const sw: Dict = {
       pending: "Yanasubiri",
       decided: "Yameamuliwa",
       sentForApproval: "Limetumwa kwa idhini. Litatumika mtu mwingine akishaliidhinisha.",
-      kinds: { role_grant: "Majukumu ya wafanyakazi", wallet_adjust: "Marekebisho ya pochi" },
+      kinds: { role_grant: "Majukumu ya wafanyakazi", wallet_adjust: "Marekebisho ya pochi", grant_limit: "Eneo na kikomo cha ruhusa", payout: "Malipo", risk_release: "Kuachilia kizuizi", claim_settle: "Fidia ya dai", price_publish: "Kuchapisha bei" },
       about: "Kwa",
       requestedBy: "Ameomba",
       reason: "Sababu",
@@ -1853,6 +1854,7 @@ const sw: Dict = {
       change: "Badilisha",
     },
   },
+  staff: consoleSw,
 };
 
 export default sw;

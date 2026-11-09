@@ -160,13 +160,17 @@ export async function updateRole(user: CurrentUser, key: string, input: Omit<Rol
   checkGrantable(scope, input.permissions);
   await db.transaction(async (tx) => {
     const before = await loadEditable(tx, scope, key);
-    const beforePerms = (await tx.select().from(rolePermissions).where(eq(rolePermissions.roleKey, key))).map((r) => r.permission).sort();
+    const beforeRows = await tx.select().from(rolePermissions).where(eq(rolePermissions.roleKey, key));
+    const beforePerms = beforeRows.map((r) => r.permission).sort();
+    // Kept permissions keep their scope and money limit.
+    const kept = new Map(beforeRows.map((r) => [r.permission, r]));
     await tx
       .update(roles)
       .set({ name: input.name, description: input.description, surface: scope.kind === "account" ? "partner" : input.surface, updatedAt: new Date() })
       .where(eq(roles.key, key));
     await tx.delete(rolePermissions).where(eq(rolePermissions.roleKey, key));
-    if (input.permissions.length) await tx.insert(rolePermissions).values(input.permissions.map((p) => ({ roleKey: key, permission: p })));
+    if (input.permissions.length)
+      await tx.insert(rolePermissions).values(input.permissions.map((p) => ({ roleKey: key, permission: p, scope: kept.get(p)?.scope ?? "all", maxAmount: kept.get(p)?.maxAmount ?? null })));
     await assertAdminRemains(tx, scope);
     const afterPerms = [...input.permissions].sort();
     await audit(tx, {
