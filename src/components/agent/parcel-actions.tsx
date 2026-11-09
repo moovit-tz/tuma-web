@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Ban, Check, Coins, Hand, KeyRound, PackageCheck, Printer, Scale, Smartphone, TriangleAlert, Truck } from "lucide-react";
+import { Ban, Check, Coins, Hand, KeyRound, PackageCheck, Printer, ReceiptText, Scale, Smartphone, TriangleAlert, Truck } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -37,7 +37,7 @@ const digits = (v: string) => Number(v.replace(/\D/g, "")) || 0;
 
 /** The parcel's next steps at the counter, as the app has them, from what the server says this person may do. */
 export function AgentParcelActions(p: ParcelActionsProps) {
-  const { dict: t } = useI18n();
+  const { dict: t, locale } = useI18n();
   const a = t.agent;
   const [pending, start] = useTransition();
   const router = useRouter();
@@ -74,6 +74,13 @@ export function AgentParcelActions(p: ParcelActionsProps) {
           <Button asChild variant="outline">
             <a href={`/api/labels/${p.waybill}?format=label`} target="_blank" rel="noopener">
               <Printer /> {a.parcel.printLabel}
+            </a>
+          </Button>
+        )}
+        {p.canPrint && (
+          <Button asChild variant="outline">
+            <a href={`/api/receipts/${p.waybill}?lang=${locale}`} target="_blank" rel="noopener">
+              <ReceiptText /> {t.receiptPdf.download}
             </a>
           </Button>
         )}

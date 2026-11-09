@@ -1,6 +1,6 @@
 "use client";
 import { useState, useTransition } from "react";
-import { FileText, Printer, XCircle, PencilLine, Check } from "lucide-react";
+import { FileText, ReceiptText, Printer, XCircle, PencilLine, Check } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -38,7 +38,7 @@ export function MerchantActions({
   canEdit: boolean;
   consignee: { name: string; phone: string; landmark: string; instructions: string };
 }) {
-  const { dict: t } = useI18n();
+  const { dict: t, locale } = useI18n();
   return (
     <div className="flex flex-wrap gap-2">
       {canPrint && (
@@ -51,6 +51,11 @@ export function MerchantActions({
           <Button asChild variant="outline">
             <a href={`/api/labels/${waybill}?format=a4`} target="_blank" rel="noopener">
               <FileText /> {t.detail.printWaybill}
+            </a>
+          </Button>
+          <Button asChild variant="outline">
+            <a href={`/api/receipts/${waybill}?lang=${locale}`} target="_blank" rel="noopener">
+              <ReceiptText /> {t.receiptPdf.download}
             </a>
           </Button>
         </>

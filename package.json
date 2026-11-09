@@ -20,6 +20,7 @@
     "map:app": "tsx scripts/build-app-map.ts"
   },
   "dependencies": {
+    "@pdf-lib/fontkit": "1.1.1",
     "aws4fetch": "^1.0.20",
     "bwip-js": "^4.11.4",
     "class-variance-authority": "^0.7.1",

@@ -6,6 +6,8 @@ const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
   serverExternalPackages: ["bwip-js", "sharp"],
+  // The receipt PDF embeds the brand fonts from disk.
+  outputFileTracingIncludes: { "/api/receipts/[waybill]": ["./src/server/fonts/**"] },
   // One portal: the former Console and Partner areas now live under /portal.
   async redirects() {
     return [
