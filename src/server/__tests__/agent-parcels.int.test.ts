@@ -7,7 +7,7 @@ import { settlePayment } from "../services/counter-payments";
 import { driverContext, finishDriverLogin, swapHandoff, type DriverCtx } from "../services/drivers";
 import { submitKyb } from "../services/kyb";
 import { invoiceDetail, paymentDetail, paymentRecords, paymentSettingsFor, updatePaymentSettings } from "../services/agent-payments";
-import { agentBook, agentMove, agentNotifications, agentParcel, agentParcels, agentPaymentStatus, agentReport, agentRequestPayment, agentSummary, collectionPoints } from "../services/agent-parcels";
+import { agentBook, agentMove, agentNotifications, agentParcel, agentParcels, agentPaymentStatus, agentReport, agentReportCsv, agentRequestPayment, agentSummary, collectionPoints } from "../services/agent-parcels";
 import { verifyDriverToken } from "../auth/driver-token";
 import { devReceiverCode } from "../services/tracking";
 import { DEFAULT_ROLES } from "@/domain/roles";
@@ -165,6 +165,25 @@ describe("parcel work at the agent counter (app)", () => {
     expect(r.byRegion[0]).toMatchObject({ key: "Mwanza", n: 2 });
     expect(r.byStaff[0]).toMatchObject({ key: OWNER, n: 2 });
     await expect(agentReport(me.user, { period: "year" })).rejects.toThrow();
+  });
+
+  it("builds a custom report: a date range, filters, monthly buckets for long ranges, and a CSV of the parcels", async () => {
+    const today = new Date(Date.now() + 3 * 3600_000).toISOString().slice(0, 10);
+    const r = await agentReport(me.user, { period: "custom", from: today, to: today, payment: "cash" });
+    expect(r.totals).toMatchObject({ parcels: 1, value: 12500 });
+    expect(r.series).toHaveLength(1);
+    expect(r.filters.payment).toBe("cash");
+    expect(r.choices.staff.map((s) => s.id)).toContain(OWNER);
+    const long = await agentReport(me.user, { period: "custom", from: "2026-01-01", to: today });
+    expect(long.bucket).toBe("month");
+    expect(long.series.at(-1)?.parcels).toBe(2);
+    await expect(agentReport(me.user, { period: "custom", from: "2024-01-01", to: today })).rejects.toMatchObject({ code: "VALIDATION" });
+    await expect(agentReport(me.user, { period: "custom", from: today })).rejects.toMatchObject({ code: "VALIDATION" });
+    const { csv, rows, fileName } = await agentReportCsv(me.user, { period: "week", region: "Mwanza" });
+    expect(rows).toBe(2);
+    expect(fileName).toMatch(/^tuma-report-\d{4}-\d{2}-\d{2}-to-\d{4}-\d{2}-\d{2}\.csv$/);
+    expect(csv.startsWith("\uFEFFWaybill,Booked,State")).toBe(true);
+    expect(csv).toContain("Baraka Receiver");
   });
 
   it("notifies about moves made by others and the business application, not the person's own moves", async () => {

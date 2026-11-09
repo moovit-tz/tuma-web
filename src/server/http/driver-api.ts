@@ -44,6 +44,8 @@ export function driverRoute<P>(handler: (ctx: DriverCtx, req: NextRequest, param
       const out = await handler(ctx, req, await route.params);
       // Whatever that queued (SMS, push) goes out now, after the response.
       if (req.method !== "GET") after(kickHuduFeed);
+      // A handler that builds its own response (a file download) gets it sent as is.
+      if (out instanceof Response) return out;
       return NextResponse.json(out ?? { ok: true });
     } catch (e) {
       return toResponse(e, req.headers.get("accept-language"));

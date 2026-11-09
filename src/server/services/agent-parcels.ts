@@ -755,29 +755,81 @@ export async function collectionPoints(user: CurrentUser, region?: string, distr
 
 /* ----------------------------------------------------------------- reports */
 
-export const REPORT_PERIODS = ["today", "week", "month", "quarter"] as const;
-const PERIOD_DAYS: Record<(typeof REPORT_PERIODS)[number], number> = { today: 1, week: 7, month: 30, quarter: 90 };
+export const REPORT_PERIODS = ["today", "week", "month", "quarter", "custom"] as const;
+const PERIOD_DAYS: Record<Exclude<(typeof REPORT_PERIODS)[number], "custom">, number> = { today: 1, week: 7, month: 30, quarter: 90 };
+const MAX_REPORT_DAYS = 366;
+const DAY_MS = 86_400_000;
+const ymd = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+const PAID_HOW = ["receiver", "cash", "mobile_money", "wallet", "account", "invoice"] as const;
+
+/** A report's question: a fixed period or a custom range, narrowed by service, who paid how, region and staff. */
+export const reportQuerySchema = z
+  .object({
+    period: z.enum(REPORT_PERIODS).default("week"),
+    from: ymd.optional(),
+    to: ymd.optional(),
+    service: z.string().max(40).optional(),
+    payment: z.string().max(40).optional(),
+    region: z.string().max(80).optional(),
+    staff: z.string().max(80).optional(),
+  })
+  .transform((q) => Object.fromEntries(Object.entries(q).map(([k, v]) => [k, v === "" ? undefined : v])) as typeof q);
+
+/** Dar midnight for a YYYY-MM-DD day. */
+const darDay = (d: string) => new Date(Date.parse(`${d}T00:00:00Z`) - 3 * 3600_000);
+const darYmd = (t: Date) => new Date(t.getTime() + 3 * 3600_000).toISOString().slice(0, 10);
+
+/** The range and filters a report covers, as SQL, shared by the report and its export. */
+function reportScope(user: CurrentUser, raw: unknown) {
+  if (!user.permissions.has("report.view")) throw new DomainError("FORBIDDEN", "You don't have access to reports.", 403);
+  const acct = businessOf(user);
+  const q = reportQuerySchema.parse(raw);
+  let from: Date;
+  let to: Date; // exclusive
+  if (q.period === "custom") {
+    if (!q.from || !q.to) throw new DomainError("VALIDATION", "Choose the first and last day of the report.", 400);
+    from = darDay(q.from);
+    to = new Date(darDay(q.to).getTime() + DAY_MS);
+    if (to <= from) throw new DomainError("VALIDATION", "The last day must be on or after the first day.", 400);
+    if ((to.getTime() - from.getTime()) / DAY_MS > MAX_REPORT_DAYS) throw new DomainError("VALIDATION", "A report covers a year at most.", 400);
+    const tomorrow = darMidnight(-1);
+    if (to > tomorrow) to = tomorrow;
+  } else {
+    from = darMidnight(PERIOD_DAYS[q.period] - 1);
+    to = darMidnight(-1);
+  }
+  const paidHow = sql<string>`case when ${shipments.paymentTerms} = 'pay_on_delivery' then 'receiver' when ${shipments.paymentTerms} = 'account' then 'account' else coalesce(${shipments.prepayMethod}, 'cash') end`;
+  const region = sql<string>`coalesce(${shipments.consignee}->'address'->>'region', '')`;
+  const service = sql<string>`coalesce(${shipments.serviceLevel}::text, 'standard')`;
+  const filters = and(
+    q.service ? sql`${service} = ${q.service}` : undefined,
+    q.payment ? sql`${paidHow} = ${q.payment}` : undefined,
+    q.region ? sql`${region} = ${q.region}` : undefined,
+    q.staff ? eq(shipments.createdBy, q.staff) : undefined,
+  );
+  const base = and(mine(acct, user), filters);
+  const booked = and(base, gte(shipments.createdAt, from), sql`${shipments.createdAt} < ${to.toISOString()}::timestamptz`, sql`${shipments.state} <> 'CANCELLED'`)!;
+  const deliveredIn = and(base, eq(shipments.state, "DELIVERED"), sql`${shipments.deliveredAt} >= ${from.toISOString()}::timestamptz`, sql`${shipments.deliveredAt} < ${to.toISOString()}::timestamptz`)!;
+  return { q, acct, from, to, booked, deliveredIn, paidHow, region, service };
+}
 
 /**
  * The business's report for the app (report.view): parcels received and their value, handed over, failed and
- * cancelled for the period; a day-by-day series; and splits by who pays, how they paid, service, destination
- * region and staff member. Same scope as the parcel lists.
+ * still to collect for the period or a custom range (up to a year), narrowed by service, payment, region and staff; a
+ * series by day (by month past two months); splits by who pays, how they paid, service, destination region and staff;
+ * and the choices for the filters. Same scope as the parcel lists.
  */
 export async function agentReport(user: CurrentUser, raw: unknown) {
-  if (!user.permissions.has("report.view")) throw new DomainError("FORBIDDEN", "You don't have access to reports.", 403);
-  const acct = businessOf(user);
-  const { period } = z.object({ period: z.enum(REPORT_PERIODS).default("week") }).parse(raw);
-  const days = PERIOD_DAYS[period];
-  const from = darMidnight(days - 1);
-  const scope = and(mine(acct, user), gte(shipments.createdAt, from), sql`${shipments.state} <> 'CANCELLED'`)!;
-  const fromSql = sql`${from.toISOString()}::timestamptz`;
-  const day = sql<string>`to_char(${shipments.createdAt} at time zone 'Africa/Dar_es_Salaam', 'YYYY-MM-DD')`;
-  const dday = sql<string>`to_char(${shipments.deliveredAt} at time zone 'Africa/Dar_es_Salaam', 'YYYY-MM-DD')`;
+  const { q, acct, from, to, booked, deliveredIn, paidHow, region, service } = reportScope(user, raw);
+  const days = Math.round((to.getTime() - from.getTime()) / DAY_MS);
+  const bucket = days > 62 ? "month" : "day";
+  // One of two fixed formats, inlined so the select and the group by are the same expression.
+  const fmt = sql.raw(bucket === "month" ? "'YYYY-MM'" : "'YYYY-MM-DD'");
+  const day = sql<string>`to_char(${shipments.createdAt} at time zone 'Africa/Dar_es_Salaam', ${fmt})`;
+  const dday = sql<string>`to_char(${shipments.deliveredAt} at time zone 'Africa/Dar_es_Salaam', ${fmt})`;
   const value = sql<number>`coalesce(sum(${shipments.totalCharge}), 0)::int`;
   const n = sql<number>`count(*)::int`;
-  const region = sql<string>`coalesce(${shipments.consignee}->'address'->>'region', '')`;
-  const paidHow = sql<string>`case when ${shipments.paymentTerms} = 'pay_on_delivery' then 'receiver' else coalesce(${shipments.prepayMethod}, 'cash') end`;
-  const [totals, delivered, series, dseries, byPay, byService, byRegion, byStaff] = await Promise.all([
+  const [totals, delivered, series, dseries, byPay, byService, byRegion, byStaff, staffChoices] = await Promise.all([
     db
       .select({
         parcels: n,
@@ -786,39 +838,49 @@ export async function agentReport(user: CurrentUser, raw: unknown) {
         toCollect: sql<number>`coalesce(sum(${shipments.totalCharge}) filter (where ${shipments.paymentTerms} = 'pay_on_delivery' and ${shipments.state} <> 'DELIVERED'), 0)::int`,
       })
       .from(shipments)
-      .where(scope),
-    db
-      .select({ n })
-      .from(shipments)
-      .where(and(mine(acct, user), eq(shipments.state, "DELIVERED"), sql`${shipments.deliveredAt} >= ${fromSql}`)),
-    db.select({ day, n, value }).from(shipments).where(scope).groupBy(day),
-    db
-      .select({ day: dday, n })
-      .from(shipments)
-      .where(and(mine(acct, user), eq(shipments.state, "DELIVERED"), sql`${shipments.deliveredAt} >= ${fromSql}`))
-      .groupBy(dday),
-    db.select({ key: paidHow, n, value }).from(shipments).where(scope).groupBy(paidHow),
-    db.select({ key: sql<string>`coalesce(${shipments.serviceLevel}::text, 'standard')`, n, value }).from(shipments).where(scope).groupBy(sql`1`),
-    db.select({ key: region, n, value }).from(shipments).where(scope).groupBy(region).orderBy(desc(n)).limit(5),
+      .where(booked),
+    db.select({ n }).from(shipments).where(deliveredIn),
+    db.select({ day, n, value }).from(shipments).where(booked).groupBy(day),
+    db.select({ day: dday, n }).from(shipments).where(deliveredIn).groupBy(dday),
+    db.select({ key: paidHow, n, value }).from(shipments).where(booked).groupBy(paidHow),
+    db.select({ key: service, n, value }).from(shipments).where(booked).groupBy(sql`1`),
+    db.select({ key: region, n, value }).from(shipments).where(booked).groupBy(region).orderBy(desc(n)).limit(q.region ? 1 : 8),
     db
       .select({ key: shipments.createdBy, name: sql<string>`coalesce(${users.name}, '')`, n, value })
       .from(shipments)
       .leftJoin(users, eq(users.id, shipments.createdBy))
-      .where(scope)
+      .where(booked)
       .groupBy(shipments.createdBy, users.name)
       .orderBy(desc(n))
       .limit(10),
+    db.select({ id: users.id, name: users.name }).from(users).where(eq(users.accountId, acct)).orderBy(asc(users.name)),
   ]);
   const t = totals[0];
   const bookedBy = new Map(series.map((r) => [r.day, r]));
   const deliveredBy = new Map(dseries.map((r) => [r.day, r.n]));
-  const seriesOut = Array.from({ length: days }, (_, i) => {
-    const d = new Date(darMidnight(days - 1 - i).getTime() + 3 * 3600_000).toISOString().slice(0, 10);
-    return { day: d, parcels: bookedBy.get(d)?.n ?? 0, value: bookedBy.get(d)?.value ?? 0, delivered: deliveredBy.get(d) ?? 0 };
-  });
+  const keys: string[] = [];
+  if (bucket === "day") {
+    for (let i = 0; i < days; i++) keys.push(darYmd(new Date(from.getTime() + i * DAY_MS)));
+  } else {
+    const start = darYmd(from).slice(0, 7);
+    const end = darYmd(new Date(to.getTime() - 1)).slice(0, 7);
+    let [y, m] = start.split("-").map(Number);
+    for (;;) {
+      const k = `${y}-${String(m).padStart(2, "0")}`;
+      keys.push(k);
+      if (k >= end) break;
+      m += 1;
+      if (m > 12) [y, m] = [y + 1, 1];
+    }
+  }
   return {
-    period,
+    period: q.period,
     from: from.toISOString(),
+    to: to.toISOString(),
+    fromDay: darYmd(from),
+    toDay: darYmd(new Date(to.getTime() - 1)),
+    bucket,
+    filters: { service: q.service ?? null, payment: q.payment ?? null, region: q.region ?? null, staff: q.staff ?? null },
     totals: {
       parcels: t?.parcels ?? 0,
       value: t?.value ?? 0,
@@ -827,11 +889,56 @@ export async function agentReport(user: CurrentUser, raw: unknown) {
       failed: t?.failed ?? 0,
       toCollect: t?.toCollect ?? 0,
     },
-    series: seriesOut,
+    series: keys.map((d) => ({ day: d, parcels: bookedBy.get(d)?.n ?? 0, value: bookedBy.get(d)?.value ?? 0, delivered: deliveredBy.get(d) ?? 0 })),
     byPayment: byPay,
     byService,
     byRegion: byRegion.map((r) => ({ ...r, key: r.key || "—" })),
     byStaff: byStaff.map((r) => ({ key: r.key, name: r.name || r.key, n: r.n, value: r.value })),
+    choices: {
+      services: ["same_day", "next_day", "standard"],
+      payments: PAID_HOW,
+      regions: TZ_REGIONS,
+      staff: staffChoices.map((u) => ({ id: u.id, name: u.name || u.id })),
+    },
+  };
+}
+
+const csvCell = (v: unknown) => {
+  const s = v === null || v === undefined ? "" : String(v);
+  // Quote everything that needs it, and neutralise spreadsheet formulas.
+  const safe = /^[=+\-@\t\r]/.test(s) ? `'${s}` : s;
+  return /[",\n\r]/.test(safe) ? `"${safe.replaceAll('"', '""')}"` : safe;
+};
+
+/** The parcels behind a report, as CSV (UTF-8 with BOM so Excel reads Swahili names): up to 5,000 rows, newest first. */
+export async function agentReportCsv(user: CurrentUser, raw: unknown) {
+  const { booked, paidHow, region, service, from, to } = reportScope(user, raw);
+  const rows = await db
+    .select({
+      waybill: shipments.waybill,
+      booked: shipments.createdAt,
+      state: shipments.state,
+      service,
+      payment: paidHow,
+      sender: sql<string>`${shipments.shipper}->>'name'`,
+      receiver: sql<string>`${shipments.consignee}->>'name'`,
+      region,
+      value: shipments.totalCharge,
+      delivered: shipments.deliveredAt,
+      staff: sql<string>`coalesce(${users.name}, '')`,
+    })
+    .from(shipments)
+    .leftJoin(users, eq(users.id, shipments.createdBy))
+    .where(booked)
+    .orderBy(desc(shipments.createdAt))
+    .limit(5000);
+  const head = ["Waybill", "Booked", "State", "Service", "Payment", "Sender", "Receiver", "Region", "Value (TZS)", "Delivered", "Booked by"];
+  const time = (d: Date | null) => (d ? new Date(d.getTime() + 3 * 3600_000).toISOString().slice(0, 16).replace("T", " ") : "");
+  const lines = [head, ...rows.map((r) => [r.waybill, time(r.booked), r.state, r.service, r.payment, r.sender, r.receiver, r.region, r.value ?? 0, time(r.delivered), r.staff])];
+  return {
+    fileName: `tuma-report-${darYmd(from)}-to-${darYmd(new Date(to.getTime() - 1))}.csv`,
+    csv: "\uFEFF" + lines.map((l) => l.map(csvCell).join(",")).join("\r\n") + "\r\n",
+    rows: rows.length,
   };
 }
 

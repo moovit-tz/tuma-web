@@ -4,6 +4,9 @@
  * isn't here goes out in English. Keys must match the English text exactly.
  */
 export const SW_ERRORS: Record<string, string> = {
+  "Choose the first and last day of the report.": "Chagua siku ya kwanza na ya mwisho ya ripoti.",
+  "The last day must be on or after the first day.": "Siku ya mwisho lazima iwe sawa au baada ya siku ya kwanza.",
+  "A report covers a year at most.": "Ripoti inaweza kuwa ya mwaka mmoja tu kwa juu.",
   // Generic
   "Something went wrong. Try again.": "Kuna tatizo. Jaribu tena.",
   "Some details are missing or wrong.": "Baadhi ya taarifa hazipo au si sahihi.",
