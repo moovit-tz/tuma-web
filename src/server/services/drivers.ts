@@ -1,4 +1,5 @@
 import type { OndiClaims } from "../adapters/ondi";
+import { activeHold, lookOnly } from "./admin/risk";
 import "server-only";
 import { and, asc, desc, eq, gte, inArray, isNull, sql } from "drizzle-orm";
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
@@ -108,9 +109,11 @@ export async function driverContext(userId: string | null): Promise<DriverCtx | 
   let [u] = await db.select().from(users).where(eq(users.id, userId));
   if (!u || !u.active) return null;
   if (!u.accountId && (await ensureWorkspace(u.id))) [u] = await db.select().from(users).where(eq(users.id, userId));
-  const [[d], eff] = await Promise.all([db.select().from(drivers).where(eq(drivers.userId, userId)), effectivePermissions(u.roles, u.accountId)]);
+  const [[d], eff, hold] = await Promise.all([db.select().from(drivers).where(eq(drivers.userId, userId)), effectivePermissions(u.roles, u.accountId), activeHold(u.id, u.accountId)]);
+  // Frozen by risk: the app can still show things, but nothing can be done.
+  const permissions = hold ? new Set([...eff.permissions].filter(lookOnly)) : eff.permissions;
   return {
-    user: { id: u.id, name: u.name, accountId: u.accountId, branchId: u.branchId, roles: u.roles, permissions: eff.permissions, accountStatus: eff.accountStatus, trial: eff.trial, locale: u.locale },
+    user: { id: u.id, name: u.name, accountId: u.accountId, branchId: u.branchId, roles: u.roles, permissions, frozen: hold?.reason ?? null, accountStatus: eff.accountStatus, trial: eff.trial, locale: u.locale },
     driver: d ?? null,
   };
 }

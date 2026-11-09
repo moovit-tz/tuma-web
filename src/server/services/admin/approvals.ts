@@ -10,7 +10,7 @@ import type { CurrentUser } from "../../auth/current-user";
 import { updateTag } from "next/cache";
 import { ROLES_TAG } from "../../rbac";
 import { applyApprovedGrantChange, checkLimit } from "./grants";
-import { approvalAppliers } from "./approval-registry";
+import { approvalAppliers, approvalRejecters } from "./approval-registry";
 
 /**
  * Four-eyes approvals. Some changes are too sensitive for one person: giving someone a staff (console) role, and
@@ -95,6 +95,10 @@ export async function decideApproval(user: CurrentUser, id: string, raw: unknown
     const amount = Number((r.payload as { amount?: unknown }).amount ?? 0);
     if (d.approve && Number.isFinite(amount) && amount !== 0) checkLimit(user, "approvals.decide", amount);
     if (d.approve) await applyApproved(tx, r, user.id);
+    else {
+      await import("./appliers");
+      await approvalRejecters.get(r.kind)?.(tx, r, user.id);
+    }
     await tx
       .update(approvalRequests)
       .set({ status: d.approve ? "approved" : "rejected", decidedBy: user.id, decidedAt: new Date(), decisionNote: d.note ?? null })
@@ -109,13 +113,17 @@ export async function decideApproval(user: CurrentUser, id: string, raw: unknown
 
 /** The requester changed their mind. */
 export async function cancelApproval(user: CurrentUser, id: string) {
-  const [r] = await db
-    .update(approvalRequests)
-    .set({ status: "cancelled", decidedBy: user.id, decidedAt: new Date() })
-    .where(and(eq(approvalRequests.id, id), eq(approvalRequests.requestedBy, user.id), eq(approvalRequests.status, "pending")))
-    .returning({ id: approvalRequests.id });
-  if (!r) throw new DomainError("NOT_FOUND", "No pending request of yours with that id.", 404);
-  return { id, status: "cancelled" };
+  return db.transaction(async (tx) => {
+    const [r] = await tx
+      .update(approvalRequests)
+      .set({ status: "cancelled", decidedBy: user.id, decidedAt: new Date() })
+      .where(and(eq(approvalRequests.id, id), eq(approvalRequests.requestedBy, user.id), eq(approvalRequests.status, "pending")))
+      .returning();
+    if (!r) throw new DomainError("NOT_FOUND", "No pending request of yours with that id.", 404);
+    await import("./appliers");
+    await approvalRejecters.get(r.kind)?.(tx, r, user.id);
+    return { id, status: "cancelled" };
+  });
 }
 
 async function applyApproved(tx: Tx, r: Row, approverId: string) {

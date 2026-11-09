@@ -8,6 +8,7 @@ import { accessElevations, users } from "../db/schema";
 import { effectivePermissions, resolveGrants, type Grant, type Trial } from "../rbac";
 import { ensureWorkspace } from "../services/kyb";
 import { SESSION_COOKIE, verifySession } from "./session-token";
+import { activeHold, lookOnly } from "../services/admin/risk";
 import type { Permission } from "@/domain/roles";
 
 export type CurrentUser = {
@@ -22,6 +23,8 @@ export type CurrentUser = {
   grants?: Map<Permission, Grant>;
   /** Break-glass roles held right now, with when each ends. */
   elevated?: { roleKey: string; expiresAt: string }[];
+  /** Frozen by risk: why. */
+  frozen?: string | null;
   /** The company's state; "pending" while its application is reviewed (set-up only). Null without a company. */
   accountStatus?: string | null;
   /** A business under review: its parcel allowance and how much is used. */
@@ -49,7 +52,9 @@ export const getCurrentUser = cache(async function getCurrentUser(): Promise<Cur
     .from(accessElevations)
     .where(and(eq(accessElevations.userId, row.id), isNull(accessElevations.endedAt), gt(accessElevations.expiresAt, new Date())));
   const roleKeys = [...new Set([...row.roles, ...elevated.map((e) => e.roleKey)])];
-  const [{ permissions, accountStatus, trial }, grants] = await Promise.all([effectivePermissions(roleKeys, row.accountId), resolveGrants(roleKeys)]);
+  const [{ permissions: granted, accountStatus, trial }, grants, hold] = await Promise.all([effectivePermissions(roleKeys, row.accountId), resolveGrants(roleKeys), activeHold(row.id, row.accountId)]);
+  // Frozen by risk (the person or their business): they can still look, but not act.
+  const permissions = hold ? new Set([...granted].filter(lookOnly)) : granted;
   return {
     id: row.id,
     name: row.name,
@@ -58,6 +63,7 @@ export const getCurrentUser = cache(async function getCurrentUser(): Promise<Cur
     roles: row.roles,
     permissions,
     grants,
+    frozen: hold?.reason ?? null,
     elevated: elevated.map((e) => ({ roleKey: e.roleKey, expiresAt: e.expiresAt.toISOString() })),
     accountStatus,
     trial,

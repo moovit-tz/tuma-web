@@ -8,3 +8,5 @@ import type { approvalRequests } from "../../db/schema";
  */
 export type ApprovalApplier = (tx: Tx, r: typeof approvalRequests.$inferSelect, approverId: string) => Promise<void>;
 export const approvalAppliers = new Map<string, ApprovalApplier>();
+/** What rejecting (or withdrawing) a request of each kind undoes. */
+export const approvalRejecters = new Map<string, ApprovalApplier>();

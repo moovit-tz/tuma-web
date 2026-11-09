@@ -38,6 +38,10 @@ export default async function PortalLayout({ children, params }: LayoutProps<"/[
     { href: `${base}/admin/finance`, label: t.admin.nav.finance, icon: "finance", permission: "finance.view", group: t.admin.nav.group },
     { href: `${base}/admin/approvals`, label: t.admin.nav.approvals, icon: "roles", permission: ["approvals.decide", "users.manage", "finance.reconcile"], group: t.admin.nav.group },
     { href: `${base}/admin/access`, label: t.admin.nav.access, icon: "access", permission: "access.review", group: t.admin.nav.group },
+    { href: `${base}/admin/claims`, label: t.staff.nav.claims, icon: "claims", permission: "claims.handle", group: t.admin.nav.group },
+    { href: `${base}/admin/risk`, label: t.staff.nav.risk, icon: "risk", permission: "risk.view", group: t.admin.nav.group },
+    { href: `${base}/admin/compliance`, label: t.staff.nav.compliance, icon: "compliance", permission: ["kyc.review", "aml.screen", "dsr.handle"], group: t.admin.nav.group },
+    { href: `${base}/admin/payouts`, label: t.staff.nav.payouts, icon: "payouts", permission: ["payout.propose", "finance.view"], group: t.admin.nav.group },
     { href: `${base}/admin/grants`, label: t.staff.nav.grants, icon: "grants", permission: "roles.manage", group: t.admin.nav.group },
     { href: `${base}/admin/breakglass`, label: t.staff.nav.breakglass, icon: "breakglass", permission: ["breakglass.request", "access.review"], group: t.admin.nav.group },
     { href: `${base}/settings/roles`, label: t.nav.roles, icon: "roles", permission: ["roles.manage", "team.manage"], group: t.nav.settingsGroup },
@@ -62,7 +66,7 @@ export default async function PortalLayout({ children, params }: LayoutProps<"/[
         { key: "team", href: `${base}/settings/users`, permission: ["users.manage", "team.manage"] },
         { key: "roles", href: `${base}/settings/roles`, permission: ["roles.manage", "team.manage"] },
       ]}
-      gate={["shipment.read.own_account", "shipment.read.all", "tower.view", "support.view", "finance.view", "access.review", "approvals.decide", "breakglass.request", "partner.cargo.read", "team.manage", "partner.branches.manage"]}
+      gate={["shipment.read.own_account", "shipment.read.all", "tower.view", "support.view", "finance.view", "access.review", "approvals.decide", "breakglass.request", "claims.handle", "risk.view", "kyc.review", "aml.screen", "dsr.handle", "payout.propose", "partner.cargo.read", "team.manage", "partner.branches.manage"]}
       search={<PortalSearch />}
     >
       {children}

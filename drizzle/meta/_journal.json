@@ -225,6 +225,13 @@
       "when": 1794207540076,
       "tag": "0031_grants_breakglass",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1794208796146,
+      "tag": "0032_trust",
+      "breakpoints": true
     }
   ]
 }

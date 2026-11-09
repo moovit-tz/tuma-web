@@ -227,6 +227,8 @@ export const users = pgTable("users", {
   lastSeenAt: ts("last_seen_at"),
   /** Set up to send and receive parcels in the app (the sender's home): their area, for the nearest Tuma points. */
   senderProfile: jsonb("sender_profile").$type<{ region: string; district?: string; since: string }>(),
+  /** Know-your-customer tier: 0 phone only, 1 name and ID number, 2 ID checked by Tuma, 3 business (KYB). */
+  kycTier: smallint("kyc_tier").notNull().default(0),
 });
 
 export const locations = pgTable("locations", {
@@ -1495,4 +1497,239 @@ export const accessElevations = pgTable(
     reviewedAt: ts("reviewed_at"),
   },
   (t) => [index("access_elevations_user_idx").on(t.userId, t.expiresAt)],
+);
+
+/* ================================================================ Phase 2: trust */
+
+/**
+ * A claim for a lost, damaged, short-delivered or late parcel. The adjuster gathers evidence (the booking photo, proof
+ * of delivery and scans come from the parcel's own record), decides who was liable, and proposes a settlement; paying
+ * it waits for a second person with approvals.decide. What's recovered from the liable party is recorded after.
+ */
+export const claims = pgTable(
+  "claims",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    ref: text("ref").notNull(),
+    shipmentId: uuid("shipment_id")
+      .notNull()
+      .references(() => shipments.id),
+    waybill: text("waybill").notNull(),
+    kind: text("kind").notNull(), // lost | damaged | short | late
+    /** Who claims: a Tuma user (paid into their wallet) or just a name and phone. */
+    claimantUserId: text("claimant_user_id").references(() => users.id),
+    claimantName: text("claimant_name").notNull(),
+    claimantPhone: text("claimant_phone"),
+    declaredValue: integer("declared_value"),
+    amountClaimed: integer("amount_claimed").notNull(),
+    description: text("description").notNull(),
+    evidence: jsonb("evidence").$type<{ kind: string; note: string; url?: string; by: string; at: string }[]>().notNull().default([]),
+    /** point | rider | carrier | border | tuma | customer | none */
+    liableParty: text("liable_party"),
+    liableId: text("liable_id"),
+    /** open | investigating | proposed | settled | rejected */
+    status: text("status").notNull().default("open"),
+    proposedAmount: integer("proposed_amount"),
+    settledAmount: integer("settled_amount"),
+    recoveredAmount: integer("recovered_amount").notNull().default(0),
+    decisionNote: text("decision_note"),
+    handledBy: text("handled_by"),
+    approvalId: uuid("approval_id"),
+    createdBy: text("created_by").notNull(),
+    createdAt: ts("created_at").notNull().defaultNow(),
+    decidedAt: ts("decided_at"),
+  },
+  (t) => [uniqueIndex("claims_ref_uq").on(t.ref), index("claims_status_idx").on(t.status, t.createdAt), index("claims_shipment_idx").on(t.shipmentId)],
+);
+
+/** A risk rule the checks run: its switch and its thresholds. */
+export const riskRules = pgTable("risk_rules", {
+  key: text("key").primaryKey(), // velocity | ghost_delivery | cash_shortfall | reported_phone
+  name: text("name").notNull(),
+  description: text("description").notNull().default(""),
+  enabled: boolean("enabled").notNull().default(true),
+  params: jsonb("params").$type<Record<string, number>>().notNull(),
+  updatedBy: text("updated_by"),
+  updatedAt: ts("updated_at").notNull().defaultNow(),
+});
+
+/** Something a rule found. One per rule, subject and day (dedupeKey). */
+export const riskAlerts = pgTable(
+  "risk_alerts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    rule: text("rule").notNull(),
+    subjectType: text("subject_type").notNull(), // user | account | shipment
+    subjectId: text("subject_id").notNull(),
+    subjectLabel: text("subject_label").notNull(),
+    score: integer("score").notNull(),
+    details: jsonb("details").$type<Record<string, unknown>>().notNull(),
+    status: text("status").notNull().default("open"), // open | case | dismissed
+    caseId: uuid("case_id"),
+    dedupeKey: text("dedupe_key").notNull(),
+    createdAt: ts("created_at").notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("risk_alerts_dedupe_uq").on(t.dedupeKey), index("risk_alerts_status_idx").on(t.status, t.createdAt), index("risk_alerts_subject_idx").on(t.subjectType, t.subjectId)],
+);
+
+/** An investigation: alerts about one subject, notes, and the outcome (which feeds the rules). */
+export const riskCases = pgTable(
+  "risk_cases",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    ref: text("ref").notNull(),
+    subjectType: text("subject_type").notNull(),
+    subjectId: text("subject_id").notNull(),
+    subjectLabel: text("subject_label").notNull(),
+    title: text("title").notNull(),
+    status: text("status").notNull().default("open"), // open | closed
+    outcome: text("outcome"), // fraud | not_fraud | inconclusive
+    notes: jsonb("notes").$type<{ by: string; name: string; at: string; text: string }[]>().notNull().default([]),
+    ownerId: text("owner_id"),
+    createdBy: text("created_by").notNull(),
+    createdAt: ts("created_at").notNull().defaultNow(),
+    closedAt: ts("closed_at"),
+  },
+  (t) => [uniqueIndex("risk_cases_ref_uq").on(t.ref), index("risk_cases_status_idx").on(t.status, t.createdAt)],
+);
+
+/**
+ * A freeze on a person or a business: while it's on they can only look, not act. One person can place it; releasing it
+ * waits for a second (approval kind risk_release).
+ */
+export const riskHolds = pgTable(
+  "risk_holds",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    subjectType: text("subject_type").notNull(), // user | account
+    subjectId: text("subject_id").notNull(),
+    subjectLabel: text("subject_label").notNull(),
+    reason: text("reason").notNull(),
+    caseId: uuid("case_id"),
+    placedBy: text("placed_by").notNull(),
+    placedAt: ts("placed_at").notNull().defaultNow(),
+    releasedBy: text("released_by"),
+    releasedAt: ts("released_at"),
+    approvalId: uuid("approval_id"),
+  },
+  (t) => [index("risk_holds_subject_idx").on(t.subjectType, t.subjectId)],
+);
+
+/** A know-your-customer check of one person's identity: what was shown, and the tier it gives once approved. */
+export const kycRecords = pgTable(
+  "kyc_records",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id),
+    tier: smallint("tier").notNull(),
+    fullName: text("full_name").notNull(),
+    idType: text("id_type").notNull(), // nida | voter | passport | driving_licence
+    /** Only the last four characters are kept. */
+    idLast4: text("id_last4").notNull(),
+    status: text("status").notNull().default("pending"), // pending | approved | rejected
+    note: text("note"),
+    submittedBy: text("submitted_by").notNull(),
+    submittedAt: ts("submitted_at").notNull().defaultNow(),
+    reviewedBy: text("reviewed_by"),
+    reviewedAt: ts("reviewed_at"),
+  },
+  (t) => [index("kyc_records_status_idx").on(t.status, t.submittedAt), index("kyc_records_user_idx").on(t.userId)],
+);
+
+/** Names to screen against: sanctions and PEP lists (loaded from ComplyOS) and Tuma's own. */
+export const watchlistEntries = pgTable("watchlist_entries", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+  kind: text("kind").notNull(), // sanctions | pep | internal
+  country: text("country"),
+  source: text("source").notNull(),
+  note: text("note"),
+  addedBy: text("added_by").notNull(),
+  createdAt: ts("created_at").notNull().defaultNow(),
+});
+
+/** One AML screening of a name, its possible matches, and the reviewer's verdict. */
+export const amlScreenings = pgTable(
+  "aml_screenings",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    subjectType: text("subject_type").notNull(), // user | account | name
+    subjectId: text("subject_id"),
+    name: text("name").notNull(),
+    /** clear | possible_match → confirmed | false_positive */
+    result: text("result").notNull(),
+    matches: jsonb("matches").$type<{ id: string; name: string; kind: string; score: number }[]>().notNull().default([]),
+    screenedBy: text("screened_by").notNull(),
+    screenedAt: ts("screened_at").notNull().defaultNow(),
+    reviewedBy: text("reviewed_by"),
+    reviewedAt: ts("reviewed_at"),
+    note: text("note"),
+  },
+  (t) => [index("aml_screenings_result_idx").on(t.result, t.screenedAt)],
+);
+
+/** A data-subject request under the PDPA: see my data, correct it, or erase it. Due 30 days after it's made. */
+export const dsrRequests = pgTable(
+  "dsr_requests",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    ref: text("ref").notNull(),
+    userId: text("user_id").references(() => users.id),
+    name: text("name").notNull(),
+    phone: text("phone").notNull(),
+    kind: text("kind").notNull(), // access | correction | erasure
+    detail: text("detail").notNull().default(""),
+    status: text("status").notNull().default("open"), // open | done | rejected
+    dueAt: ts("due_at").notNull(),
+    response: text("response"),
+    handledBy: text("handled_by"),
+    createdBy: text("created_by").notNull(),
+    createdAt: ts("created_at").notNull().defaultNow(),
+    closedAt: ts("closed_at"),
+  },
+  (t) => [uniqueIndex("dsr_requests_ref_uq").on(t.ref), index("dsr_requests_status_idx").on(t.status, t.dueAt)],
+);
+
+/**
+ * Money Tuma owes a driver (completed jobs) or an agent point (parcels it handed over for others) for a period.
+ * proposed → approved (by a second person) → sent (to FinOps) → paid; or rejected.
+ */
+export const payouts = pgTable(
+  "payouts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    ref: text("ref").notNull(),
+    payeeType: text("payee_type").notNull(), // driver | point
+    payeeId: text("payee_id").notNull(),
+    payeeName: text("payee_name").notNull(),
+    periodFrom: ts("period_from").notNull(),
+    periodTo: ts("period_to").notNull(),
+    amount: integer("amount").notNull(),
+    lineCount: integer("line_count").notNull(),
+    status: text("status").notNull().default("proposed"),
+    approvalId: uuid("approval_id"),
+    proposedBy: text("proposed_by").notNull(),
+    createdAt: ts("created_at").notNull().defaultNow(),
+    paidAt: ts("paid_at"),
+    providerRef: text("provider_ref"),
+  },
+  (t) => [uniqueIndex("payouts_ref_uq").on(t.ref), index("payouts_status_idx").on(t.status, t.createdAt), index("payouts_payee_idx").on(t.payeeType, t.payeeId)],
+);
+
+/** What a payout pays for: each job or parcel once, ever (unless its payout is rejected). */
+export const payoutLines = pgTable(
+  "payout_lines",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    payoutId: uuid("payout_id")
+      .notNull()
+      .references(() => payouts.id, { onDelete: "cascade" }),
+    sourceType: text("source_type").notNull(), // job | parcel
+    sourceId: text("source_id").notNull(),
+    label: text("label").notNull(),
+    amount: integer("amount").notNull(),
+  },
+  (t) => [uniqueIndex("payout_lines_source_uq").on(t.sourceType, t.sourceId), index("payout_lines_payout_idx").on(t.payoutId)],
 );

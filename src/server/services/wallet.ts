@@ -1,4 +1,5 @@
 import "server-only";
+import { assertKycAllows } from "./admin/compliance";
 import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db, type Tx } from "../db/client";
@@ -96,6 +97,8 @@ export async function walletTopUp(user: CurrentUser, raw: unknown) {
   if (b.forCompany && user.accountStatus === "pending") throw new DomainError("KYC_PENDING", "The company wallet opens once the company is approved.", 409);
   const e164 = toE164(b.phone);
   if (!e164 || !e164.startsWith("+255")) throw new DomainError("BAD_PHONE", "Mobile money works with Tanzanian numbers for now.");
+  // A personal wallet holds no more than the person's KYC tier allows.
+  if (!b.forCompany) await assertKycAllows(user.id, (await walletBalance(db, user.id)) + b.amount);
   const msisdn = e164.slice(1);
   const reference = `${TOPUP_PREFIX}${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
   const base = process.env.APP_URL ?? "https://tuma.hudumika.tz";
