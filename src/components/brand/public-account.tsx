@@ -8,7 +8,7 @@ import { PublicMobileMenu } from "./public-mobile-menu";
 type NavItem = { href: string; label: string };
 
 const pill =
-  "group bg-sidebar-foreground hidden h-9 items-center gap-2 rounded-full pr-1 pl-4 text-sm font-medium text-black transition-colors hover:bg-white sm:inline-flex";
+  "group bg-sidebar-foreground text-sidebar hidden h-9 items-center gap-2 rounded-full pr-1 pl-4 text-sm font-medium transition-opacity hover:opacity-90 sm:inline-flex";
 
 /** The header's right corner: Sign in, or, once signed in, a way back into their workspace. Reads the session. */
 export async function PublicAccount({ locale, nav }: { locale: string; nav: NavItem[] }) {
@@ -41,7 +41,7 @@ export function AccountCorner({ locale, nav, user }: { locale: string; nav: NavI
             {initials}
           </span>
         ) : (
-          <span className="grid size-7 place-items-center rounded-full bg-black text-white transition-transform group-hover:translate-x-0.5">
+          <span className="grid size-7 place-items-center rounded-full bg-sidebar text-sidebar-foreground transition-transform group-hover:translate-x-0.5">
             <ArrowRight className="size-3.5" aria-hidden />
           </span>
         )}

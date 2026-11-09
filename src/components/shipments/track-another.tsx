@@ -30,7 +30,7 @@ export function TrackAnother({ current }: { current?: string }) {
           autoCapitalize="characters"
           autoComplete="off"
           spellCheck={false}
-          className="focus-visible:border-ring h-9 min-w-0 flex-1 rounded-md border border-white/15 bg-black/60 px-2.5 font-mono text-sm uppercase outline-none placeholder:normal-case"
+          className="focus-visible:border-ring h-9 min-w-0 flex-1 rounded-md border border-sidebar-border bg-field px-2.5 font-mono text-sm uppercase outline-none placeholder:normal-case"
         />
         <button className="bg-brand-red grid size-9 shrink-0 place-items-center rounded-md text-black" aria-label={t.landing.trackCta}>
           <ArrowRight className="size-4" />

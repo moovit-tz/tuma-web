@@ -77,7 +77,7 @@ export function SupportWidget() {
                 placeholder={t.landing.trackPlaceholder}
                 autoCapitalize="characters"
                 spellCheck={false}
-                className="border-sidebar-border focus-visible:border-brand-red h-9 min-w-0 flex-1 rounded-md border bg-[#0e0e0e] px-3 font-mono text-sm uppercase outline-none placeholder:normal-case"
+                className="border-sidebar-border focus-visible:border-brand-red h-9 min-w-0 flex-1 rounded-md border bg-field px-3 font-mono text-sm uppercase outline-none placeholder:normal-case"
               />
               <button className="bg-brand-red h-9 rounded-md px-3 text-sm font-medium text-black" aria-label={t.landing.trackCta}>
                 <PackageSearch className="size-4" />

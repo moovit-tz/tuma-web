@@ -259,7 +259,7 @@ function AllVehicles({
                 aria-current={active ? "page" : undefined}
                 className={cn(
                   "inline-flex h-9 shrink-0 items-center gap-2 rounded-md border px-3 text-[13px] font-medium whitespace-nowrap outline-none focus-visible:ring-2",
-                  active ? "bg-sidebar border-sidebar text-white" : "bg-card hover:bg-muted",
+                  active ? "bg-foreground border-foreground text-background" : "bg-card hover:bg-muted",
                 )}
               >
                 {label(f)}

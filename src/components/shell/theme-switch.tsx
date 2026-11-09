@@ -48,7 +48,7 @@ export function ThemeSegments() {
   const { dict: t } = useI18n();
   const pref = useThemePref();
   return (
-    <div role="radiogroup" aria-label={t.shell.theme} className="grid grid-cols-3 gap-1 rounded-md bg-white/[0.06] p-1">
+    <div role="radiogroup" aria-label={t.shell.theme} className="grid grid-cols-3 gap-1 rounded-md bg-sidebar-foreground/[0.06] p-1">
       {(["light", "dark", "system"] as const).map((k) => {
         const I = ICONS[k];
         const on = pref === k;
@@ -59,7 +59,7 @@ export function ThemeSegments() {
             role="radio"
             aria-checked={on}
             onClick={() => themeStore.set(k)}
-            className={cn("flex items-center justify-center gap-1.5 rounded px-2 py-1.5 text-xs font-medium outline-none focus-visible:ring-2", on ? "bg-white/[0.14] text-white" : "text-sidebar-foreground/60 hover:text-sidebar-foreground")}
+            className={cn("flex items-center justify-center gap-1.5 rounded px-2 py-1.5 text-xs font-medium outline-none focus-visible:ring-2", on ? "bg-sidebar-foreground/[0.14] text-sidebar-foreground" : "text-sidebar-foreground/60 hover:text-sidebar-foreground")}
           >
             <I className="size-3.5" aria-hidden /> {t.shell.themes[k]}
           </button>

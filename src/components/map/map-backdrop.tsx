@@ -27,7 +27,7 @@ export function MapBackdrop({ locale, country = DEFAULT_COUNTRY, side = "right",
             : "opacity-35 [mask-image:linear-gradient(to_right,transparent_0%,black_40%)] lg:opacity-75 lg:[mask-image:linear-gradient(to_right,transparent_0%,black_35%)]",
         )}
       />
-      {side !== "band" && <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black to-transparent" />}
+      {side !== "band" && <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-sidebar to-transparent" />}
     </div>
   );
 }

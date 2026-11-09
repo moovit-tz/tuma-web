@@ -21,7 +21,7 @@ export default async function SignIn({ params, searchParams }: PageProps<"/[loca
   return (
     <div className="bg-background grid min-h-dvh lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)]">
       {/* Brand panel */}
-      <aside className="relative hidden overflow-hidden bg-black text-[#f2f0ea] lg:flex lg:flex-col">
+      <aside className="relative hidden overflow-hidden bg-sidebar text-sidebar-foreground border-sidebar-border border-r lg:flex lg:flex-col">
         <div aria-hidden className="pointer-events-none absolute -right-24 -bottom-24 size-[520px] opacity-[0.08]"><TumaMark framed={false} className="size-full" /></div>
         <div className="relative flex flex-1 flex-col justify-between p-12 xl:p-16">
           <Link href={`/${locale}`} className="w-fit outline-none">
@@ -35,19 +35,19 @@ export default async function SignIn({ params, searchParams }: PageProps<"/[loca
                 const Icon = POINT_ICONS[i] ?? Store;
                 return (
                   <li key={title} className="flex gap-4">
-                    <span className="grid size-10 shrink-0 place-items-center rounded-lg border border-white/12 bg-white/[0.04]">
-                      <Icon className="size-[18px] text-[#d9cfbb]" aria-hidden />
+                    <span className="grid size-10 shrink-0 place-items-center rounded-lg border border-sidebar-border bg-sidebar-foreground/[0.04]">
+                      <Icon className="size-[18px] text-sidebar-muted" aria-hidden />
                     </span>
                     <div>
                       <p className="font-semibold">{title}</p>
-                      <p className="mt-0.5 text-sm text-[#a59b87]">{body}</p>
+                      <p className="mt-0.5 text-sm text-sidebar-muted">{body}</p>
                     </div>
                   </li>
                 );
               })}
             </ul>
           </div>
-          <p className="font-mono text-[11px] tracking-[0.08em] text-[#7d7668]">MOOVIT · TUMA.HUDUMIKA.TZ</p>
+          <p className="font-mono text-[11px] tracking-[0.08em] text-sidebar-muted">MOOVIT · TUMA.HUDUMIKA.TZ</p>
         </div>
       </aside>
 

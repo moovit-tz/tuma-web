@@ -385,7 +385,7 @@ export function KybForm({ initial, contactName, done }: { initial: Initial; cont
                   key={k}
                   onClick={() => setWorkflow(WORKFLOW_PRESETS[k])}
                   aria-pressed={preset === k}
-                  className={cn("h-9 rounded-full border px-4 text-sm font-medium transition-colors", preset === k ? "bg-sidebar border-sidebar text-white" : "hover:bg-muted")}
+                  className={cn("h-9 rounded-full border px-4 text-sm font-medium transition-colors", preset === k ? "bg-foreground border-foreground text-background" : "hover:bg-muted")}
                 >
                   {o.presets[k as keyof typeof o.presets]}
                 </button>

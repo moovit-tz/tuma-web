@@ -96,7 +96,7 @@ export function PageBand({
   country?: string;
 }) {
   return (
-    <div className="theme-dark relative shrink-0 overflow-hidden border-b">
+    <div className="bg-sidebar text-sidebar-foreground relative shrink-0 overflow-hidden border-b">
       <MapBackdrop locale={locale} side="band" country={country} className="hidden lg:block" />
       <div className="relative mx-auto flex max-w-6xl flex-col gap-5 px-4 py-6 sm:px-6 sm:py-8 lg:flex-row lg:items-end lg:justify-between [@media(max-height:760px)]:py-5">
         <div className="min-w-0">

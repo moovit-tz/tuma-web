@@ -47,7 +47,7 @@ export function HeaderActions({ actions }: { actions: QuickAction[] }) {
         <DropdownMenu modal={false}>
           <DropdownMenuTrigger
             aria-label={t.shell.quickActions}
-            className="bg-sidebar text-sidebar-foreground hover:bg-sidebar/85 data-[state=open]:bg-sidebar/85 inline-flex h-10 shrink-0 items-center gap-2 rounded-md px-3 text-[13px] font-semibold shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-offset-2 dark:ring-1 dark:ring-white/10 lg:px-4"
+            className="bg-foreground text-background hover:bg-foreground/85 data-[state=open]:bg-foreground/85 inline-flex h-10 shrink-0 items-center gap-2 rounded-md px-3 text-[13px] font-semibold shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-offset-2 dark:ring-1 dark:ring-white/10 lg:px-4"
           >
             <Zap className="text-brand-ink size-[18px] fill-current" aria-hidden />
             <span className="hidden lg:inline">{t.shell.quickActions}</span>

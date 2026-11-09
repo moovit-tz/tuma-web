@@ -27,7 +27,7 @@ export function Hero({ locale, country, source }: { locale: AppLocale; country: 
         <MapHover countries={hoverData}>
           <RegionMap selected={country} locale={locale} corridors="all" simulate className="absolute inset-0 h-full w-full" />
         </MapHover>
-        <div className="pointer-events-none absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-black to-transparent" />
+        <div className="pointer-events-none absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-sidebar to-transparent" />
       </div>
 
       <div className="relative z-10 flex min-h-0 flex-col justify-center gap-[clamp(14px,2.6vh,26px)] py-[clamp(24px,5vh,48px)] pr-4 pl-[max(1rem,calc((100vw-72rem)/2+1.5rem))] sm:pr-8 lg:order-1 lg:py-[clamp(20px,4vh,48px)]">

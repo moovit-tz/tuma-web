@@ -123,7 +123,7 @@ export function JobBuilder({ ready, pickups }: { ready: ReadyWaybill[]; pickups:
                     <li key={r.waybill}>
                       <label className={cn("flex cursor-pointer items-center gap-3 px-3 py-2 text-sm", at >= 0 ? "bg-muted/60" : "hover:bg-muted/40")}>
                         <input type="checkbox" checked={at >= 0} onChange={() => toggle(r.waybill)} className="size-4 accent-current" />
-                        <span className={cn("tabular grid size-5 shrink-0 place-items-center rounded-full text-[11px] font-semibold", at >= 0 ? "bg-sidebar text-white" : "text-transparent")}>{at >= 0 ? at + 1 : "·"}</span>
+                        <span className={cn("tabular grid size-5 shrink-0 place-items-center rounded-full text-[11px] font-semibold", at >= 0 ? "bg-foreground text-background" : "text-transparent")}>{at >= 0 ? at + 1 : "·"}</span>
                         <span className="w-36 shrink-0 font-mono text-[13px] font-medium">{r.waybill}</span>
                         <span className="min-w-0 flex-1 truncate">
                           {r.name} <span className="text-muted-foreground">· {r.place}</span>

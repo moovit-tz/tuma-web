@@ -86,7 +86,7 @@ async function Shell({ locale, nav, systemGroup, quickActions, gate, search, chi
 function FrameSkeleton() {
   return (
     <div className="bg-background h-dvh w-full overflow-hidden">
-      <div className="bg-sidebar fixed inset-y-0 left-0 hidden w-[272px] lg:block" />
+      <div className="bg-rail fixed inset-y-0 left-0 hidden w-[272px] lg:block" />
       <div className="bg-background fixed top-0 right-0 left-0 h-16 border-b lg:left-[272px]" />
       <div className="px-4 pt-24 sm:px-6 lg:pl-[296px]">
         <PageSkeleton />

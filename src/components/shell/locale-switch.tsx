@@ -32,7 +32,7 @@ export function LocaleSwitch({ className, dark }: { className?: string; dark?: b
         aria-label={`${dict.common.language}: ${current.name}`}
         className={cn(
           "inline-flex h-9 items-center gap-1.5 rounded-full px-2.5 text-[13px] font-medium transition-colors outline-none focus-visible:ring-2",
-          dark ? "text-sidebar-foreground hover:bg-white/[0.08] data-[state=open]:bg-white/[0.08]" : "hover:bg-muted data-[state=open]:bg-muted",
+          dark ? "text-sidebar-foreground hover:bg-sidebar-foreground/[0.08] data-[state=open]:bg-sidebar-foreground/[0.08]" : "hover:bg-muted data-[state=open]:bg-muted",
           className,
         )}
       >

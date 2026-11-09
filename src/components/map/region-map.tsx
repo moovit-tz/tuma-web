@@ -47,7 +47,7 @@ export function RegionMap({
     <svg
       viewBox={`0 0 ${MAP_W} ${MAP_H}`}
       preserveAspectRatio={preserve}
-      className={className}
+      className={`map-art ${className ?? ""}`}
       {...(decorative ? { "aria-hidden": true } : { role: "img", "aria-label": `Map of SADC and EAC member states, ${selected.name[locale]} selected` })}
     >
       <defs>

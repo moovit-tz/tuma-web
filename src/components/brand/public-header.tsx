@@ -88,7 +88,7 @@ export function TrackForm({ locale, defaultValue, big }: { locale: string; defau
         placeholder={t.landing.trackPlaceholder}
         className={
           "min-w-0 flex-1 rounded-md border font-mono uppercase outline-none placeholder:normal-case " +
-          (big ? "border-sidebar-border bg-[#0E0E0E]/90 text-sidebar-foreground focus-visible:border-brand-red h-12 px-4 text-[16px]" : "bg-card h-11 px-3 text-[15px]")
+          (big ? "border-sidebar-border bg-field/90 text-sidebar-foreground focus-visible:border-brand-red h-12 px-4 text-[16px]" : "bg-card h-11 px-3 text-[15px]")
         }
       />
       <button className={"rounded-md px-5 font-medium " + (big ? "bg-brand-red h-12 text-black" : "bg-primary text-primary-foreground h-11")}>{t.landing.trackCta}</button>

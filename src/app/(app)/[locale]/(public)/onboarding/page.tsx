@@ -75,7 +75,7 @@ export default async function OnboardingPage({ params, searchParams }: PageProps
             <span className="min-w-0 flex-1">
               <span className="text-brand-ink block text-xs font-semibold tracking-wide uppercase">{s.whileYouWait}</span>
               <span className="mt-1 block text-lg font-bold">{s.goSetup}</span>
-              <span className="mt-1 block text-sm text-white/70">{s.teamSub} {s.officesSub}</span>
+              <span className="mt-1 block text-sm text-sidebar-muted">{s.teamSub} {s.officesSub}</span>
             </span>
             <ArrowRight className="size-5 shrink-0 transition-transform group-hover:translate-x-1" />
           </Link>

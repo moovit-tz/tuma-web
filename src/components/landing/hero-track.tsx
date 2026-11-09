@@ -11,7 +11,7 @@ export function HeroTrack() {
   const [wb, setWb] = useState("");
   return (
     <form
-      className="border-sidebar-border w-full max-w-[520px] rounded-xl border bg-[#0e0e0e]/85 p-3 shadow-2xl backdrop-blur"
+      className="border-sidebar-border w-full max-w-[520px] rounded-xl border bg-field/85 p-3 shadow-2xl backdrop-blur"
       onSubmit={(e) => {
         e.preventDefault();
         if (wb.trim()) router.push(`/${locale}/track?wb=${encodeURIComponent(wb.trim())}`);
@@ -29,7 +29,7 @@ export function HeroTrack() {
           autoCapitalize="characters"
           autoComplete="off"
           spellCheck={false}
-          className="border-sidebar-border focus-visible:border-brand-red text-sidebar-foreground h-12 min-w-0 flex-1 rounded-md border bg-black/60 px-3 font-mono text-[16px] uppercase outline-none placeholder:normal-case"
+          className="border-sidebar-border focus-visible:border-brand-red text-sidebar-foreground h-12 min-w-0 flex-1 rounded-md border bg-field px-3 font-mono text-[16px] uppercase outline-none placeholder:normal-case"
         />
         <button className="bg-brand-red h-12 rounded-md px-6 font-medium text-black">{t.landing.trackCta}</button>
       </div>

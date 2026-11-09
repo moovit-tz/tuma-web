@@ -87,7 +87,7 @@ export function Wizard({
                 <span
                   className={cn(
                     "grid size-8 shrink-0 place-items-center rounded-full border text-[13px] font-semibold transition-colors",
-                    on ? "bg-sidebar border-sidebar text-white" : done ? "bg-brand-red border-brand-red text-black" : "bg-card text-muted-foreground",
+                    on ? "bg-foreground border-foreground text-background" : done ? "bg-brand-red border-brand-red text-black" : "bg-card text-muted-foreground",
                   )}
                 >
                   {done ? <Check className="size-4" aria-hidden /> : i + 1}

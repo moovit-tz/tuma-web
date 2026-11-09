@@ -28,6 +28,7 @@
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
   --color-sidebar: var(--sidebar);
+  --color-field: var(--field);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-muted: var(--sidebar-muted);
   --color-sidebar-border: var(--sidebar-border);
@@ -79,11 +80,13 @@
   --rail-muted: #65675f;
   --rail-border: #e2e2dc;
   --rail-hover: #f1f1ec;
-  --sidebar: #000000;
-  --sidebar-foreground: #f2f0ea;
-  --sidebar-muted: #a59b87;
-  --sidebar-border: #2e2e2e;
-  --sidebar-accent: #161616;
+  /* The public site's chrome (landing, track, legal): follows the theme like everything else. */
+  --sidebar: #f3f3f0;
+  --sidebar-foreground: #16171b;
+  --sidebar-muted: #5c5e66;
+  --sidebar-border: #d8d8d1;
+  --sidebar-accent: #eaeae5;
+  --field: #ffffff;
   --brand-red: #ff4545;
   /* Red text: the brand red is a fill (black text on it); text on light needs this darker red for AA. */
   --brand-ink: #c42727;
@@ -116,7 +119,12 @@
     --input: #6b6b72;
     --ring: #ff5757;
     --sunken: #1c1c1f;
+    --sidebar: #000000;
+    --sidebar-foreground: #f2f0ea;
+    --sidebar-muted: #a59b87;
+    --sidebar-border: #2e2e2e;
     --sidebar-accent: #121212;
+    --field: #0e0e0e;
     --rail: #000000;
     --rail-foreground: #f2f0ea;
     --rail-muted: #a59b87;
@@ -152,7 +160,12 @@
   --input: #6b6b72;
   --ring: #ff5757;
   --sunken: #1c1c1f;
+  --sidebar: #000000;
+  --sidebar-foreground: #f2f0ea;
+  --sidebar-muted: #a59b87;
+  --sidebar-border: #2e2e2e;
   --sidebar-accent: #121212;
+  --field: #0e0e0e;
   --rail: #000000;
   --rail-foreground: #f2f0ea;
   --rail-muted: #a59b87;
@@ -193,6 +206,12 @@
   --cargo: #b8ae99;
   --ok: #4cc38a;
   --warn: #f0a83a;
+  --sidebar: #000000;
+  --sidebar-foreground: #f2f0ea;
+  --sidebar-muted: #a59b87;
+  --sidebar-border: #2e2e2e;
+  --sidebar-accent: #121212;
+  --field: #0e0e0e;
   color-scheme: dark;
   background: var(--background);
   color: var(--foreground);
@@ -323,4 +342,18 @@
   --st-problem: #ff8a4c;
   --st-cancelled: #8f8c85;
   --st-other: #d6d3cc;
+}
+
+/* The map artwork is drawn for a dark page. On a light page it is inverted (hue kept, so the reds stay red). */
+.map-art {
+  filter: invert(1) hue-rotate(180deg);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .map-art {
+    filter: none;
+  }
+}
+:root[data-theme="dark"] .map-art,
+.theme-dark .map-art {
+  filter: none;
 }
