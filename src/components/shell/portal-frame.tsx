@@ -2,7 +2,7 @@
 import { useMemo, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Boxes, Building, Building2, ChevronDown, ChevronsLeft, HandCoins, LayoutDashboard, LogOut, Menu, Package, PackagePlus, RadioTower, Receipt, Search, ShieldCheck, TriangleAlert, Truck, Users, Wallet, X, type LucideIcon, Send, Bike, Settings2, ClipboardList, ChartColumn, Bell, LifeBuoy, Landmark, UserCheck, SlidersHorizontal, Siren, FileWarning, ShieldAlert, Scale } from "lucide-react";
+import { Boxes, Building, Building2, ChevronDown, ChevronsLeft, HandCoins, LayoutDashboard, LogOut, Menu, Package, PackagePlus, RadioTower, Receipt, Search, ShieldCheck, TriangleAlert, Truck, Users, Wallet, X, type LucideIcon, Send, Bike, Settings2, ClipboardList, ChartColumn, Bell, LifeBuoy, Landmark, UserCheck, SlidersHorizontal, Siren, FileWarning, ShieldAlert, Scale, Plug, Handshake } from "lucide-react";
 import { useI18n } from "@/i18n/client";
 import { TumaMark, TumaWordmark } from "@/components/brand/logo";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -39,6 +39,8 @@ export const NAV_ICONS = {
   access: UserCheck,
   grants: SlidersHorizontal,
   breakglass: Siren,
+  integrations: Plug,
+  partners: Handshake,
   claims: FileWarning,
   risk: ShieldAlert,
   compliance: Scale,

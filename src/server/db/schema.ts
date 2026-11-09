@@ -1751,3 +1751,32 @@ export const idempotencyKeys = pgTable(
   },
   (t) => [primaryKey({ columns: [t.userId, t.key] }), index("idempotency_keys_created_idx").on(t.createdAt)],
 );
+
+/**
+ * The platform's suppliers and partners (packaging, supplies, insurance, fuel, vehicle care, telecoms…), kept by the
+ * Tuma team: who they are, how to reach them, what they offer and on what terms, and where they serve.
+ */
+export const platformPartners = pgTable(
+  "platform_partners",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    kind: text("kind").notNull(), // packaging | supplies | insurance | fuel | vehicles | telecom | other
+    name: text("name").notNull(),
+    contactName: text("contact_name"),
+    phone: text("phone"),
+    email: text("email"),
+    website: text("website"),
+    /** Regions served; empty = nationwide. */
+    regions: jsonb("regions").$type<string[]>().notNull().default([]),
+    /** What they offer and on what terms (prices, commission, minimum order). */
+    offer: text("offer"),
+    notes: text("notes"),
+    status: text("status").notNull().default("active"), // active | paused | ended
+    contractEndsAt: ts("contract_ends_at"),
+    createdBy: text("created_by").notNull(),
+    createdAt: ts("created_at").notNull().defaultNow(),
+    updatedAt: ts("updated_at").notNull().defaultNow(),
+  },
+  (t) => [index("platform_partners_kind_idx").on(t.kind, t.status)],
+);
+

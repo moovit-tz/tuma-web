@@ -239,6 +239,13 @@
       "when": 1794245709251,
       "tag": "0033_idempotency_keys",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1794252088217,
+      "tag": "0034_platform_partners",
+      "breakpoints": true
     }
   ]
 }

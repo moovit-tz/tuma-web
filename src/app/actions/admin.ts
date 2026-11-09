@@ -8,6 +8,8 @@ import { cancelApproval, decideApproval, requestWalletAdjustment } from "@/serve
 import { reviewAccess } from "@/server/services/admin/access-reviews";
 import { revealCustomerField, searchCustomers, updateSupportCase } from "@/server/services/admin/support-desk";
 import { recheckPayment } from "@/server/services/admin/finance";
+import { retryFailed } from "@/server/services/admin/integrations";
+import { createPartner, updatePartner } from "@/server/services/admin/partners";
 import type { ActionResult } from "./shipments";
 
 type User = NonNullable<Awaited<ReturnType<typeof getCurrentUser>>>;
@@ -181,4 +183,12 @@ export async function proposePayoutsAction(v: Record<string, string>) {
 export async function markPaidAction(id: string, v: Record<string, string>) {
   const { markPayoutPaid } = await payoutSvc();
   return run((u) => markPayoutPaid(u, id, v));
+}
+
+export async function retryIntegrationAction(key: string) {
+  return run((u) => retryFailed(u, key));
+}
+
+export async function savePartnerAction(id: string | null, input: unknown) {
+  return run((u) => (id ? updatePartner(u, id, input) : createPartner(u, input)));
 }

@@ -43,6 +43,8 @@ export default async function PortalLayout({ children, params }: LayoutProps<"/[
     { href: `${base}/admin/compliance`, label: t.staff.nav.compliance, icon: "compliance", permission: ["kyc.review", "aml.screen", "dsr.handle"], group: t.admin.nav.group },
     { href: `${base}/admin/payouts`, label: t.staff.nav.payouts, icon: "payouts", permission: ["payout.propose", "finance.view"], group: t.admin.nav.group },
     { href: `${base}/admin/grants`, label: t.staff.nav.grants, icon: "grants", permission: "roles.manage", group: t.admin.nav.group },
+    { href: `${base}/admin/integrations`, label: t.admin.nav.integrations, icon: "integrations", permission: "settings.manage", group: t.admin.nav.group },
+    { href: `${base}/admin/partners`, label: t.admin.nav.partners, icon: "partners", permission: ["settings.manage", "finance.view"], group: t.admin.nav.group },
     { href: `${base}/admin/breakglass`, label: t.staff.nav.breakglass, icon: "breakglass", permission: ["breakglass.request", "access.review"], group: t.admin.nav.group },
     { href: `${base}/settings/roles`, label: t.nav.roles, icon: "roles", permission: ["roles.manage", "team.manage"], group: t.nav.settingsGroup },
     { href: `${base}/settings/users`, label: t.nav.team, icon: "users", permission: ["users.manage", "team.manage"], group: t.nav.settingsGroup },
