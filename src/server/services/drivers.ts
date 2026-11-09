@@ -248,6 +248,8 @@ export async function appMe(ctx: DriverCtx) {
           trial: business ? (ctx.user.trial ?? null) : null,
           payOnDelivery: acct.payOnDelivery,
           momo: !!acct.momo,
+          // Who can turn mobile money on; everyone else asks them.
+          momoAdmin: ctx.user.permissions.has("agent.wallet.manage"),
         }
       : null,
     agent: modules.includes("agent") ? await agentProfile(ctx.user.accountId!) : null,

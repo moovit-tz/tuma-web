@@ -78,8 +78,10 @@ export const SW_ERRORS: Record<string, string> = {
   "Maps didn't answer. Try again.": "Ramani hazikujibu. Jaribu tena.",
   "Mobile money couldn't start that payment. Check the number and try again.": "Pesa ya simu haikuweza kuanzisha malipo hayo. Hakiki namba kisha ujaribu tena.",
   "Mobile money didn't answer. Try again or take cash.": "Pesa ya simu haikujibu. Jaribu tena au pokea taslimu.",
-  "Mobile money isn't on for this business. Turn it on in More → Payments, or take cash.":
-    "Pesa ya simu haijawashwa kwa biashara hii. Iwashe kwenye Zaidi → Malipo, au pokea taslimu.",
+  "Mobile money isn't set up for this business yet. Set it up in Payments, or take cash.":
+    "Pesa kwa simu bado haijawekwa kwa biashara hii. Iweke kwenye Malipo, au pokea taslimu.",
+  "Mobile money isn't set up for this business yet. Ask your admin to set it up, or take cash.":
+    "Pesa kwa simu bado haijawekwa kwa biashara hii. Mwombe msimamizi wako aiweke, au pokea taslimu.",
   "Mobile money isn't set up yet. Take cash for now.": "Pesa ya simu bado haijawekwa. Pokea taslimu kwa sasa.",
   "Mobile money works with Tanzanian numbers for now.": "Pesa ya simu inafanya kazi na namba za Tanzania kwa sasa.",
   "No Tuma operations account is set up.": "Hakuna akaunti ya uendeshaji wa Tuma iliyowekwa.",

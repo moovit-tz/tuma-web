@@ -1247,6 +1247,16 @@ const sw: Dict = {
       method: "Mtumaji analipa kwa",
       submit: "Weka bei na ukipokee",
     },
+    momoSetup: {
+      title: "Pesa kwa simu haijawekwa",
+      bodyAdmin: "Iwashe na uchague malipo yatakapopelekwa. Pokea taslimu hadi hapo.",
+      bodyStaff: "Msimamizi wako pekee ndiye anaweza kuiwasha. Pokea taslimu kwa sasa, au mwombe.",
+      setUp: "Weka pesa kwa simu",
+      ask: "Mwombe msimamizi",
+      askedShort: "Msimamizi ameombwa",
+      asked: "Msimamizi wako ameombwa aweke pesa kwa simu.",
+      alreadyOn: "Pesa kwa simu imewashwa sasa. Pakia ukurasa upya.",
+    },
     pay: {
       title: "Pokea malipo",
       cash: "Taslimu",

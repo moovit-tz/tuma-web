@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Ban, Check, Coins, Hand, KeyRound, PackageCheck, Printer, ReceiptText, Scale, Smartphone, TriangleAlert, Truck } from "lucide-react";
 import { toast } from "sonner";
+import { MomoOffNotice } from "./momo-off-notice";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -29,7 +30,11 @@ export type ParcelActionsProps = {
   canCancel: boolean;
   cancelReasons: Reason[];
   canPrint: boolean;
+  /** Mobile money on for the business, and whether this person can turn it on. */
+  momo: Momo;
 };
+
+type Momo = { on: boolean; canSetUp: boolean };
 
 const selectCls = "bg-background h-9 w-full rounded-md border px-2 text-sm";
 const tzs = (n: number) => `TZS ${n.toLocaleString("en-US")}`;
@@ -59,7 +64,7 @@ export function AgentParcelActions(p: ParcelActionsProps) {
       {nothing && <p className="text-muted-foreground text-sm">{a.parcel.noActions}</p>}
       <div className="flex flex-wrap gap-2">
         {p.needsPrice && <PriceDialog {...p} />}
-        {!p.needsPrice && p.awaitingPayment && <PayDialog waybill={p.waybill} payerPhone={p.payerPhone} />}
+        {!p.needsPrice && p.awaitingPayment && <PayDialog waybill={p.waybill} payerPhone={p.payerPhone} momo={p.momo} />}
         {simple.map((m, i) => {
           const Icon = icon[m] ?? Check;
           return (
@@ -122,9 +127,10 @@ function useMomo(waybill: string, onPaid: () => void) {
   return { waiting, poll };
 }
 
-function MethodPicker({ value, onChange }: { value: "cash" | "mobile_money"; onChange: (v: "cash" | "mobile_money") => void }) {
+function MethodPicker({ value, onChange, momo }: { value: "cash" | "mobile_money"; onChange: (v: "cash" | "mobile_money") => void; momo: Momo }) {
   const { dict: t } = useI18n();
   return (
+    <div className="grid gap-2">
     <div className="grid grid-cols-2 gap-2">
       {(
         [
@@ -136,12 +142,18 @@ function MethodPicker({ value, onChange }: { value: "cash" | "mobile_money"; onC
           key={k}
           type="button"
           onClick={() => onChange(k)}
+          disabled={k === "mobile_money" && !momo.on}
           aria-pressed={value === k}
-          className={cn("flex items-center gap-2 rounded-md border px-3 py-2.5 text-sm font-medium", value === k ? "border-brand-red bg-brand-red/5" : "hover:bg-muted")}
+          className={cn(
+            "flex items-center gap-2 rounded-md border px-3 py-2.5 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50",
+            value === k ? "border-brand-red bg-brand-red/5" : "hover:bg-muted",
+          )}
         >
           <Icon className="size-4" /> {label}
         </button>
       ))}
+    </div>
+    {!momo.on && <MomoOffNotice canSetUp={momo.canSetUp} />}
     </div>
   );
 }
@@ -204,7 +216,7 @@ function PriceDialog(p: ParcelActionsProps) {
           </div>
           <div className="grid gap-1.5">
             <Label>{a.price.method}</Label>
-            <MethodPicker value={method} onChange={setMethod} />
+            <MethodPicker value={method} onChange={setMethod} momo={p.momo} />
           </div>
           {method === "mobile_money" && (
             <div className="grid gap-1.5">
@@ -224,12 +236,13 @@ function PriceDialog(p: ParcelActionsProps) {
   );
 }
 
-function PayDialog({ waybill, payerPhone }: { waybill: string; payerPhone: string | null }) {
+function PayDialog(p: { waybill: string; payerPhone: string | null; momo: Momo }) {
+  const { waybill, payerPhone } = p;
   const { dict: t } = useI18n();
   const a = t.agent;
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [method, setMethod] = useState<"cash" | "mobile_money">("mobile_money");
+  const [method, setMethod] = useState<"cash" | "mobile_money">(p.momo.on ? "mobile_money" : "cash");
   const [phone, setPhone] = useState(payerPhone ?? "");
   const [pending, start] = useTransition();
   const done = () => {
@@ -261,7 +274,7 @@ function PayDialog({ waybill, payerPhone }: { waybill: string; payerPhone: strin
           <DialogDescription>{a.parcel.awaitingPayment}</DialogDescription>
         </DialogHeader>
         <div className="grid gap-3">
-          <MethodPicker value={method} onChange={setMethod} />
+          <MethodPicker value={method} onChange={setMethod} momo={p.momo} />
           {method === "mobile_money" && (
             <div className="grid gap-1.5">
               <Label htmlFor="pay-phone">{a.pay.phone}</Label>
@@ -324,7 +337,7 @@ function HandoverDialog(p: ParcelActionsProps) {
           {owes && (
             <div className="border-warn/40 bg-warn/10 grid gap-2 rounded-md border p-3">
               <p className="text-sm font-semibold">{fmt(a.handover.due, { amount: tzs(p.due.total) })}</p>
-              <MethodPicker value={method} onChange={setMethod} />
+              <MethodPicker value={method} onChange={setMethod} momo={p.momo} />
             </div>
           )}
           <div className="grid gap-1.5">

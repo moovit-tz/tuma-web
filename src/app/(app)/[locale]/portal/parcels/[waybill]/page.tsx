@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Info, Send } from "lucide-react";
 import { getCurrentUser } from "@/server/auth/current-user";
 import { agentParcel } from "@/server/services/agent-parcels";
+import { momoEnabled } from "@/server/services/agent-payments";
 import { DomainError } from "@/server/services/shipments";
 import { fmt, getDict } from "@/i18n";
 import { dateTime, money } from "@/lib/format";
@@ -82,6 +83,7 @@ export default async function AgentParcelPage({ params }: PageProps<"/[locale]/p
             canCancel={r.canCancel}
             cancelReasons={r.cancelReasons.map((x) => ({ code: x.code, label: label(x) }))}
             canPrint={user.permissions.has("label.print") && !p.needsPrice}
+            momo={{ on: user.accountId ? await momoEnabled(user.accountId) : false, canSetUp: user.permissions.has("agent.wallet.manage") }}
           />
         </div>
       </Panel>

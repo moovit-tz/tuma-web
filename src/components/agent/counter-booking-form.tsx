@@ -12,6 +12,7 @@ import { TZ_DISTRICTS } from "@/domain/tz-districts";
 import { SPECIAL_HANDLING } from "@/domain/order-schema";
 import { agentBookAction, agentCollectionPointsAction, agentCustomerSearchAction } from "@/app/actions/agent";
 import { cn } from "@/lib/utils";
+import { MomoOffNotice } from "./momo-off-notice";
 
 type Kind = "individual" | "company";
 type Party = { kind: Kind; phone: string; name: string; email: string; tin: string; regNo: string; contactName: string };
@@ -31,6 +32,8 @@ export type CounterBookingProps = {
   goodsTypes: { key: string; label: string }[];
   packaging: { key: string; label: string }[];
   momo: boolean;
+  /** Whoever can turn mobile money on gets the way there; everyone else can ask them. */
+  canSetUpMomo: boolean;
   payOnDelivery: boolean;
 };
 
@@ -378,7 +381,11 @@ export function CounterBookingForm(p: CounterBookingProps) {
                   ...(sender.kind === "company" ? ([["invoice", b.invoice]] as const) : []),
                 ]}
               />
-              {!p.momo && <p className="text-muted-foreground mt-1 text-xs">{b.momoOff}</p>}
+              {!p.momo && (
+                <div className="mt-2">
+                  <MomoOffNotice canSetUp={p.canSetUpMomo} />
+                </div>
+              )}
             </Field>
           )}
           <label className="flex items-start gap-2 text-sm">

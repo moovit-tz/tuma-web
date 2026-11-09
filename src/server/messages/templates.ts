@@ -105,6 +105,10 @@ const TEMPLATES: Record<string, Record<Lang, T>> = {
     en: { title: "Paid from your wallet", body: "TZS {amount} for parcel {waybill}. Balance: TZS {balance}." },
     sw: { title: "Imelipwa kutoka pochi", body: "TZS {amount} kwa kifurushi {waybill}. Salio: TZS {balance}." },
   },
+  "push.momo_setup": {
+    en: { title: "Set up mobile money", body: "{name} wants to take mobile money at the counter. Turn it on in Payments." },
+    sw: { title: "Weka pesa kwa simu", body: "{name} anataka kupokea malipo kwa simu kaunta. Iwashe kwenye Malipo." },
+  },
   "push.wallet_refund": {
     en: { title: "Refund to your wallet", body: "TZS {amount} for cancelled parcel {waybill} is back in your wallet." },
     sw: { title: "Umerudishiwa pesa", body: "TZS {amount} ya kifurushi {waybill} kilichositishwa imerudi kwenye pochi yako." },

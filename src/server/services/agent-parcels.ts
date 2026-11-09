@@ -6,13 +6,14 @@ import { db } from "../db/client";
 import { accounts, branches, codRecords, events, invoices, jobShipments, jobs, kybApplications, kybEvents, locations, manifestItems, manifests, parcelPayments, reasonCodes, shipments, users } from "../db/schema";
 import { collect, collection } from "../adapters/hudupay";
 import { issueCompanyInvoice, markPaid, receiveOnceFor, settlePayment } from "./counter-payments";
-import { momoEnabled } from "./agent-payments";
+import { momoEnabled, momoOffError } from "./agent-payments";
 import { refundToWallet } from "./wallet";
 import { toE164 } from "@/domain/phone";
 import { createParcel, DomainError, transition } from "./shipments";
 import { enqueue } from "../adapters/outbox";
 import { verifyTrackingOtp } from "./tracking";
 import { trialFor } from "../rbac";
+import { seesBusiness } from "@/domain/roles";
 import type { CurrentUser } from "../auth/current-user";
 import { normaliseWaybill } from "@/domain/waybill-number";
 import { canTransition, nextStates, type ShipmentState } from "@/domain/states";
@@ -96,7 +97,8 @@ export async function agentSummary(user: CurrentUser) {
       })
       .from(shipments)
       .where(and(scope, gte(shipments.createdAt, month), sql`${shipments.state} <> 'CANCELLED'`)),
-    user.accountStatus === "pending" ? trialFor(acct) : Promise.resolve(null),
+    // What's left of the trial is the business's concern: only for those who see the business.
+    user.accountStatus === "pending" && seesBusiness(user.permissions) ? trialFor(acct) : Promise.resolve(null),
     // Manifests on their way to this office, to check in when they arrive.
     db
       .select({ n: count() })
@@ -554,7 +556,7 @@ async function toOrder(user: CurrentUser, raw: unknown) {
     if (!a?.on) throw new DomainError("PAY_ON_DELIVERY_OFF", "The receiver can pay on delivery only when it's a company. Take cash or mobile money.");
   }
   if (b.payer === "sender" && b.paidWith === "mobile_money" && !(await momoEnabled(acct))) {
-    throw new DomainError("MOMO_OFF", "Mobile money isn't on for this business. Turn it on in More → Payments, or take cash.");
+    throw momoOffError(user);
   }
   const [w, l, h] = SIZES[b.size];
   const input: ParcelOrderInput = {
@@ -663,7 +665,7 @@ export async function agentRequestPayment(user: CurrentUser, rawWaybill: string,
     return { payment: null, parcel: (await agentParcel(user, s.waybill)).parcel };
   }
   if (!(await momoEnabled(s.accountId))) {
-    throw new DomainError("MOMO_OFF", "Mobile money isn't on for this business. Turn it on in More → Payments, or take cash.");
+    throw momoOffError(user);
   }
   const e164 = toE164(body.phone);
   if (!e164 || !e164.startsWith("+255")) throw new DomainError("BAD_PHONE", "Mobile money works with Tanzanian numbers for now.");

@@ -35,6 +35,7 @@ export default async function BookAtCounter({ params }: PageProps<"/[locale]/por
         goodsTypes={goodsTypes.map((g) => ({ key: g.key, label: lang(g) }))}
         packaging={PACKAGING_TYPES.map((x) => ({ key: x.key, label: lang(x) }))}
         momo={momo}
+        canSetUpMomo={user.permissions.has("agent.wallet.manage")}
         payOnDelivery={!!acct?.pod}
       />
     </div>

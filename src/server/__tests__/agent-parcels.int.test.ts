@@ -6,7 +6,7 @@ import { accounts, agents, branches, customerReports, customers, events, invoice
 import { settlePayment } from "../services/counter-payments";
 import { driverContext, finishDriverLogin, swapHandoff, type DriverCtx } from "../services/drivers";
 import { submitKyb } from "../services/kyb";
-import { invoiceDetail, paymentDetail, paymentRecords, paymentSettingsFor, updatePaymentSettings } from "../services/agent-payments";
+import { invoiceDetail, paymentDetail, paymentRecords, paymentSettingsFor, requestMomoSetup, updatePaymentSettings } from "../services/agent-payments";
 import { agentBook, agentMove, agentNotifications, agentParcel, agentParcels, agentPaymentStatus, agentReport, agentReportCsv, agentRequestPayment, agentSummary, collectionPoints } from "../services/agent-parcels";
 import { verifyDriverToken } from "../auth/driver-token";
 import { devReceiverCode } from "../services/tracking";
@@ -335,6 +335,13 @@ describe("parcel work at the agent counter (app)", () => {
     // Under review the float (and so payments) isn't open yet; it is once the business is approved.
     expect(await paymentSettingsFor(me.user)).toMatchObject({ canManage: false, blockedBy: "review" });
     await expect(updatePaymentSettings(me.user, { payOnDelivery: true })).rejects.toMatchObject({ code: "FORBIDDEN" });
+    // Someone who can't turn mobile money on is told to ask, and can: a push to whoever manages payments, once a day.
+    await expect(agentBook(me.user, booking({ payer: "sender", paidWith: "mobile_money" }))).rejects.toMatchObject({ code: "MOMO_OFF_ASK", message: expect.stringContaining("Ask your admin") });
+    expect(await requestMomoSetup(me.user)).toEqual({ sent: true, already: false });
+    await requestMomoSetup(me.user);
+    const asks = (await db.select().from(outbox).where(eq(outbox.topic, "push.request"))).filter((e) => (e.payload as { template?: string }).template === "push.momo_setup" && (e.payload as { account?: { id: string } }).account?.id === me.user.accountId);
+    expect(asks).toHaveLength(1);
+    expect(asks[0].payload).toMatchObject({ account: { permission: "agent.wallet.manage" } });
     await db.update(accounts).set({ status: "active" }).where(eq(accounts.id, me.user.accountId!));
     me = (await driverContext(OWNER))!;
     const off = booking({ payer: "sender", paidWith: "mobile_money" });

@@ -4,6 +4,7 @@ import { z } from "zod";
 import { db } from "../db/client";
 import { accounts, agents, invoices, parcelPayments, paymentSettings, shipments } from "../db/schema";
 import { enqueue } from "../adapters/outbox";
+import { queuePush } from "./push";
 import { audit } from "../audit";
 import { DomainError } from "../errors";
 import type { CurrentUser } from "../auth/current-user";
@@ -122,6 +123,31 @@ async function collectedFor(acct: string, bps: number) {
     month: period("month"),
     toCollect: { payOnDelivery: { amount: pod?.amount ?? 0, parcels: pod?.n ?? 0 }, invoices: { amount: inv?.amount ?? 0, count: inv?.n ?? 0 } },
   };
+}
+
+/** Mobile money is off: what to do next depends on who's asking — set it up, or ask whoever can. */
+export function momoOffError(user: CurrentUser) {
+  return user.permissions.has("agent.wallet.manage")
+    ? new DomainError("MOMO_OFF", "Mobile money isn't set up for this business yet. Set it up in Payments, or take cash.")
+    : new DomainError("MOMO_OFF_ASK", "Mobile money isn't set up for this business yet. Ask your admin to set it up, or take cash.");
+}
+
+/** Counter staff asking whoever manages payments to turn mobile money on: a push to them, at most once a day each. */
+export async function requestMomoSetup(user: CurrentUser) {
+  const acct = accountOf(user);
+  if (await momoEnabled(acct)) return { sent: false, already: true };
+  const day = new Date().toISOString().slice(0, 10);
+  await db.transaction(async (tx) => {
+    await queuePush(tx, {
+      key: `momo-ask:${acct}:${user.id}:${day}`,
+      to: { account: { id: acct, permission: "agent.wallet.manage" } },
+      template: "push.momo_setup",
+      variables: { name: user.name },
+      data: { type: "payments" },
+    });
+    await audit(tx, { actorId: user.id, action: "payments.momo_requested", entity: "account", entityId: acct });
+  });
+  return { sent: true, already: false };
 }
 
 export async function paymentSettingsFor(user: CurrentUser) {

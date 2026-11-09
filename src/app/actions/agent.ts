@@ -6,7 +6,7 @@ import { getCurrentUser } from "@/server/auth/current-user";
 import { DomainError } from "@/server/services/shipments";
 import { agentBook, agentCancel, agentMove, agentParcel, agentPaymentStatus, agentRequestPayment, collectionPoints } from "@/server/services/agent-parcels";
 import { agentCustomers, deleteCustomer, dismissDuplicates, mergeCustomers, reportCustomer, updateCustomer } from "@/server/services/customers";
-import { updatePaymentSettings } from "@/server/services/agent-payments";
+import { requestMomoSetup, updatePaymentSettings } from "@/server/services/agent-payments";
 import { updateWorkflow } from "@/server/services/agent-settings";
 import { priceDropOff, tumaPoints } from "@/server/services/sender";
 import { createManifest, offloadParcel } from "@/server/services/manifests";
@@ -63,6 +63,11 @@ export async function agentPayAction(waybill: string, input: { method: "cash" } 
     const r = await agentRequestPayment(u, waybill, input);
     return { payment: r.payment ? { id: r.payment.id, status: r.payment.status, failureMessage: r.payment.failureMessage } : null };
   });
+}
+
+/** Counter staff asking whoever manages payments to turn mobile money on. */
+export async function requestMomoSetupAction() {
+  return run((u) => requestMomoSetup(u));
 }
 
 export async function agentPayStatusAction(waybill: string, id: string) {

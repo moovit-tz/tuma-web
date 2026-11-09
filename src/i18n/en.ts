@@ -1245,6 +1245,16 @@ const en = {
       method: "The sender pays",
       submit: "Price and take it in",
     },
+    momoSetup: {
+      title: "Mobile money isn't set up",
+      bodyAdmin: "Turn it on and choose where the takings are paid out. Take cash until then.",
+      bodyStaff: "Only your admin can turn it on. Take cash for now, or ask them.",
+      setUp: "Set up mobile money",
+      ask: "Ask my admin",
+      askedShort: "Admin asked",
+      asked: "Your admin has been asked to set up mobile money.",
+      alreadyOn: "Mobile money is on now. Reload the page.",
+    },
     pay: {
       title: "Take the payment",
       cash: "Cash",
