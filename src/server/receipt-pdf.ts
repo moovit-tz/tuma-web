@@ -48,7 +48,7 @@ const BLACK = rgb(0, 0, 0);
 
 const FONT_DIR = path.join(process.cwd(), "src/server/fonts");
 let fontCache: Promise<Record<"regular" | "medium" | "semi" | "bold" | "mono", Buffer>> | null = null;
-function fontFiles() {
+export function fontFiles() {
   fontCache ??= Promise.all(
     ["GoogleSansFlex-Regular", "GoogleSansFlex-Medium", "GoogleSansFlex-SemiBold", "GoogleSansFlex-Bold", "GoogleSansCode-Regular"].map((f) => readFile(path.join(FONT_DIR, `${f}.ttf`))),
   ).then(([regular, medium, semi, bold, mono]) => ({ regular, medium, semi, bold, mono }));

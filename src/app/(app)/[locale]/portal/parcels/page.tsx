@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CheckCheck, Inbox, PackageOpen, Plus, Search, SearchX, Truck, Boxes, Hourglass, type LucideIcon } from "lucide-react";
+import { CheckCheck, FileDown, Inbox, PackageOpen, Plus, Search, SearchX, Truck, Boxes, Hourglass, type LucideIcon } from "lucide-react";
 import { getCurrentUser } from "@/server/auth/current-user";
 import { AGENT_VIEWS, agentParcels, agentSummary, type AgentView } from "@/server/services/agent-parcels";
 import { fmt, getDict } from "@/i18n";
@@ -10,7 +10,6 @@ import { NoAccess } from "@/components/shell/no-access";
 import { DataTable } from "@/components/shell/data-table";
 import { EmptyState } from "@/components/shell/empty-state";
 import { Button } from "@/components/ui/button";
-import { PrintButton } from "@/components/agent/print-button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
@@ -52,7 +51,13 @@ export default async function ParcelsDesk({ params, searchParams }: PageProps<"/
   return (
     <div>
       <PageHeader icon={Boxes} title={a.desk.title} description={a.desk.sub}>
-        {rows.length > 0 && <PrintButton label={a.desk.print} />}
+        {rows.length > 0 && (
+          <Button asChild variant="outline">
+            <a href={`/api/agent/parcel-list?${new URLSearchParams({ view, lang: locale, ...(q ? { q } : {}) })}`} target="_blank" rel="noopener">
+              <FileDown /> {a.desk.print}
+            </a>
+          </Button>
+        )}
         {canBook && (
           <Button asChild>
             <Link href={`/${locale}/portal/parcels/new`}>
@@ -66,7 +71,7 @@ export default async function ParcelsDesk({ params, searchParams }: PageProps<"/
         label={a.desk.title}
         items={DESK_VIEWS.map((v) => ({ href: href(v), label: a.views[v], active: v === view, count: q ? undefined : counts[v] }))}
         aside={
-          <form action={base} className="relative w-full sm:w-72 print:hidden">
+          <form action={base} className="relative w-full sm:w-72">
             <input type="hidden" name="view" value={view} />
             <Search aria-hidden className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2" />
             <Input name="q" defaultValue={q} placeholder={a.desk.search} aria-label={a.desk.search} className="pl-8" />
@@ -157,22 +162,6 @@ export default async function ParcelsDesk({ params, searchParams }: PageProps<"/
         />
         {rows.length >= LIMIT && <p className="text-muted-foreground border-t px-4 py-2.5 text-xs">{fmt(a.desk.showing, { n: LIMIT })}</p>}
       </Panel>
-
-      {/* On paper only: what was printed, and room to sign the count off with the team. */}
-      <div className="mt-6 hidden text-sm text-black print:block">
-        <p className="font-medium">
-          {q ? `${a.desk.search}: ${q}` : a.views[view]} ·{" "}
-          {fmt(a.desk.printedAt, {
-            at: new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short", timeZone: "Africa/Dar_es_Salaam" }).format(new Date()),
-            name: user.name,
-            n: rows.length,
-          })}
-        </p>
-        <div className="mt-10 grid grid-cols-2 gap-10">
-          <p className="border-t border-black pt-1">{a.desk.countedBy}</p>
-          <p className="border-t border-black pt-1">{a.desk.signature}</p>
-        </div>
-      </div>
     </div>
   );
 }
