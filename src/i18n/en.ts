@@ -158,6 +158,7 @@ const en = {
     refresh: "Refresh",
     qa: {
       newShipment: ["New shipment", "Book a parcel or cargo"],
+      bookParcel: ["Book a parcel", "At the counter, for a walk-in customer"],
       shipments: ["Shipments", "Everything you've sent"],
       cargo: ["Cargo", "Received and in transit"],
       vehicles: ["Vehicles", "Your fleet and documents"],
@@ -201,6 +202,8 @@ const en = {
     promised: "Promised",
     account: "Account",
     pieces: "Pieces",
+    pieceOne: "1 piece",
+    piecesN: "{n} pieces",
     empty: "No shipments match.",
     emptyHint: "Try a different status or search.",
     atRiskOnly: "SLA at risk",

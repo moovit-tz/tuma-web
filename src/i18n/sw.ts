@@ -161,6 +161,7 @@ const sw: Dict = {
     refresh: "Onyesha upya",
     qa: {
       newShipment: ["Usafirishaji mpya", "Tuma kifurushi au mzigo"],
+      bookParcel: ["Pokea kifurushi", "Kaunta, kwa mteja aliyefika"],
       shipments: ["Usafirishaji", "Vyote ulivyotuma"],
       cargo: ["Mizigo", "Iliyopokelewa na iliyo njiani"],
       vehicles: ["Magari", "Magari yako na nyaraka"],
@@ -204,6 +205,8 @@ const sw: Dict = {
     promised: "Ahadi",
     account: "Akaunti",
     pieces: "Vipande",
+    pieceOne: "Kipande 1",
+    piecesN: "Vipande {n}",
     empty: "Hakuna usafirishaji unaolingana.",
     emptyHint: "Jaribu hali nyingine au utafutaji mwingine.",
     atRiskOnly: "SLA hatarini",

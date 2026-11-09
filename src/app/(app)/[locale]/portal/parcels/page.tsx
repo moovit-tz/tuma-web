@@ -54,7 +54,7 @@ export default async function ParcelsDesk({ params, searchParams }: PageProps<"/
         {canBook && (
           <Button asChild>
             <Link href={`/${locale}/portal/parcels/new`}>
-              <Plus /> {t.nav.newShipment}
+              <Plus /> {a.book.title}
             </Link>
           </Button>
         )}
@@ -143,7 +143,7 @@ export default async function ParcelsDesk({ params, searchParams }: PageProps<"/
                 <span className="block truncate" title={r.goods ?? ""}>
                   {r.goods}
                   <span className="text-muted-foreground hidden text-xs sm:block">
-                    {r.pieces} × {t.shipments.pieces.toLowerCase()}
+                    {r.pieces === 1 ? t.shipments.pieceOne : fmt(t.shipments.piecesN, { n: r.pieces })}
                   </span>
                 </span>
               ),

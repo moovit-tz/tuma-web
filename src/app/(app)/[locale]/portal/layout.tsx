@@ -16,11 +16,12 @@ export default async function PortalLayout({ children, params }: LayoutProps<"/[
   const base = `/${locale}/portal`;
   const nav: ShellNavItem[] = [
     { href: base, label: t.nav.dashboard, icon: "dashboard", exact: true },
-    { href: `${base}/shipments`, label: t.nav.shipments, icon: "shipments", permission: ["shipment.read.own_account", "shipment.read.all"], group: t.nav.shipping },
-    { href: `${base}/shipments/new`, label: t.nav.newShipment, icon: "new", permission: "shipment.create", group: t.nav.shipping },
-    { href: `${base}/exceptions`, label: t.nav.exceptions, icon: "exceptions", permission: "exception.manage", group: t.nav.shipping },
+    { href: `${base}/shipments`, label: t.nav.shipments, icon: "shipments", permission: ["shipment.read.own_account", "shipment.read.all"], unless: "agent.workspace", group: t.nav.shipping },
+    { href: `${base}/shipments/new`, label: t.nav.newShipment, icon: "new", permission: "shipment.create", unless: "agent.workspace", group: t.nav.shipping },
+    { href: `${base}/exceptions`, label: t.nav.exceptions, icon: "exceptions", permission: "exception.manage", unless: "agent.workspace", group: t.nav.shipping },
     { href: `${base}/parcels`, label: t.agent.nav.parcels, icon: "cargo", permission: "agent.workspace", group: p.nav.operations },
     { href: `${base}/manifests`, label: t.agent.mf.nav, icon: "manifests", permission: "agent.workspace", group: p.nav.operations },
+    { href: `${base}/notifications`, label: t.agent.notif.nav, icon: "notifications", permission: "agent.workspace", group: p.nav.operations },
     { href: `${base}/dispatch`, label: t.dispatch.title, icon: "dispatch", permission: ["dispatch.manage", "partner.dispatch.manage"], group: p.nav.operations },
     { href: `${base}/drivers`, label: t.drivers.title, icon: "drivers", permission: ["drivers.manage", "partner.dispatch.manage"], group: p.nav.operations },
     { href: `${base}/cargo`, label: p.cargo.title, icon: "cargo", permission: "partner.cargo.read", unless: "agent.workspace", group: p.nav.operations },
@@ -32,7 +33,6 @@ export default async function PortalLayout({ children, params }: LayoutProps<"/[
     { href: `${base}/invoices`, label: p.nav.invoices, icon: "invoices", permission: "partner.finance.manage", unless: "agent.workspace", group: p.nav.finance },
     { href: `${base}/payments`, label: p.nav.payments, icon: "payments", permission: "partner.finance.manage", unless: "agent.workspace", group: p.nav.finance },
     { href: `${base}/reports`, label: t.agent.rep.nav, icon: "reports", permission: "agent.workspace", also: "report.view", group: p.nav.finance },
-    { href: `${base}/notifications`, label: t.agent.notif.nav, icon: "notifications", permission: "agent.workspace", group: p.nav.operations },
     { href: `${base}/admin/tower`, label: t.admin.nav.tower, icon: "tower", permission: "tower.view", group: t.admin.nav.group },
     { href: `${base}/admin/support`, label: t.admin.nav.support, icon: "support", permission: "support.view", group: t.admin.nav.group },
     { href: `${base}/admin/finance`, label: t.admin.nav.finance, icon: "finance", permission: "finance.view", group: t.admin.nav.group },
@@ -49,9 +49,10 @@ export default async function PortalLayout({ children, params }: LayoutProps<"/[
       nav={nav}
       systemGroup={t.nav.settingsGroup}
       quickActions={[
-        { key: "newShipment", href: `${base}/shipments/new`, permission: "shipment.create" },
-        { key: "exceptions", href: `${base}/exceptions`, permission: "exception.manage" },
-        { key: "cargo", href: `${base}/cargo?tab=all&view=received`, permission: "partner.cargo.read" },
+        { key: "bookParcel", href: `${base}/parcels/new`, permission: "agent.workspace" },
+        { key: "newShipment", href: `${base}/shipments/new`, permission: "shipment.create", unless: "agent.workspace" },
+        { key: "exceptions", href: `${base}/exceptions`, permission: "exception.manage", unless: "agent.workspace" },
+        { key: "cargo", href: `${base}/cargo?tab=all&view=received`, permission: "partner.cargo.read", unless: "agent.workspace" },
         { key: "vehicles", href: `${base}/vehicles`, permission: "partner.vehicles.manage" },
         { key: "newInvoice", href: `${base}/invoices/new`, permission: "partner.finance.manage" },
         { key: "payments", href: `${base}/payments`, permission: "partner.finance.manage" },

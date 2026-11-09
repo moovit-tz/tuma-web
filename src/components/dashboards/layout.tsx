@@ -30,7 +30,7 @@ export function RangeFilter({ locale, value, hrefFor }: { locale: string; value:
           aria-current={r === value ? "page" : undefined}
           className={cn(
             "h-8 shrink-0 rounded px-3.5 text-[13px] leading-8 font-semibold whitespace-nowrap outline-none transition-colors focus-visible:ring-2",
-            r === value ? "bg-sidebar text-white shadow-sm" : "text-muted-foreground hover:text-foreground",
+            r === value ? "bg-card text-foreground shadow-sm ring-1 ring-border" : "text-muted-foreground hover:text-foreground",
           )}
         >
           {t.dashboard.range[r]}

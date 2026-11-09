@@ -29,7 +29,7 @@ function Breakdown({ rows, locale, empty }: { rows: { key: string; label: string
             </span>
           </div>
           <div className="bg-muted mt-1 h-1.5 overflow-hidden rounded-full">
-            <div className="bg-primary h-full rounded-full" style={{ width: `${(r.n / max) * 100}%` }} />
+            <div className="bg-foreground/70 h-full rounded-full" style={{ width: `${(r.n / max) * 100}%` }} />
           </div>
         </li>
       ))}
@@ -81,9 +81,9 @@ export default async function ReportsPage({ params, searchParams }: PageProps<"/
         <div className="px-4 pt-4 pb-3">
           <div className="flex h-44 items-end gap-1">
             {rep.series.map((d) => (
-              <div key={d.day} className="group relative flex h-full flex-1 items-end gap-px" title={`${d.day}: ${d.parcels} · ${money(d.value, locale)} · ${r.delivered} ${d.delivered}`}>
-                <div className="bg-primary/85 w-1/2 rounded-t-sm" style={{ height: `${(d.parcels / peak) * 100}%`, minHeight: d.parcels ? 3 : 0 }} />
-                <div className="bg-ok/70 w-1/2 rounded-t-sm" style={{ height: `${(d.delivered / peak) * 100}%`, minHeight: d.delivered ? 3 : 0 }} />
+              <div key={d.day} className="group relative flex h-full flex-1 items-end justify-center gap-0.5" title={`${d.day}: ${d.parcels} · ${money(d.value, locale)} · ${r.delivered} ${d.delivered}`}>
+                <div className="bg-brand-red w-1/2 max-w-4 rounded-t-sm" style={{ height: `${(d.parcels / peak) * 100}%`, minHeight: d.parcels ? 3 : 0 }} />
+                <div className="bg-ok w-1/2 max-w-4 rounded-t-sm" style={{ height: `${(d.delivered / peak) * 100}%`, minHeight: d.delivered ? 3 : 0 }} />
               </div>
             ))}
           </div>
@@ -96,10 +96,10 @@ export default async function ReportsPage({ params, searchParams }: PageProps<"/
           </div>
           <div className="text-muted-foreground mt-3 flex gap-4 text-xs">
             <span className="flex items-center gap-1.5">
-              <span className="bg-primary/85 size-2.5 rounded-sm" /> {r.booked}
+              <span className="bg-brand-red size-2.5 rounded-sm" /> {r.booked}
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="bg-ok/70 size-2.5 rounded-sm" /> {r.delivered}
+              <span className="bg-ok size-2.5 rounded-sm" /> {r.delivered}
             </span>
           </div>
         </div>

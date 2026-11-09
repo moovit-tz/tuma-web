@@ -196,6 +196,8 @@ function Sidebar({
     };
   }, [nav, systemGroup]);
 
+  /** Few enough pages to list them all without folding. */
+  const flat = sections.main.reduce((n, e) => n + (e.kind === "item" ? 1 : e.items.length), 0) <= 10;
   const activeGroup = sections.main.find((e) => e.kind === "group" && e.items.some((i) => i.href === activeHref));
   const activeLabel = activeGroup?.kind === "group" ? activeGroup.label : null;
   const [open, setOpen] = useState<string | null>(activeLabel);
@@ -243,6 +245,14 @@ function Sidebar({
     if (e.kind === "item") return link(e.item);
     // Collapsed: no room for groups, so their items show as icons.
     if (collapsed) return e.items.map((i) => link(i));
+    // A short menu (a parcel agent's) shows every page: the group is a heading, not a fold.
+    if (flat)
+      return (
+        <li key={e.label} className="mt-3 first:mt-0">
+          <p className="text-sidebar-muted px-6 pt-2 pb-1 text-[11px] font-semibold tracking-[0.08em] uppercase">{e.label}</p>
+          <ul>{e.items.map((i) => link(i))}</ul>
+        </li>
+      );
     const isOpen = open === e.label;
     const holdsActive = e.items.some((i) => i.href === activeHref);
     const Icon = NAV_ICONS[e.items[0].icon];

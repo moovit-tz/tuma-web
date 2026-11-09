@@ -13,6 +13,7 @@ import { ThemeSwitch } from "./theme-switch";
 
 const QA_ICONS = {
   newShipment: PackagePlus,
+  bookParcel: PackagePlus,
   shipments: Package,
   cargo: Boxes,
   vehicles: Truck,

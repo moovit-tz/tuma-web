@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getDict } from "@/i18n";
+import { fmt, getDict } from "@/i18n";
 import { dateTime, kg } from "@/lib/format";
 import { StateBadge } from "@/components/shipments/state-badge";
 import { AssignVehicle } from "./assign-vehicle";
@@ -107,7 +107,7 @@ export function CargoTable({
                     >
                       {r.goods}
                       <div className="text-muted-foreground text-xs">
-                        {r.pieces} × {t.shipments.pieces.toLowerCase()}
+                        {r.pieces === 1 ? t.shipments.pieceOne : fmt(t.shipments.piecesN, { n: r.pieces })}
                       </div>
                     </td>
                     <td className="tabular px-3 py-2.5 text-right">

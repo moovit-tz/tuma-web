@@ -128,7 +128,7 @@ export default async function AgentParcelPage({ params }: PageProps<"/[locale]/p
           <Panel title={a.parcel.receiver}>
             <PartyBlock party={consignee} labels={a.parcel} instructions={p.instructions} />
           </Panel>
-          <Panel title={`${a.parcel.goods} · ${p.pieces} ${t.shipments.pieces.toLowerCase()}`}>
+          <Panel title={`${a.parcel.goods} · ${p.pieces === 1 ? t.shipments.pieceOne : fmt(t.shipments.piecesN, { n: p.pieces })}`}>
             <dl className="grid grid-cols-2 gap-3 px-4 py-3 text-sm">
               <div className="col-span-2">
                 <dt className="text-muted-foreground text-xs">{a.parcel.goods}</dt>

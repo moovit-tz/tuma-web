@@ -146,7 +146,7 @@ export function CounterBookingForm(p: CounterBookingProps) {
       title: b.sender,
       hint: b.steps.senderHint,
       ready: phoneOk(sender.phone) && sender.name.trim().length >= 2 && !(sender.kind === "company" && sender.tin && digits(sender.tin).length !== 9),
-      missing: need([!phoneOk(sender.phone) && b.need.senderPhone, sender.name.trim().length < 2 && b.need.senderName, sender.kind === "company" && sender.tin && digits(sender.tin).length !== 9 && b.need.senderTin]),
+      missing: need([!phoneOk(sender.phone) && b.need.senderPhone, sender.name.trim().length < 2 && b.need.senderName, sender.kind === "company" && sender.tin && digits(sender.tin).length !== 9 && b.need.senderTin], b.missing),
     },
     {
       key: "receiver",
@@ -159,21 +159,21 @@ export function CounterBookingForm(p: CounterBookingProps) {
         !region && b.need.region,
         district.trim().length < 2 && b.need.district,
         mode === "wakala_collect" && !collect && b.need.collect,
-      ]),
+      ], b.missing),
     },
     {
       key: "parcel",
       title: b.parcel,
       hint: b.steps.parcelHint,
       ready: goods.trim().length >= 3 && kg > 0 && kg <= 30 && amount(declared) >= 1,
-      missing: need([goods.trim().length < 3 && b.need.goods, !(kg > 0 && kg <= 30) && b.need.weight, amount(declared) < 1 && b.need.declared]),
+      missing: need([goods.trim().length < 3 && b.need.goods, !(kg > 0 && kg <= 30) && b.need.weight, amount(declared) < 1 && b.need.declared], b.missing),
     },
     {
       key: "pay",
       title: b.money,
       hint: b.steps.payHint,
       ready: missing.length === 0,
-      missing: need(missing),
+      missing: need(missing, b.missing),
     },
   ];
   const [step, setStep] = useState(0);
@@ -398,9 +398,10 @@ export function CounterBookingForm(p: CounterBookingProps) {
 }
 
 /** "Still needed: a, b" for the bar under the step, or nothing. */
-function need(list: (string | false | "" | undefined | null | 0)[]) {
+function need(list: (string | false | "" | undefined | null | 0)[], label?: string) {
   const l = list.filter(Boolean) as string[];
-  return l.length ? l.join(", ") : undefined;
+  if (!l.length) return undefined;
+  return label ? `${label}: ${l.join(", ")}` : l.join(", ");
 }
 
 /* ---------------------------------------------------------------- pieces */

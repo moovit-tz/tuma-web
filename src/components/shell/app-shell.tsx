@@ -15,7 +15,7 @@ import type { Permission } from "@/domain/roles";
 /** `unless`: hidden from people who hold it (e.g. the partner cargo screens for a parcel agent, who has the parcels desk). */
 /** `also`: a second permission the item needs as well (e.g. the agent's reports: the workspace and report.view). */
 export type ShellNavItem = NavItem & { permission?: Permission | Permission[]; unless?: Permission; also?: Permission };
-type ShellQuickAction = QuickAction & { permission: Permission | Permission[] };
+type ShellQuickAction = QuickAction & { permission: Permission | Permission[]; unless?: Permission };
 
 type Props = {
   locale: string;
@@ -75,7 +75,7 @@ async function Shell({ locale, nav, systemGroup, quickActions, gate, search, chi
       nav={nav.filter((i) => holds(user, i.permission) && (!i.also || user.permissions.has(i.also)) && !(i.unless && user.permissions.has(i.unless))).map(({ permission: _p, unless: _u, also: _a, ...i }) => i)}
       systemGroup={systemGroup}
       user={shellUser}
-      quickActions={quickActions.filter((a) => holds(user, a.permission)).map(({ key, href }) => ({ key, href }))}
+      quickActions={quickActions.filter((a) => holds(user, a.permission) && !(a.unless && user.permissions.has(a.unless))).map(({ key, href }) => ({ key, href }))}
       search={search}
     >
       <Suspense fallback={<PageSkeleton />}>{allowed ? children : <NoAccess locale={locale} />}</Suspense>

@@ -38,7 +38,7 @@ export async function AgentOverview({ locale }: { locale: string }) {
         {canBook && (
           <Button asChild>
             <Link href={`/${locale}/portal/parcels/new`}>
-              <Plus /> {t.nav.newShipment}
+              <Plus /> {a.book.title}
             </Link>
           </Button>
         )}
@@ -60,7 +60,7 @@ export async function AgentOverview({ locale }: { locale: string }) {
       <DashboardBody className="xl:grid-cols-[minmax(0,1fr)_360px]">
         <div className="flex min-h-0 min-w-0 flex-col gap-5">
           <Panel banner icon={Wallet} title={a.dash.takings} description={t.dashboard.asOfNow} className="shrink-0">
-            <dl className="grid grid-cols-3 divide-x">
+            <dl className="grid grid-cols-1 divide-y sm:grid-cols-3 sm:divide-x sm:divide-y-0">
               {(
                 [
                   [a.dash.today, s.periods.today],
@@ -70,7 +70,7 @@ export async function AgentOverview({ locale }: { locale: string }) {
               ).map(([label, p]) => (
                 <div key={label} className="flex min-w-0 flex-col px-4 py-3">
                   <dt className="text-muted-foreground truncate text-xs">{label}</dt>
-                  <dd className="font-display tabular mt-0.5 truncate text-lg font-semibold">{money(p.value, locale)}</dd>
+                  <dd className="font-display tabular mt-0.5 text-lg font-semibold break-words">{money(p.value, locale)}</dd>
                   <dd className="text-muted-foreground text-xs">{fmt(a.dash.parcelsN, { n: num(p.parcels, locale) })}</dd>
                 </div>
               ))}

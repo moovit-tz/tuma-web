@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronLeft, type LucideIcon } from "lucide-react";
+import { ChevronLeft, ChevronRight, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
@@ -34,8 +34,8 @@ export function PageHeader({
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="flex min-w-0 items-start gap-3.5">
           {Icon && (
-            <span aria-hidden className="bg-sidebar text-brand-red mt-0.5 hidden size-11 shrink-0 place-items-center rounded-lg sm:grid">
-              <Icon className="size-5" />
+            <span aria-hidden className="bg-muted text-foreground/80 mt-1 hidden size-10 shrink-0 place-items-center rounded-lg border sm:grid">
+              <Icon className="size-[18px]" />
             </span>
           )}
           <div className="min-w-0">
@@ -54,9 +54,8 @@ export function PageHeader({
 }
 
 /**
- * KPI card from the parcel portal: dark surface, white figure, the icon as a faint watermark.
- * Every card uses the same brand red for its icon. `tone` marks a figure that needs attention with a dot;
- * the figure itself stays white.
+ * A figure on a light card: the label with a small icon, the number, and a line on what it counts. `tone` marks a
+ * figure that needs attention with a coloured dot beside the label; the number stays in the text colour.
  */
 export function Stat({
   label,
@@ -75,27 +74,24 @@ export function Stat({
 }) {
   const body = (
     <>
-      {Icon && <Icon aria-hidden strokeWidth={1.5} className="text-brand-red pointer-events-none absolute -right-4 -bottom-4 size-24 rotate-12 opacity-[0.08]" />}
-      <div className="relative">
-        <div className="flex items-center justify-between gap-3">
-          <div className="text-sidebar-foreground/60 flex min-w-0 items-center gap-2 text-sm font-medium">
-            <span className="line-clamp-2 leading-snug sm:truncate">{label}</span>
-            {(tone === "bad" || tone === "warn") && <span aria-hidden className={cn("size-2 shrink-0 rounded-full", tone === "bad" ? "bg-brand-red" : "bg-amber-400")} />}
-          </div>
-          {Icon && (
-            <span className="hidden size-10 shrink-0 place-items-center rounded-md bg-white/[0.07] sm:grid">
-              <Icon aria-hidden className="text-brand-red size-5" />
-            </span>
-          )}
+      <div className="flex items-start justify-between gap-3">
+        <div className="text-muted-foreground flex min-w-0 items-center gap-2 text-[13px] font-medium">
+          <span className="line-clamp-2 leading-snug">{label}</span>
+          {tone && <span aria-hidden className={cn("size-1.5 shrink-0 rounded-full", tone === "bad" ? "bg-brand-red" : tone === "warn" ? "bg-amber-500" : "bg-emerald-500")} />}
         </div>
-        <div className="font-display tabular mt-3 text-[clamp(22px,6.4vw,32px)] leading-none font-semibold tracking-tight break-words text-white">{value}</div>
-        {hint && <div className="mt-2.5 truncate text-[13px] text-white/45" title={hint}>{hint}</div>}
+        {Icon && (
+          <span aria-hidden className="bg-muted text-muted-foreground grid size-8 shrink-0 place-items-center rounded-md">
+            <Icon className="size-4" />
+          </span>
+        )}
       </div>
+      <div className="font-display tabular mt-2 text-[clamp(20px,5.6vw,28px)] leading-tight font-semibold tracking-tight break-words">{value}</div>
+      {hint && <div className="text-muted-foreground mt-1 line-clamp-2 text-xs leading-snug">{hint}</div>}
     </>
   );
-  const cls = "bg-sidebar text-sidebar-foreground relative block h-full overflow-hidden rounded-lg p-5 shadow-sm dark:ring-1 dark:ring-white/[0.07]";
+  const cls = "bg-card text-card-foreground relative block h-full rounded-lg border p-4 shadow-xs sm:p-5";
   return href ? (
-    <Link href={href} className={cn(cls, "hover:bg-sidebar/90 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-offset-2")}>
+    <Link href={href} className={cn(cls, "hover:border-foreground/25 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-offset-2")}>
       {body}
     </Link>
   ) : (
@@ -104,8 +100,8 @@ export function Stat({
 }
 
 /**
- * Card. With `banner`, the header is the parcel portal's dark banner (title, description, action, icon watermark);
- * otherwise a plain header row.
+ * Card with an optional header row: title, description and an action at the right. With `banner` the header also shows
+ * the panel's icon.
  */
 export function Panel({
   title,
@@ -132,35 +128,30 @@ export function Panel({
 }) {
   return (
     <section className={cn("bg-card overflow-hidden rounded-lg border shadow-sm", fill && "flex min-h-0 flex-col", className)}>
-      {(title || action) &&
-        (banner ? (
-          <div className="bg-sidebar text-sidebar-foreground relative shrink-0 overflow-hidden px-5 py-4">
-            {Icon && <Icon aria-hidden strokeWidth={1.25} className="pointer-events-none absolute top-1/2 right-6 size-20 -translate-y-1/2 opacity-[0.07]" />}
-            <div className="relative flex flex-wrap items-center justify-between gap-3">
-              <div className="min-w-0">
-                <h3 className="text-base font-bold">{title}</h3>
-                {description && <p className="text-sidebar-foreground/50 mt-0.5 text-[13px]">{description}</p>}
-              </div>
-              {action}
+      {(title || action) && (
+        <div className="flex shrink-0 flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b px-4 py-3 sm:px-5">
+          <div className="flex min-w-0 items-center gap-2.5">
+            {banner && Icon && <Icon aria-hidden className="text-muted-foreground size-4 shrink-0" />}
+            <div className="min-w-0">
+              <h3 className="text-[15px] leading-tight font-semibold">{title}</h3>
+              {description && <p className="text-muted-foreground mt-0.5 text-xs">{description}</p>}
             </div>
           </div>
-        ) : (
-          <div className="flex shrink-0 items-center justify-between gap-3 border-b px-4 py-3">
-            <h3 className="text-[15px] font-semibold">{title}</h3>
-            {action}
-          </div>
-        ))}
+          {action}
+        </div>
+      )}
       {fill ? <div className="panel-fill min-h-0 flex-1 overflow-auto">{children}</div> : children}
       {footer && <div className="shrink-0 border-t">{footer}</div>}
     </section>
   );
 }
 
-/** "View all" style link for a banner panel. */
+/** "View all" link in a panel header: quiet, so it doesn't compete with the page's main action. */
 export function BannerLink({ href, children }: { href: string; children: React.ReactNode }) {
   return (
-    <Link href={href} className="bg-brand-red hover:bg-brand-red/90 inline-flex h-9 items-center gap-1.5 rounded-md px-4 text-[13px] font-semibold text-white outline-none focus-visible:ring-2 focus-visible:ring-white/60">
+    <Link href={href} className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 rounded text-[13px] font-medium outline-none focus-visible:ring-2">
       {children}
+      <ChevronRight className="size-3.5" aria-hidden />
     </Link>
   );
 }
