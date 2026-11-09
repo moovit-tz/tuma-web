@@ -7,6 +7,8 @@ import { appMe, driverContext, finishDriverLogin, swapHandoff, type DriverCtx } 
 import { applyKybDecision, submitKyb } from "../services/kyb";
 import { updateWorkflow, workflowFor } from "../services/agent-settings";
 import { acceptInvite, createInvite, lookupPerson, createStaffRole, declineInvite, inviteByCode, inviteByToken, invitesFor, resendInvite, revokeInvite, teamOverview } from "../services/team-invites";
+import { memberDetail, teamRoster } from "../services/team-members";
+import { agentReport } from "../services/agent-parcels";
 import { addOffice, listOffices, officeDetail, updateOffice } from "../services/branches";
 import { createParcel } from "../services/shipments";
 import { parcelOrderSchema } from "@/domain/order-schema";
@@ -216,6 +218,31 @@ describe("setting up a business while it's reviewed, and inviting staff", () => 
     await expect(lookupPerson(owner, "12")).rejects.toMatchObject({ code: "VALIDATION" });
     // Someone who can't manage the team can't look people up.
     await expect(lookupPerson(await userOf(STAFF), "0712 000 111")).rejects.toBeTruthy();
+  });
+
+  it("staff see teammates and office locations, not the business; the manager sees each person and what they did", async () => {
+    const staff = await signIn(STAFF, { name: "Juma Staff", phone: "+255712000111" });
+    const me = await appMe(staff);
+    expect(me.modules).toContain("team_view");
+    expect(me.modules).not.toContain("business");
+    expect(me.account?.status).toBe("active"); // under review, but that's the owner's business
+    expect(me.account?.trial).toBeNull();
+    const roster = await teamRoster(await userOf(STAFF));
+    expect(roster.members.map((m) => m.name)).toEqual(expect.arrayContaining(["Juma Staff", "Neema Owner"]));
+    expect(roster.offices.length).toBeGreaterThan(0);
+    expect(roster.offices[0]).not.toHaveProperty("staff");
+    // Their report is their own work only.
+    const own = await agentReport(await userOf(STAFF), { period: "week" });
+    expect(own.scope).toBe("mine");
+    expect(own.choices.staff).toEqual([]);
+
+    const owner = await userOf(OWNER);
+    expect((await appMe(await ctxOf(OWNER))).modules).toContain("business");
+    const d = await memberDetail(owner, STAFF);
+    expect(d.member).toMatchObject({ name: "Juma Staff", roleNames: ["Office staff"] });
+    expect(d.stats).toMatchObject({ booked: expect.any(Number), handled: expect.any(Number) });
+    await expect(memberDetail(await userOf(STAFF), OWNER)).rejects.toBeTruthy();
+    await expect(memberDetail(owner, OTHER)).rejects.toMatchObject({ code: "NOT_FOUND" });
   });
 
   it("offers office staff, courier and store keeper; only the owner makes a custom kind of staff", async () => {

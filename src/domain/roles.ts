@@ -59,6 +59,7 @@ export const PERMISSIONS = [
   { key: "corporate.send", group: "Company", label: "Send for the company", description: "Book parcels in the company's name, pay on its account, and follow the ones you sent." },
   { key: "corporate.manage", group: "Company", label: "Manage the company", description: "See every parcel sent on the company's account; manage staff, departments, policies, the company wallet, invoices and reports." },
   { key: "team.manage", group: "Partner", label: "Manage team and roles", description: "Create roles for your own company and assign them to your team." },
+  { key: "business.view", group: "Partner", label: "See the business", description: "See the business's approval status, documents and details. Team managers always can." },
   // Parcel agents (self-onboarded through KYB in the Tuma app)
   { key: "agent.workspace", group: "Parcel agent", label: "Agent workspace", description: "Open the agent dashboard and parcel operations in the Tuma app." },
   { key: "agent.wallet.manage", group: "Parcel agent", label: "Float wallet", description: "Top up the float that pays Tuma's commission, and see its statement." },
@@ -263,6 +264,7 @@ export const DEFAULT_ROLES: RoleSeed[] = [
  * (read every shipment, settings, platform roles) can only be granted by Tuma.
  */
 export const PARTNER_GRANTABLE: Permission[] = [
+  "business.view",
   "partner.cargo.read",
   "partner.cargo.operate",
   "partner.branches.manage",
@@ -289,7 +291,7 @@ export const PARTNER_GRANTABLE: Permission[] = [
  * clients, and look at reports. Everything that moves parcels or money waits for approval. Applied to every person
  * in the company, whatever their roles grant (src/server/rbac.ts).
  */
-export const SETUP_PERMISSIONS: Permission[] = ["team.manage", "partner.branches.manage", "partner.clients.manage", "report.view", "corporate.manage"];
+export const SETUP_PERMISSIONS: Permission[] = ["team.manage", "business.view", "partner.branches.manage", "partner.clients.manage", "report.view", "corporate.manage"];
 
 /**
  * While under review a business may also handle a limited number of parcels (the pendingParcelAllowance setting).
@@ -297,6 +299,7 @@ export const SETUP_PERMISSIONS: Permission[] = ["team.manage", "partner.branches
  * dispatch wait for approval.
  */
 export const TRIAL_PERMISSIONS: Permission[] = [
+  "business.view",
   "agent.workspace",
   "shipment.create",
   "shipment.receive",
@@ -336,6 +339,7 @@ export const AGENT_STAFF_ROLES = ["agent_staff", "agent_rider", "agent_storekeep
  * is always included; running the team stays with the owner.
  */
 export const AGENT_CUSTOM_GRANTABLE: Permission[] = [
+  "business.view",
   "shipment.create",
   "shipment.receive",
   "shipment.collection",
@@ -350,3 +354,8 @@ export const AGENT_CUSTOM_GRANTABLE: Permission[] = [
   "partner.branches.manage",
   "report.view",
 ];
+
+/** Who sees the business itself (approval status, documents, details): team managers, and anyone granted it. */
+export function seesBusiness(perms: ReadonlySet<string>): boolean {
+  return perms.has("team.manage") || perms.has("business.view");
+}

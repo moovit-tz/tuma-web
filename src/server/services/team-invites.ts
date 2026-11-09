@@ -187,7 +187,7 @@ export async function revokeInvite(user: CurrentUser, id: string) {
   });
 }
 
-async function roleNameMap(keys: string[]) {
+export async function roleNameMap(keys: string[]) {
   if (!keys.length) return new Map<string, string>();
   const rows = await db.select({ key: roles.key, name: roles.name }).from(roles).where(inArray(roles.key, keys));
   return new Map(rows.map((r) => [r.key, r.name]));

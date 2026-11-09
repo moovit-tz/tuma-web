@@ -9,6 +9,6 @@ export const SUPPORT = {
   whatsappHref: "https://wa.me/255769973600",
   email: "support@tuma.co.tz",
   businessEmail: "business@tuma.co.tz",
-  hours: { en: "Mon–Sat, 07:00–21:00 EAT", sw: "Jumatatu–Jumamosi, 07:00–21:00", fr: "Lun–sam, 07h00–21h00 (EAT)" },
+  hours: { en: "24 hours, every day", sw: "Saa 24, kila siku", fr: "24 h/24, 7 j/7" },
   address: "Hudumika, Dar es Salaam, Tanzania",
 } as const;

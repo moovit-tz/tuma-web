@@ -781,9 +781,13 @@ const darYmd = (t: Date) => new Date(t.getTime() + 3 * 3600_000).toISOString().s
 
 /** The range and filters a report covers, as SQL, shared by the report and its export. */
 function reportScope(user: CurrentUser, raw: unknown) {
-  if (!user.permissions.has("report.view")) throw new DomainError("FORBIDDEN", "You don't have access to reports.", 403);
+  // The business's report needs report.view; anyone else at the counter gets a report of their own work: the parcels
+  // they booked or moved.
+  const whole = user.permissions.has("report.view");
+  if (!whole && !user.permissions.has("agent.workspace")) throw new DomainError("FORBIDDEN", "You don't have access to reports.", 403);
   const acct = businessOf(user);
-  const q = reportQuerySchema.parse(raw);
+  const parsed = reportQuerySchema.parse(raw);
+  const q = whole ? parsed : { ...parsed, staff: undefined };
   let from: Date;
   let to: Date; // exclusive
   if (q.period === "custom") {
@@ -807,10 +811,13 @@ function reportScope(user: CurrentUser, raw: unknown) {
     q.region ? sql`${region} = ${q.region}` : undefined,
     q.staff ? eq(shipments.createdBy, q.staff) : undefined,
   );
-  const base = and(mine(acct, user), filters);
+  const own = whole
+    ? undefined
+    : sql`(${shipments.createdBy} = ${user.id} or exists (select 1 from ${events} e where e.shipment_id = ${shipments.id} and e.actor_id = ${user.id}))`;
+  const base = and(mine(acct, user), filters, own);
   const booked = and(base, gte(shipments.createdAt, from), sql`${shipments.createdAt} < ${to.toISOString()}::timestamptz`, sql`${shipments.state} <> 'CANCELLED'`)!;
   const deliveredIn = and(base, eq(shipments.state, "DELIVERED"), sql`${shipments.deliveredAt} >= ${from.toISOString()}::timestamptz`, sql`${shipments.deliveredAt} < ${to.toISOString()}::timestamptz`)!;
-  return { q, acct, from, to, booked, deliveredIn, paidHow, region, service };
+  return { q, acct, whole, from, to, booked, deliveredIn, paidHow, region, service };
 }
 
 /**
@@ -820,7 +827,7 @@ function reportScope(user: CurrentUser, raw: unknown) {
  * and the choices for the filters. Same scope as the parcel lists.
  */
 export async function agentReport(user: CurrentUser, raw: unknown) {
-  const { q, acct, from, to, booked, deliveredIn, paidHow, region, service } = reportScope(user, raw);
+  const { q, acct, whole, from, to, booked, deliveredIn, paidHow, region, service } = reportScope(user, raw);
   const days = Math.round((to.getTime() - from.getTime()) / DAY_MS);
   const bucket = days > 62 ? "month" : "day";
   // One of two fixed formats, inlined so the select and the group by are the same expression.
@@ -874,6 +881,8 @@ export async function agentReport(user: CurrentUser, raw: unknown) {
     }
   }
   return {
+    // "business" for the whole business; "mine" for someone's own parcels (no report.view).
+    scope: whole ? "business" : "mine",
     period: q.period,
     from: from.toISOString(),
     to: to.toISOString(),
@@ -893,12 +902,12 @@ export async function agentReport(user: CurrentUser, raw: unknown) {
     byPayment: byPay,
     byService,
     byRegion: byRegion.map((r) => ({ ...r, key: r.key || "—" })),
-    byStaff: byStaff.map((r) => ({ key: r.key, name: r.name || r.key, n: r.n, value: r.value })),
+    byStaff: (whole ? byStaff : []).map((r) => ({ key: r.key, name: r.name || r.key, n: r.n, value: r.value })),
     choices: {
       services: ["same_day", "next_day", "standard"],
       payments: PAID_HOW,
       regions: TZ_REGIONS,
-      staff: staffChoices.map((u) => ({ id: u.id, name: u.name || u.id })),
+      staff: whole ? staffChoices.map((u) => ({ id: u.id, name: u.name || u.id })) : [],
     },
   };
 }

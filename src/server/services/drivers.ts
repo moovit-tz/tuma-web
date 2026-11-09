@@ -1,3 +1,4 @@
+import { seesBusiness } from "@/domain/roles";
 import type { OndiClaims } from "../adapters/ondi";
 import { activeHold, lookOnly } from "./admin/risk";
 import "server-only";
@@ -209,9 +210,15 @@ export async function appMe(ctx: DriverCtx) {
   // Set-up tools; open while the business is being reviewed, and after.
   if (ctx.user.permissions.has("team.manage") && ctx.user.accountId) modules.push("team");
   if (ctx.user.permissions.has("partner.branches.manage") && ctx.user.accountId) modules.push("offices");
+  // The business itself (approval, documents, details) is for team managers and whoever they allow; everyone in a
+  // business sees their teammates and the offices' locations.
+  const business = seesBusiness(ctx.user.permissions) && !!ctx.user.accountId;
+  if (business) modules.push("business");
+  if (ctx.user.accountId) modules.push("team_view");
   // Counter work in the app: booking parcels, and the reports kept in the portal.
   if (ctx.user.permissions.has("agent.workspace") && ctx.user.permissions.has("shipment.create") && ctx.user.accountId) modules.push("book");
-  if (ctx.user.permissions.has("report.view") && ctx.user.accountId) modules.push("reports");
+  // The whole business's report with report.view; counter staff get one of their own work.
+  if ((ctx.user.permissions.has("report.view") || ctx.user.permissions.has("agent.workspace")) && ctx.user.accountId) modules.push("reports");
   // Sending parcels on under a manifest, and checking in what arrives against one.
   if (ctx.user.permissions.has("agent.workspace") && ctx.user.permissions.has("shipment.dispatch") && ctx.user.accountId) modules.push("send_on");
   if (ctx.user.permissions.has("agent.workspace") && ctx.user.permissions.has("shipment.receive") && ctx.user.accountId) modules.push("offload");
@@ -231,7 +238,18 @@ export async function appMe(ctx: DriverCtx) {
   return {
     user: { id: ctx.user.id, name: ctx.user.name, email: u?.email ?? null, phone: u?.phone ?? null, picture: u?.avatarUrl ?? null, locale: ctx.user.locale },
     driver: ctx.driver ? await driverView(ctx.driver) : null,
-    account: acct ? { id: acct.id, name: acct.name, kind: acct.partnerKind ?? acct.type, status: acct.status, trial: ctx.user.trial ?? null, payOnDelivery: acct.payOnDelivery, momo: !!acct.momo } : null,
+    account: acct
+      ? {
+          id: acct.id,
+          name: acct.name,
+          kind: acct.partnerKind ?? acct.type,
+          // Staff don't follow the approval: they see the business as working unless it is suspended.
+          status: business || acct.status === "suspended" ? acct.status : "active",
+          trial: business ? (ctx.user.trial ?? null) : null,
+          payOnDelivery: acct.payOnDelivery,
+          momo: !!acct.momo,
+        }
+      : null,
     agent: modules.includes("agent") ? await agentProfile(ctx.user.accountId!) : null,
     // Someone not in a business yet may have been invited to one.
     invites: ctx.user.accountId ? [] : await invitesFor(ctx.user),

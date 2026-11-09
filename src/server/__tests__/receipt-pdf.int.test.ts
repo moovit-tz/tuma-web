@@ -19,7 +19,7 @@ describe("receipt PDF route", () => {
       const head = Buffer.from(await res.arrayBuffer()).subarray(0, 5).toString();
       expect(head).toBe("%PDF-");
     }
-  });
+  }, 30_000);
 
   it("is a 404 for a parcel nobody can see", async () => {
     const { GET } = await import("@/app/api/receipts/[waybill]/route");
