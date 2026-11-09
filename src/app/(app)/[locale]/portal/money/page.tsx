@@ -28,7 +28,7 @@ export default async function MoneyPage({ params, searchParams }: PageProps<"/[l
   const one = (k: string) => (typeof sp[k] === "string" ? (sp[k] as string) : undefined);
   const tab: Tab = one("tab") === "invoices" ? "invoices" : one("tab") === "settings" ? "settings" : "payments";
   const method = one("method") === "cash" || one("method") === "mobile_money" ? one("method") : undefined;
-  const status = one("status") === "open" || one("status") === "paid" ? one("status")! : "all";
+  const status = (["open", "overdue", "paid"] as const).find((x) => x === one("status")) ?? "all";
   const before = one("before");
   const settings = await paymentSettingsFor(user);
   const records = tab === "settings" ? null : await paymentRecords(user, { kind: tab, method, status, before, limit: 50 });
@@ -96,6 +96,7 @@ export default async function MoneyPage({ params, searchParams }: PageProps<"/[l
                 : ([
                     [undefined, m.all],
                     ["open", m.open],
+                    ["overdue", m.overdue],
                     ["paid", m.paid],
                   ] as const)
               ).map(([v, label]) => {

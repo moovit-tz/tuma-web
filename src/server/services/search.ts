@@ -86,7 +86,11 @@ export async function searchPortal(user: CurrentUser, raw: string, locale: strin
     if (it.place) params.set("q", it.place);
     view(parts([p.nav.cargo, ...filters.map(fLabel), it.place]), `${base}/cargo?${params}`);
   }
-  if (entity === "invoices" && has("partner.finance.manage")) {
+  // A parcel agent's invoices (to the companies it bills) are on its Money page, open to everyone in the business.
+  if (entity === "invoices" && has("agent.workspace") && user.accountId) {
+    const status = filters.includes("overdue") ? "overdue" : filters.includes("paid") ? "paid" : filters.includes("unpaid") ? "open" : undefined;
+    view(parts([t.agent.money.invoices, status ? t.agent.money[status] : undefined]), `${base}/money?tab=invoices${status ? `&status=${status}` : ""}`);
+  } else if (entity === "invoices" && has("partner.finance.manage")) {
     const tab = filters.includes("overdue") ? "overdue" : filters.includes("paid") ? "paid" : filters.includes("unpaid") ? "open" : "all";
     view(parts([p.nav.invoices, tab !== "all" ? p.invoices.tabs[tab] : undefined]), `${base}/invoices?tab=${tab}`);
   }

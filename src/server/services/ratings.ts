@@ -1,6 +1,6 @@
 import "server-only";
 import { createHash, randomBytes } from "node:crypto";
-import { and, desc, eq, gte, inArray, isNotNull, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, isNotNull, sql, type SQL } from "drizzle-orm";
 import { z } from "zod";
 import { db, type Tx } from "../db/client";
 import { accounts, branches, notifications, parcelRatings, shipments, users, type Party } from "../db/schema";
@@ -134,12 +134,9 @@ export async function ratingScores(accountIds: string[]) {
   return out;
 }
 
-/** The agent's own ratings: score, how many, the stars and issues, how many answer, and the latest feedback. */
-export async function agentRatings(user: CurrentUser) {
-  if (!user.accountId || !user.permissions.has("agent.workspace")) throw new DomainError("FORBIDDEN", "You don't have access to this.", 403);
-  const acct = user.accountId;
-  const since = new Date(Date.now() - SCORE_DAYS * 86400_000);
-  const inWindow = and(eq(parcelRatings.accountId, acct), gte(parcelRatings.sentAt, since));
+/** A rating summary over the ratings `where` picks: score, how many, stars, issues, how many answered, latest. */
+async function ratingSummary(where: SQL, since: Date, withRecent: boolean) {
+  const inWindow = and(where, gte(parcelRatings.sentAt, since));
   const [[t], stars, issues, recent] = await Promise.all([
     db
       .select({
@@ -148,24 +145,29 @@ export async function agentRatings(user: CurrentUser) {
         sum: sql<number>`coalesce(sum(${parcelRatings.stars}), 0)::int`,
       })
       .from(parcelRatings)
+      .innerJoin(shipments, eq(shipments.id, parcelRatings.shipmentId))
       .where(inWindow),
     db
       .select({ stars: parcelRatings.stars, n: sql<number>`count(*)::int` })
       .from(parcelRatings)
+      .innerJoin(shipments, eq(shipments.id, parcelRatings.shipmentId))
       .where(and(inWindow, isNotNull(parcelRatings.ratedAt)))
       .groupBy(parcelRatings.stars),
     db
       .select({ issue: parcelRatings.issue, n: sql<number>`count(*)::int` })
       .from(parcelRatings)
+      .innerJoin(shipments, eq(shipments.id, parcelRatings.shipmentId))
       .where(and(inWindow, isNotNull(parcelRatings.issue)))
       .groupBy(parcelRatings.issue),
-    db
-      .select({ stars: parcelRatings.stars, issue: parcelRatings.issue, comment: parcelRatings.comment, at: parcelRatings.ratedAt, waybill: shipments.waybill })
-      .from(parcelRatings)
-      .innerJoin(shipments, eq(shipments.id, parcelRatings.shipmentId))
-      .where(and(eq(parcelRatings.accountId, acct), isNotNull(parcelRatings.ratedAt)))
-      .orderBy(desc(parcelRatings.ratedAt))
-      .limit(20),
+    withRecent
+      ? db
+          .select({ stars: parcelRatings.stars, issue: parcelRatings.issue, comment: parcelRatings.comment, at: parcelRatings.ratedAt, waybill: shipments.waybill })
+          .from(parcelRatings)
+          .innerJoin(shipments, eq(shipments.id, parcelRatings.shipmentId))
+          .where(and(where, isNotNull(parcelRatings.ratedAt)))
+          .orderBy(desc(parcelRatings.ratedAt))
+          .limit(20)
+      : Promise.resolve([]),
   ]);
   const n = t?.n ?? 0;
   return {
@@ -178,6 +180,25 @@ export async function agentRatings(user: CurrentUser) {
     issues: Object.fromEntries(issues.map((i) => [i.issue!, i.n])),
     recent: recent.map((r) => ({ ...r, at: r.at!.toISOString() })),
   };
+}
+
+/**
+ * Ratings in the app. The business's rating is shared with everyone in it (its score, stars and issues); the
+ * customers' words on every parcel are for team managers. Each person also gets their own: the ratings on parcels
+ * they booked or handed over, with that feedback.
+ */
+export async function agentRatings(user: CurrentUser) {
+  if (!user.accountId || !user.permissions.has("agent.workspace")) throw new DomainError("FORBIDDEN", "You don't have access to this.", 403);
+  const acct = user.accountId;
+  const since = new Date(Date.now() - SCORE_DAYS * 86400_000);
+  const business = eq(parcelRatings.accountId, acct);
+  const served = and(
+    business,
+    sql`(${shipments.createdBy} = ${user.id} or exists (select 1 from events e where e.shipment_id = ${shipments.id} and e.actor_id = ${user.id} and e.state_after = 'DELIVERED'))`,
+  )!;
+  const [company, mine] = await Promise.all([ratingSummary(business, since, user.permissions.has("team.manage")), ratingSummary(served, since, true)]);
+  // The top level stays the business's, as before, for older apps.
+  return { ...company, mine };
 }
 
 /* ---------------------------------------------- in the app, for the receiver */

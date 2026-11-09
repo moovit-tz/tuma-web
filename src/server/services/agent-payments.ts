@@ -185,7 +185,7 @@ export async function updatePaymentSettings(user: CurrentUser, raw: unknown) {
 export const recordsSchema = z.object({
   kind: z.enum(["payments", "invoices"]).default("payments"),
   /** Invoices only: open (still owed), paid, or all. */
-  status: z.enum(["all", "open", "paid"]).default("all"),
+  status: z.enum(["all", "open", "overdue", "paid"]).default("all"),
   /** Payments only: just cash, or just mobile money. */
   method: z.enum(["cash", "mobile_money"]).optional(),
   limit: z.coerce.number().int().min(1).max(100).default(50),
@@ -238,7 +238,13 @@ export async function paymentRecords(user: CurrentUser, raw: unknown) {
       and(
         eq(invoices.accountId, acct),
         ne(invoices.status, "draft"),
-        f.status === "paid" ? eq(invoices.status, "paid") : f.status === "open" ? sql`${invoices.status} in ('issued', 'partially_paid')` : undefined,
+        f.status === "paid"
+          ? eq(invoices.status, "paid")
+          : f.status === "open"
+            ? sql`${invoices.status} in ('issued', 'partially_paid')`
+            : f.status === "overdue"
+              ? sql`${invoices.status} in ('issued', 'partially_paid') and ${invoices.dueDate} < now()`
+              : undefined,
         f.before ? sql`${invoices.issueDate} < ${f.before.toISOString()}::timestamptz` : undefined,
       ),
     )
