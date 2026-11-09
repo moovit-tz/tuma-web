@@ -45,7 +45,7 @@ export default async function MoneyPage({ params, searchParams }: PageProps<"/[l
 
   return (
     <div>
-      <PageHeader title={m.title} description={m.sub} />
+      <PageHeader title={m.title} description={settings.scope === "mine" ? m.subMine : m.sub} />
       <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {(["today", "week", "month"] as const).map((k, i) => (
           <Stat

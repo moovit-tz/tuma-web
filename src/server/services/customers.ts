@@ -6,6 +6,7 @@ import { customerReports, customers, invoices, shipments } from "../db/schema";
 import { audit } from "../audit";
 import { DomainError } from "./shipments";
 import type { CurrentUser } from "../auth/current-user";
+import { ownInvoices } from "./agent-payments";
 
 /**
  * A business's customer list (CRM), built from its counter bookings: the people and companies who send parcels and
@@ -272,11 +273,11 @@ export async function customerProfile(user: CurrentUser, id: string) {
     db
       .select({ amount: sql<number>`coalesce(sum(${invoices.total} - ${invoices.amountPaid}), 0)::int`, n: sql<number>`count(*)::int` })
       .from(invoices)
-      .where(and(eq(invoices.accountId, acct), eq(invoices.customerId, c.id), sql`${invoices.status} in ('issued', 'partially_paid')`)),
+      .where(and(eq(invoices.accountId, acct), eq(invoices.customerId, c.id), sql`${invoices.status} in ('issued', 'partially_paid')`, ownInvoices(user))),
     db
       .select({ id: invoices.id, number: invoices.number, total: invoices.total, paid: invoices.amountPaid, status: invoices.status, at: invoices.issueDate, due: invoices.dueDate })
       .from(invoices)
-      .where(and(eq(invoices.accountId, acct), eq(invoices.customerId, c.id), sql`${invoices.status} in ('issued', 'partially_paid')`))
+      .where(and(eq(invoices.accountId, acct), eq(invoices.customerId, c.id), sql`${invoices.status} in ('issued', 'partially_paid')`, ownInvoices(user)))
       .orderBy(invoices.dueDate)
       .limit(50),
     // Parcels still to be paid for (pay on delivery, or on the account) that aren't on an open invoice above.

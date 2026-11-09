@@ -1476,6 +1476,7 @@ const sw: Dict = {
       nav: "Fedha",
       title: "Fedha",
       sub: "Kaunta ilichopokea, kinachodaiwa bado, na mapato yanapolipwa",
+      subMine: "Malipo na ankara za vifurushi ulivyosajili, kushughulikia au kupokea pesa zake",
       payments: "Malipo",
       invoices: "Ankara",
       settings: "Mpangilio wa malipo",

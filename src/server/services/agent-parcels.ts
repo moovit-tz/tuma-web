@@ -6,7 +6,7 @@ import { db } from "../db/client";
 import { accounts, branches, codRecords, events, invoices, jobShipments, jobs, kybApplications, kybEvents, locations, manifestItems, manifests, parcelPayments, reasonCodes, shipments, users } from "../db/schema";
 import { collect, collection } from "../adapters/hudupay";
 import { issueCompanyInvoice, markPaid, receiveOnceFor, settlePayment } from "./counter-payments";
-import { momoEnabled, momoOffError } from "./agent-payments";
+import { momoEnabled, momoOffError, ownParcels, seesAllMoney } from "./agent-payments";
 import { refundToWallet } from "./wallet";
 import { toE164 } from "@/domain/phone";
 import { createParcel, DomainError, transition } from "./shipments";
@@ -84,7 +84,7 @@ export async function agentSummary(user: CurrentUser) {
   const dday = sql<string>`to_char(${shipments.deliveredAt} at time zone 'Africa/Dar_es_Salaam', 'YYYY-MM-DD')`;
   const [byState, booked, delivered, periods, trial, coming, handOver] = await Promise.all([
     db.select({ state: shipments.state, n: count() }).from(shipments).where(scope).groupBy(shipments.state),
-    db.select({ day, n: count(), value: sql<number>`coalesce(sum(${shipments.totalCharge}), 0)::int` }).from(shipments).where(and(scope, gte(shipments.createdAt, week))).groupBy(day),
+    db.select({ day, n: count(), value: sql<number>`coalesce(sum(${shipments.totalCharge}), 0)::int` }).from(shipments).where(and(scope, gte(shipments.createdAt, week), ownParcels(user))).groupBy(day),
     db.select({ day: dday, n: count() }).from(shipments).where(and(scope, eq(shipments.state, "DELIVERED"), gte(shipments.deliveredAt, week))).groupBy(dday),
     db
       .select({
@@ -96,7 +96,8 @@ export async function agentSummary(user: CurrentUser) {
         monthValue: sql<number>`coalesce(sum(${shipments.totalCharge}), 0)::int`,
       })
       .from(shipments)
-      .where(and(scope, gte(shipments.createdAt, month), sql`${shipments.state} <> 'CANCELLED'`)),
+      // Takings: the business's for whoever sees its money, otherwise this person's own.
+      .where(and(scope, gte(shipments.createdAt, month), sql`${shipments.state} <> 'CANCELLED'`, ownParcels(user))),
     // What's left of the trial is the business's concern: only for those who see the business.
     user.accountStatus === "pending" && seesBusiness(user.permissions) ? trialFor(acct) : Promise.resolve(null),
     // Manifests on their way to this office, to check in when they arrive.
@@ -123,6 +124,8 @@ export async function agentSummary(user: CurrentUser) {
       month: { parcels: p?.month ?? 0, value: p?.monthValue ?? 0 },
     },
     days,
+    /** Whose takings the periods are: "business", or "mine" for counter staff. */
+    moneyScope: seesAllMoney(user) ? ("business" as const) : ("mine" as const),
     trial,
   };
 }

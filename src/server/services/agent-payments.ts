@@ -1,8 +1,8 @@
 import "server-only";
-import { and, desc, eq, gte, isNotNull, isNull, ne, sql } from "drizzle-orm";
+import { and, desc, eq, gte, isNotNull, isNull, ne, sql, type SQL } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "../db/client";
-import { accounts, agents, invoices, parcelPayments, paymentSettings, shipments } from "../db/schema";
+import { accounts, agents, auditLog, events, invoices, parcelPayments, paymentSettings, shipments } from "../db/schema";
 import { enqueue } from "../adapters/outbox";
 import { queuePush } from "./push";
 import { audit } from "../audit";
@@ -64,6 +64,27 @@ export async function momoEnabled(accountId: string) {
   return !!s?.on;
 }
 
+/**
+ * Who sees the whole business's money: whoever manages the float or reads the business's reports. Everyone else at
+ * the counter sees their own: payments and invoices on parcels they booked, moved or took the money for.
+ */
+export const seesAllMoney = (user: CurrentUser) => user.permissions.has("agent.wallet.manage") || user.permissions.has("report.view");
+
+/** The parcels that are this person's (null: they see them all). */
+export function ownParcels(user: CurrentUser): SQL | undefined {
+  if (seesAllMoney(user)) return undefined;
+  return sql`(${shipments.createdBy} = ${user.id}
+    or exists (select 1 from ${events} e where e.shipment_id = ${shipments.id} and e.actor_id = ${user.id})
+    or exists (select 1 from ${auditLog} a where a.entity = 'shipment' and a.entity_id = ${shipments.id}::text and a.action = 'parcel.paid' and a.actor_id = ${user.id}))`;
+}
+
+/** The invoices that are this person's: issued by them, or for one of their parcels (null: all of them). */
+export function ownInvoices(user: CurrentUser): SQL | undefined {
+  const own = ownParcels(user);
+  if (!own) return undefined;
+  return sql`(${invoices.createdBy} = ${user.id} or exists (select 1 from ${shipments} where ${shipments.id} = ${invoices.shipmentId} and ${own}))`;
+}
+
 /** Midnight in Dar es Salaam, [daysAgo] days back. */
 function darMidnight(daysAgo: number) {
   const eat = new Date(Date.now() + 3 * 3600_000);
@@ -75,7 +96,7 @@ function darMidnight(daysAgo: number) {
  * commission on the mobile-money part (deducted before the payout). Plus what's still to come in: receivers paying
  * on delivery, and companies' unpaid invoices.
  */
-async function collectedFor(acct: string, bps: number) {
+async function collectedFor(acct: string, bps: number, own?: SQL, ownInv?: SQL) {
   const since = { today: darMidnight(0), week: darMidnight(6), month: darMidnight(29) };
   const f = (from: Date, method?: string) =>
     sql<number>`coalesce(sum(${shipments.totalCharge}) filter (where ${shipments.paidAt} >= ${from.toISOString()}::timestamptz${
@@ -92,19 +113,19 @@ async function collectedFor(acct: string, bps: number) {
         month: f(since.month), monthCash: f(since.month, "cash"), monthMomo: f(since.month, "mobile_money"), monthN: n(since.month),
       })
       .from(shipments)
-      .where(and(eq(shipments.accountId, acct), isNotNull(shipments.paidAt), gte(shipments.paidAt, since.month))),
+      .where(and(eq(shipments.accountId, acct), isNotNull(shipments.paidAt), gte(shipments.paidAt, since.month), own)),
     db
       .select({ amount: sql<number>`coalesce(sum(${shipments.totalCharge}), 0)::int`, n: sql<number>`count(*)::int` })
       .from(shipments)
-      .where(and(eq(shipments.accountId, acct), eq(shipments.paymentTerms, "pay_on_delivery"), isNull(shipments.paidAt), ne(shipments.state, "CANCELLED"))),
+      .where(and(eq(shipments.accountId, acct), eq(shipments.paymentTerms, "pay_on_delivery"), isNull(shipments.paidAt), ne(shipments.state, "CANCELLED"), own)),
     db
       .select({ amount: sql<number>`coalesce(sum(${invoices.total} - ${invoices.amountPaid}), 0)::int`, n: sql<number>`count(*)::int` })
       .from(invoices)
-      .where(and(eq(invoices.accountId, acct), ne(invoices.status, "paid"), ne(invoices.status, "void"))),
+      .where(and(eq(invoices.accountId, acct), ne(invoices.status, "paid"), ne(invoices.status, "void"), ownInv)),
     db
       .select({ today: b(since.today), week: b(since.week), month: b(since.month) })
       .from(shipments)
-      .where(and(eq(shipments.accountId, acct), gte(shipments.createdAt, since.month), ne(shipments.state, "CANCELLED"))),
+      .where(and(eq(shipments.accountId, acct), gte(shipments.createdAt, since.month), ne(shipments.state, "CANCELLED"), own)),
   ]);
   const period = (k: "today" | "week" | "month") => {
     const momo = row?.[`${k}Momo`] ?? 0;
@@ -157,9 +178,11 @@ export async function paymentSettingsFor(user: CurrentUser) {
     db.select({ payOnDelivery: accounts.payOnDelivery, status: accounts.status }).from(accounts).where(eq(accounts.id, acct)),
     commissionBpsFor(acct),
   ]);
-  const collected = await collectedFor(acct, bps);
+  const collected = await collectedFor(acct, bps, ownParcels(user), ownInvoices(user));
   return {
     collected,
+    /** "business": the whole business's takings; "mine": just this person's. */
+    scope: seesAllMoney(user) ? ("business" as const) : ("mine" as const),
     momo: { enabled: !!s?.momoEnabled, payout: s?.payout ?? null, schedule: s?.payoutSchedule ?? "daily" },
     payOnDelivery: !!a?.payOnDelivery,
     commissionBps: bps,
@@ -242,6 +265,7 @@ export async function paymentRecords(user: CurrentUser, raw: unknown) {
         and(
           eq(shipments.accountId, acct),
           isNotNull(shipments.paidAt),
+          ownParcels(user),
           f.method ? sql`coalesce(${shipments.prepayMethod}, 'cash') = ${f.method}` : undefined,
           f.before ? sql`${shipments.paidAt} < ${f.before.toISOString()}::timestamptz` : undefined,
         ),
@@ -264,6 +288,7 @@ export async function paymentRecords(user: CurrentUser, raw: unknown) {
       and(
         eq(invoices.accountId, acct),
         ne(invoices.status, "draft"),
+        ownInvoices(user),
         f.status === "paid"
           ? eq(invoices.status, "paid")
           : f.status === "open"
@@ -302,7 +327,7 @@ function invoiceOut(i: typeof invoices.$inferSelect) {
 export async function invoiceDetail(user: CurrentUser, id: string) {
   const acct = accountOf(user);
   if (!/^[0-9a-f-]{36}$/i.test(id)) throw new DomainError("NOT_FOUND", "That invoice isn't one of yours.", 404);
-  const [i] = await db.select().from(invoices).where(and(eq(invoices.accountId, acct), eq(invoices.id, id)));
+  const [i] = await db.select().from(invoices).where(and(eq(invoices.accountId, acct), eq(invoices.id, id), ownInvoices(user)));
   if (!i) throw new DomainError("NOT_FOUND", "That invoice isn't one of yours.", 404);
   return { invoice: invoiceOut(i) };
 }
@@ -316,7 +341,7 @@ export async function paymentDetail(user: CurrentUser, waybill: string) {
   const [s] = await db
     .select()
     .from(shipments)
-    .where(and(eq(shipments.accountId, acct), eq(shipments.waybill, waybill.toUpperCase()), isNotNull(shipments.paidAt)));
+    .where(and(eq(shipments.accountId, acct), eq(shipments.waybill, waybill.toUpperCase()), isNotNull(shipments.paidAt), ownParcels(user)));
   if (!s) throw new DomainError("NOT_FOUND", "There's no payment on that parcel.", 404);
   const method = s.prepayMethod ?? "cash";
   const [[push], [inv], bps] = await Promise.all([

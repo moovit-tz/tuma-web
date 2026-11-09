@@ -1474,6 +1474,7 @@ const en = {
       nav: "Money",
       title: "Money",
       sub: "What the counter took, what's still owed, and where takings are paid out",
+      subMine: "The payments and invoices on parcels you booked, handled or took the money for",
       payments: "Payments",
       invoices: "Invoices",
       settings: "Payments set-up",

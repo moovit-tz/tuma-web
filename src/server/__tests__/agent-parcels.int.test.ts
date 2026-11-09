@@ -437,6 +437,20 @@ describe("parcel work at the agent counter (app)", () => {
     await expect(agentBook(me.user, booking({ payer: "sender", paidWith: "cash", extras: { packaging: { type: "bubble_wrap", amount: 500 } } }))).rejects.toThrow();
   });
 
+  it("shows counter staff only the payments and invoices on their own parcels; the owner sees the business's", async () => {
+    const all = await paymentRecords(me.user, { kind: "payments" });
+    expect(all.payments.length).toBeGreaterThan(0);
+    const staff = { ...me.user, id: `staff-${Date.now()}`, permissions: new Set([...me.user.permissions].filter((p) => p !== "agent.wallet.manage" && p !== "report.view")) } as typeof me.user;
+    expect((await paymentRecords(staff, { kind: "payments" })).payments).toEqual([]);
+    expect((await paymentRecords(staff, { kind: "invoices" })).invoices).toEqual([]);
+    await expect(paymentDetail(staff, all.payments[0].waybill)).rejects.toMatchObject({ code: "NOT_FOUND" });
+    const s = await paymentSettingsFor(staff);
+    expect(s.scope).toBe("mine");
+    expect(s.collected.month.total).toBe(0);
+    expect((await paymentSettingsFor(me.user)).scope).toBe("business");
+    expect((await agentSummary(staff)).moneyScope).toBe("mine");
+  });
+
   it("suggests merging customers with the same name, and a merged number still finds the one kept", async () => {
     const acct = me.user.accountId!;
     const sender = (name: string, phone: string) => ({ sender: { kind: "individual" as const, name, phone }, receiver: { name: "Someone Else", phone: "+255700000999" } });
