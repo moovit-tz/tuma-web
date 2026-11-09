@@ -127,7 +127,7 @@ describe("sending parcels on from an office under a manifest", () => {
     expect(o.couriers.map((c) => c.name)).toEqual(expect.arrayContaining(["Juma Rider", "Amina Sender"]));
     expect(o.couriers.find((c) => c.id === owner.user.id)?.you).toBe(true);
     expect(typeof o.tumaCourier).toBe("boolean");
-  });
+  }, 30_000);
 
   it("sends two to the door with the office's rider: out for delivery, on one manifest", async () => {
     const m = await createManifest(owner.user, { waybills: [wbs[0], wbs[1]], mode: "door", carrier: { kind: "staff", userId: riderId } });

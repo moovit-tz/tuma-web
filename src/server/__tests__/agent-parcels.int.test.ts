@@ -465,10 +465,10 @@ describe("parcel work at the agent counter (app)", () => {
   });
 
   it("syncs a move made offline once, at the time it was made, however many times the app sends it", async () => {
-    const { parcel } = await agentBook(me.user, booking({ payer: "sender", paidWith: "cash" }));
-    const before = await agentParcel(me.user, parcel.waybill);
-    const to = before.moves.find((m: string) => m !== "DELIVERED" && m !== "ATTEMPT_FAILED");
-    expect(to).toBeTruthy();
+    // Booked ahead, not brought in yet: taking it in is the move made offline.
+    const { parcel } = await agentBook(me.user, booking({ payer: "sender", paidWith: "cash", inHand: false }));
+    const to = "RECEIVED";
+    expect((await agentParcel(me.user, parcel.waybill)).moves).toContain(to);
     const doneAt = new Date(Date.now() - 45 * 60_000);
     const { POST } = await import("@/app/api/app/agent/parcels/[waybill]/route");
     const token = await tokenFor(OWNER);
