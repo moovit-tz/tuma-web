@@ -80,8 +80,8 @@ const TEMPLATES: Record<string, Record<Lang, T>> = {
     sw: { body: "Tuma: kesi yako {ref} sasa iko {status}. {note}" },
   },
   "team.invite": {
-    en: { body: "Tuma: {inviter} invited {name} to join {business}. Open the Tuma app to accept: {link}" },
-    sw: { body: "Tuma: {inviter} amemkaribisha {name} kujiunga na {business}. Fungua programu ya Tuma kukubali: {link}" },
+    en: { body: "Tuma: {inviter} invited {name} to join {business}. Accept: {link} or in the Tuma app enter code {code}" },
+    sw: { body: "Tuma: {inviter} amemkaribisha {name} kujiunga na {business}. Kubali: {link} au kwenye programu ya Tuma weka namba {code}" },
   },
 
   /* ----- push (the app on the person's phone) ----- */
