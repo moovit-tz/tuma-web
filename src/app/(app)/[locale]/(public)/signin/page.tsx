@@ -47,7 +47,7 @@ export default async function SignIn({ params, searchParams }: PageProps<"/[loca
               })}
             </ul>
           </div>
-          <p className="font-mono text-[11px] tracking-[0.08em] text-sidebar-muted">MOOVIT · TUMA.HUDUMIKA.TZ</p>
+          <p className="font-mono text-[11px] tracking-[0.08em] text-sidebar-muted">HUDUMIKA · TUMA.HUDUMIKA.TZ</p>
         </div>
       </aside>
 

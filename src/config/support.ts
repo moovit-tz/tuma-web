@@ -10,5 +10,5 @@ export const SUPPORT = {
   email: "support@tuma.co.tz",
   businessEmail: "business@tuma.co.tz",
   hours: { en: "Mon–Sat, 07:00–21:00 EAT", sw: "Jumatatu–Jumamosi, 07:00–21:00", fr: "Lun–sam, 07h00–21h00 (EAT)" },
-  address: "Moovit, Dar es Salaam, Tanzania",
+  address: "Hudumika, Dar es Salaam, Tanzania",
 } as const;

@@ -163,7 +163,7 @@ export async function labelPdf(s: ShipmentDetail, trackingBase: string): Promise
     const fragile = s.specialHandling.includes("fragile") ? "FRAGILE  " : "";
     const right = `${fragile}${new Date(s.createdAt).toISOString().slice(0, 10)}`;
     page.drawText(right, { x: W - pad - bold.widthOfTextAtSize(right, 8.5), y: pad + 4.5 * MM, size: 8.5, font: bold, color: INK });
-    text(page, "Track: tuma.moovit.co.tz  ·  scan the QR", pad, pad, 7, regular, MUTED, inner);
+    text(page, "Track: tuma.hudumika.tz  ·  scan the QR", pad, pad, 7, regular, MUTED, inner);
   }
   return doc.save();
 }
@@ -185,7 +185,7 @@ export async function waybillA4Pdf(s: ShipmentDetail, trackingBase: string): Pro
   page.drawRectangle({ x: 0, y: H - 30 * MM, width: W, height: 30 * MM, color: rgb(0, 0, 0) });
   drawMark(page, m, H - 24 * MM, 18 * MM);
   page.drawText("Tuma", { x: m + 22 * MM, y: H - 15 * MM, size: 26, font: bold, color: rgb(0.95, 0.94, 0.92) });
-  page.drawText("by Moovit  ·  PARCEL WAYBILL", { x: m + 22 * MM, y: H - 21.5 * MM, size: 8.5, font: regular, color: TAN });
+  page.drawText("by Hudumika  ·  PARCEL WAYBILL", { x: m + 22 * MM, y: H - 21.5 * MM, size: 8.5, font: regular, color: TAN });
   page.drawImage(bar, { x: W - m - 78 * MM, y: H - 22 * MM, width: 78 * MM, height: 12 * MM });
   const wbW = mono.widthOfTextAtSize(s.waybill, 13);
   page.drawText(s.waybill, { x: W - m - wbW, y: H - 27 * MM, size: 13, font: mono, color: rgb(1, 1, 1) });

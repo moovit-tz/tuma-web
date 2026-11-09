@@ -7,16 +7,17 @@ import { getDict } from "@/i18n";
 import { isLocale, LOCALES } from "@/domain/types";
 import { fontVars } from "../../fonts";
 import { THEME_SCRIPT } from "@/lib/theme";
+import { OfflineBar } from "@/components/shell/offline-bar";
 import "../../globals.css";
 
 export const metadata: Metadata = {
   title: { default: "Tuma", template: "%s · Tuma" },
-  description: "Parcel and cargo tracking and reporting by Moovit.",
+  description: "Parcel and cargo tracking and reporting by Hudumika.",
 };
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#000000" },
+    { media: "(prefers-color-scheme: light)", color: "#f3f3f0" },
     { media: "(prefers-color-scheme: dark)", color: "#000000" },
   ],
 };
@@ -38,6 +39,7 @@ export default async function LocaleLayout({ children, params }: LayoutProps<"/[
         <I18nProvider dict={getDict(locale)} locale={locale}>
           <TooltipProvider>{children}</TooltipProvider>
           <Toaster position="top-center" />
+          <OfflineBar />
         </I18nProvider>
       </body>
     </html>

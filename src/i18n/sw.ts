@@ -3,7 +3,19 @@ import consoleSw from "./console/sw";
 
 /** Swahili. Draft translations — have a native speaker on the operations team review before launch. */
 const sw: Dict = {
-  brand: { tagline: "Kifurushi na mzigo, waybill moja.", by: "na Moovit" },
+  brand: { tagline: "Kifurushi na mzigo, waybill moja.", by: "na Hudumika" },
+  stateViews: {
+    offlineSince: "Uko nje ya mtandao. Inaonyesha taarifa za mwisho za saa {t}.",
+    offline: "Uko nje ya mtandao. Tutasasisha mara utakaporudi.",
+    cantConnect: "Imeshindwa kuunganisha",
+    cantConnectBody: "Hakiki intaneti yako. Ulichoandika kimehifadhiwa kwenye kivinjari hiki.",
+    failed: "Kuna hitilafu",
+    failedBody: "Haikupakia. Jaribu tena; ikiendelea, waambie msaada pamoja na kumbukumbu iliyo hapa chini.",
+    tryAgain: "Jaribu tena",
+    goHome: "Rudi mwanzo",
+    notFound: "Hatukupata ukurasa huo",
+    notFoundBody: "Kiungo kinaweza kuwa cha zamani au kimekosewa. Anza tena kutoka ukurasa wa mwanzo.",
+  },
   common: {
     close: "Funga",
     mainNav: "Kuu",
@@ -429,7 +441,7 @@ const sw: Dict = {
     terms: "Masharti ya huduma",
     privacy: "Sera ya faragha",
     lostItem: "Ripoti mzigo uliopotea",
-    rights: "Moovit. Haki zote zimehifadhiwa.",
+    rights: "Hudumika. Haki zote zimehifadhiwa.",
     draft: "Rasimu — inasubiri mapitio ya kisheria",
     updated: "Imesasishwa",
   },

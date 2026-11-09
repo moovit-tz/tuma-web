@@ -8,7 +8,7 @@ import en, { type Dict } from "./en";
 type DeepPartial<T> = { [K in keyof T]?: T[K] extends readonly unknown[] ? T[K] : T[K] extends object ? DeepPartial<T[K]> : T[K] };
 
 const fr: DeepPartial<Dict> = {
-  brand: { tagline: "Colis et fret, un seul bordereau.", by: "par Moovit" },
+  brand: { tagline: "Colis et fret, un seul bordereau.", by: "par Hudumika" },
   dashboard: {
     period: "Période",
     range: { today: "Aujourd'hui", "7d": "7 derniers jours", "30d": "30 derniers jours", all: "Depuis le début" },
@@ -80,7 +80,7 @@ const fr: DeepPartial<Dict> = {
     terms: "Conditions d'utilisation",
     privacy: "Politique de confidentialité",
     lostItem: "Signaler un colis perdu",
-    rights: "Moovit. Tous droits réservés.",
+    rights: "Hudumika. Tous droits réservés.",
     draft: "Projet — en attente de revue juridique",
     updated: "Dernière mise à jour",
   },
@@ -155,7 +155,7 @@ const fr: DeepPartial<Dict> = {
   },
   signin: {
     title: "Se connecter à Tuma",
-    body: "Tuma utilise Ondi, la connexion Moovit. Votre rôle détermine si vous accédez au portail marchand ou à la console.",
+    body: "Tuma utilise Ondi, la connexion Hudumika. Votre rôle détermine si vous accédez au portail marchand ou à la console.",
     cta: "Continuer avec Ondi",
     stubNote: "Mode développement : Ondi est simulé. Vous choisirez un profil de test.",
     noAccess: "Votre compte n'a pas encore de rôle Tuma. Demandez à un administrateur de vous en attribuer un.",

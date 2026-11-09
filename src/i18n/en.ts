@@ -1,6 +1,18 @@
 import consoleEn from "./console/en";
 const en = {
-  brand: { tagline: "Parcel and cargo, one waybill.", by: "by Moovit" },
+  brand: { tagline: "Parcel and cargo, one waybill.", by: "by Hudumika" },
+  stateViews: {
+    offlineSince: "You're offline. Showing the last update from {t}.",
+    offline: "You're offline. We'll update as soon as you're back.",
+    cantConnect: "Can't connect",
+    cantConnectBody: "Check your internet connection. Anything you entered is kept in this browser.",
+    failed: "Something went wrong",
+    failedBody: "That didn't load. Try again; if it keeps happening, tell support with the reference below.",
+    tryAgain: "Try again",
+    goHome: "Go to the start",
+    notFound: "We couldn't find that page",
+    notFoundBody: "The link may be old or mistyped. Start again from the home page.",
+  },
   common: {
     close: "Close",
     mainNav: "Main",
@@ -426,7 +438,7 @@ const en = {
     terms: "Terms of service",
     privacy: "Privacy policy",
     lostItem: "Report a lost item",
-    rights: "Moovit. All rights reserved.",
+    rights: "Hudumika. All rights reserved.",
     draft: "Draft — pending legal review",
     updated: "Last updated",
   },

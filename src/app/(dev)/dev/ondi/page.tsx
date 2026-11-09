@@ -16,7 +16,7 @@ export default function OndiStubPage({ searchParams }: PageProps<"/dev/ondi">) {
         <div className="eyebrow">Development stub</div>
         <h1 className="font-display mt-1 text-3xl font-bold tracking-tight">Ondi</h1>
         <p className="text-muted-foreground mt-2 text-sm">
-          Moovit sign-in is simulated until the Ondi OIDC sandbox is available. Choose who to sign in as. Role
+          Hudumika sign-in is simulated until the Ondi OIDC sandbox is available. Choose who to sign in as. Role
           assignments are managed in the Tuma console under Settings → Users.
         </p>
       </div>
