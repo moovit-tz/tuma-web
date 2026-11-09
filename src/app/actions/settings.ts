@@ -1,5 +1,6 @@
 "use server";
 import { refresh } from "next/cache";
+import { tErr } from "@/server/action-errors";
 import { ZodError } from "zod";
 import { getCurrentUser } from "@/server/auth/current-user";
 import { DomainError } from "@/server/errors";
@@ -15,10 +16,10 @@ export async function savePendingAllowanceAction(value: number): Promise<ActionR
     refresh();
     return { ok: true, data: { value: v } };
   } catch (e) {
-    if (e instanceof ZodError) return { ok: false, error: "Enter a whole number from 0 to 10,000." };
-    if (e instanceof DomainError) return { ok: false, error: e.message };
+    if (e instanceof ZodError) return { ok: false, error: await tErr("Enter a whole number from 0 to 10,000.") };
+    if (e instanceof DomainError) return { ok: false, error: await tErr(e.message) };
     console.error(e);
-    return { ok: false, error: "Something went wrong. Try again." };
+    return { ok: false, error: await tErr("Something went wrong. Try again.") };
   }
 }
 
@@ -31,9 +32,9 @@ export async function saveSupportContactsAction(value: unknown): Promise<ActionR
     refresh();
     return { ok: true, data: { saved: true } };
   } catch (e) {
-    if (e instanceof ZodError) return { ok: false, error: e.issues[0]?.message ?? "Check the details." };
-    if (e instanceof DomainError) return { ok: false, error: e.message };
+    if (e instanceof ZodError) return { ok: false, error: await tErr(e.issues[0]?.message ?? "Check the details.") };
+    if (e instanceof DomainError) return { ok: false, error: await tErr(e.message) };
     console.error(e);
-    return { ok: false, error: "Something went wrong. Try again." };
+    return { ok: false, error: await tErr("Something went wrong. Try again.") };
   }
 }

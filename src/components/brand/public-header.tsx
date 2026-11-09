@@ -23,7 +23,7 @@ export function PublicHeader({ locale }: { locale: string }) {
         <Link suppressHydrationWarning href={`/${locale}`} aria-label="Tuma" className="shrink-0">
           <TumaWordmark by={t.brand.by} />
         </Link>
-        <nav aria-label="Main" className="hidden items-center gap-1 md:flex">
+        <nav aria-label={t.common.mainNav} className="hidden items-center gap-1 md:flex">
           {/* usePathname needs a Suspense boundary under Cache Components; the fallback is the same links, unmarked. */}
           <Suspense
             fallback={nav.map((n) => (
@@ -57,7 +57,7 @@ export function PublicFooter({ locale, className }: { locale: string; className?
   return (
     <footer className={"border-sidebar-border bg-sidebar text-sidebar-muted shrink-0 border-t " + (className ?? "")}>
       <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 pt-5 pb-[calc(6rem+env(safe-area-inset-bottom))] text-[14px] sm:flex-row sm:items-center sm:justify-between sm:gap-2 sm:px-6 sm:pt-4 sm:pb-4 sm:pr-40 sm:text-[13px]">
-        <nav aria-label="Legal" className="grid grid-cols-2 gap-x-4 sm:flex sm:flex-wrap sm:gap-x-5 sm:gap-y-1">
+        <nav aria-label={t.common.legalNav} className="grid grid-cols-2 gap-x-4 sm:flex sm:flex-wrap sm:gap-x-5 sm:gap-y-1">
           {links.map((l) => (
             <Link suppressHydrationWarning key={l.href} href={l.href} className="hover:text-sidebar-foreground py-2 transition-colors sm:py-0">
               {l.label}

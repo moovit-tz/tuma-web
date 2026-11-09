@@ -1,5 +1,6 @@
 "use server";
 import { refresh } from "next/cache";
+import { tErr } from "@/server/action-errors";
 import { z } from "zod";
 import { getCurrentUser } from "@/server/auth/current-user";
 import { DomainError } from "@/server/services/shipments";
@@ -29,9 +30,9 @@ async function run<T>(fn: (user: NonNullable<Awaited<ReturnType<typeof getCurren
     if (doRefresh) refresh();
     return { ok: true, data };
   } catch (e) {
-    if (e instanceof DomainError) return { ok: false, error: e.message };
+    if (e instanceof DomainError) return { ok: false, error: await tErr(e.message) };
     console.error(e);
-    return { ok: false, error: "Something went wrong. Try again." };
+    return { ok: false, error: await tErr("Something went wrong. Try again.") };
   }
 }
 

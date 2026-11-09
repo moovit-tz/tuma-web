@@ -1,5 +1,6 @@
 "use server";
 import { refresh } from "next/cache";
+import { tErr } from "@/server/action-errors";
 import { getCurrentUser } from "@/server/auth/current-user";
 import { DomainError } from "@/server/services/shipments";
 import { addTeamMember, createRole, deleteRole, memberSchema, memberUpdateSchema, roleInputSchema, setMemberActive, setRoleActive, setUserRoles, updateMember, updateRole } from "@/server/services/roles";
@@ -13,9 +14,9 @@ async function guarded(fn: (user: NonNullable<Awaited<ReturnType<typeof getCurre
     refresh();
     return { ok: true };
   } catch (e) {
-    if (e instanceof DomainError) return { ok: false, error: e.message };
+    if (e instanceof DomainError) return { ok: false, error: await tErr(e.message) };
     console.error(e);
-    return { ok: false, error: "Something went wrong. Try again." };
+    return { ok: false, error: await tErr("Something went wrong. Try again.") };
   }
 }
 
@@ -34,9 +35,9 @@ export async function saveRoleAction(mode: "create" | "update", input: unknown):
       refresh();
       return { ok: true, data: key };
     } catch (e) {
-      if (e instanceof DomainError) return { ok: false, error: e.message };
+      if (e instanceof DomainError) return { ok: false, error: await tErr(e.message) };
       console.error(e);
-      return { ok: false, error: "Something went wrong. Try again." };
+      return { ok: false, error: await tErr("Something went wrong. Try again.") };
     }
   }
   return guarded((user) => updateRole(user, parsed.data.key, parsed.data));
@@ -59,9 +60,9 @@ export async function setUserRolesAction(userId: string, roleKeys: string[]): Pr
     refresh();
     return { ok: true, data: r };
   } catch (e) {
-    if (e instanceof DomainError) return { ok: false, error: e.message };
+    if (e instanceof DomainError) return { ok: false, error: await tErr(e.message) };
     console.error(e);
-    return { ok: false, error: "Something went wrong. Try again." };
+    return { ok: false, error: await tErr("Something went wrong. Try again.") };
   }
 }
 

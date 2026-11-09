@@ -1,5 +1,6 @@
 "use server";
 import { refresh } from "next/cache";
+import { tErr } from "@/server/action-errors";
 import { ZodError } from "zod";
 import { getCurrentUser } from "@/server/auth/current-user";
 import { DomainError } from "@/server/services/shipments";
@@ -25,10 +26,10 @@ async function run<T>(fn: (user: NonNullable<Awaited<ReturnType<typeof getCurren
     refresh();
     return { ok: true, data };
   } catch (e) {
-    if (e instanceof DomainError) return { ok: false, error: e.message };
-    if (e instanceof ZodError) return { ok: false, error: e.issues[0]?.message ?? "Check the details and try again." };
+    if (e instanceof DomainError) return { ok: false, error: await tErr(e.message) };
+    if (e instanceof ZodError) return { ok: false, error: await tErr(e.issues[0]?.message ?? "Check the details and try again.") };
     console.error(e);
-    return { ok: false, error: "Something went wrong. Try again." };
+    return { ok: false, error: await tErr("Something went wrong. Try again.") };
   }
 }
 
@@ -72,7 +73,7 @@ export async function agentPayStatusAction(waybill: string, id: string) {
     if (r.payment.status !== "pending") refresh();
     return { ok: true as const, data: { status: r.payment.status, failureMessage: r.payment.failureMessage } };
   } catch (e) {
-    return { ok: false as const, error: e instanceof DomainError ? e.message : "Something went wrong. Try again." };
+    return { ok: false as const, error: await tErr(e instanceof DomainError ? e.message : "Something went wrong. Try again.") };
   }
 }
 

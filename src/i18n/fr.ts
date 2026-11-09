@@ -39,6 +39,9 @@ const fr: DeepPartial<Dict> = {
     refresh: "Actualiser",
   },
   common: {
+    close: "Fermer",
+    mainNav: "Principal",
+    legalNav: "Mentions légales",
     signIn: "Se connecter",
     signOut: "Se déconnecter",
     search: "Rechercher",

@@ -5,6 +5,9 @@ import consoleSw from "./console/sw";
 const sw: Dict = {
   brand: { tagline: "Kifurushi na mzigo, waybill moja.", by: "na Moovit" },
   common: {
+    close: "Funga",
+    mainNav: "Kuu",
+    legalNav: "Kisheria",
     signIn: "Ingia",
     signOut: "Toka",
     search: "Tafuta",
@@ -99,7 +102,17 @@ const sw: Dict = {
     newHere: "Mgeni kwenye Tuma?",
     openBusiness: "Sajili biashara yako",
     track: "Fuatilia kifurushi",
-    help: "Unashindwa kuingia? Wasiliana nasi",
+    help: "Msaada",
+    trackSub: "Huhitaji akaunti",
+    lost: "Ripoti kitu kilichopotea",
+    lostSub: "Tunafungua kesi kwa ajili yako",
+    orWithout: "Au, bila kuingia",
+    errors: {
+      state: "Ombi la kuingia limeisha muda. Jaribu tena.",
+      exchange: "Ondi haikuweza kuthibitisha kuingia. Jaribu tena.",
+      inactive: "Mtumiaji huyu amezimwa.",
+      failed: "Kuingia kumeshindikana. Jaribu tena.",
+    },
     cta: "Endelea na Ondi",
     stubNote: "Hali ya majaribio: Ondi inaigwa. Utachagua mtumiaji wa majaribio.",
     noAccess: "Akaunti yako bado haina nafasi kwenye Tuma. Muombe msimamizi akupe.",
@@ -225,6 +238,7 @@ const sw: Dict = {
     atRiskOnly: "SLA hatarini",
   },
   detail: {
+    parcel: "Kifurushi",
     timeline: "Mfuatano",
     parties: "Mtumaji na mpokeaji",
     sender: "Mtumaji",

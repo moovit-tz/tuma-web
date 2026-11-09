@@ -1,5 +1,6 @@
 "use server";
 import { refresh } from "next/cache";
+import { tErr } from "@/server/action-errors";
 import { z } from "zod";
 import { getCurrentUser } from "@/server/auth/current-user";
 import {
@@ -25,9 +26,9 @@ async function run<T>(fn: () => Promise<T>, message?: string): Promise<ActionRes
     refresh();
     return { ok: true, data, message };
   } catch (e) {
-    if (e instanceof DomainError) return { ok: false, error: e.message };
+    if (e instanceof DomainError) return { ok: false, error: await tErr(e.message) };
     console.error(e);
-    return { ok: false, error: "Something went wrong. Try again." };
+    return { ok: false, error: await tErr("Something went wrong. Try again.") };
   }
 }
 
@@ -64,9 +65,9 @@ export async function createParcelAction(input: unknown): Promise<ActionResult<{
     const { shipment, duplicateRef } = await createParcel(user, parsed.data, "portal");
     return { ok: true, data: { waybill: shipment.waybill, duplicateRef } };
   } catch (e) {
-    if (e instanceof DomainError) return { ok: false, error: e.message };
+    if (e instanceof DomainError) return { ok: false, error: await tErr(e.message) };
     console.error(e);
-    return { ok: false, error: "Something went wrong. Try again." };
+    return { ok: false, error: await tErr("Something went wrong. Try again.") };
   }
 }
 

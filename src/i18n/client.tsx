@@ -14,3 +14,8 @@ export function useI18n() {
   if (!v) throw new Error("useI18n must be used inside I18nProvider");
   return v;
 }
+
+/** The dictionary when one is provided, else null: for shared UI that also renders outside the provider. */
+export function useI18nMaybe() {
+  return use(Ctx);
+}

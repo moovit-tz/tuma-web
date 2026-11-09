@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { useI18nMaybe } from "@/i18n/client"
 import { cn } from "cn"
 import { Dialog as SheetPrimitive } from "radix-ui"
 
@@ -77,7 +78,7 @@ function SheetContent({
             >
               <XIcon
               />
-              <span className="sr-only">Close</span>
+              <CloseLabel />
             </Button>
           </SheetPrimitive.Close>
         )}
@@ -144,4 +145,9 @@ export {
   SheetFooter,
   SheetTitle,
   SheetDescription,
+}
+
+function CloseLabel({ visible = false }: { visible?: boolean }) {
+  const label = useI18nMaybe()?.dict.common.close ?? "Close"
+  return visible ? <>{label}</> : <span className="sr-only">{label}</span>
 }

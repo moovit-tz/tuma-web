@@ -2,6 +2,9 @@ import consoleEn from "./console/en";
 const en = {
   brand: { tagline: "Parcel and cargo, one waybill.", by: "by Moovit" },
   common: {
+    close: "Close",
+    mainNav: "Main",
+    legalNav: "Legal",
     signIn: "Sign in",
     signOut: "Sign out",
     search: "Search",
@@ -96,7 +99,17 @@ const en = {
     newHere: "New to Tuma?",
     openBusiness: "Register your business",
     track: "Track a parcel",
-    help: "Trouble signing in? Contact us",
+    help: "Help",
+    trackSub: "No account needed",
+    lost: "Report a lost item",
+    lostSub: "We open a case for you",
+    orWithout: "Or, without signing in",
+    errors: {
+      state: "The sign-in request expired. Try again.",
+      exchange: "Ondi could not verify the sign-in. Try again.",
+      inactive: "This user has been deactivated.",
+      failed: "Sign-in failed. Try again.",
+    },
     cta: "Continue with Ondi",
     stubNote: "Development mode: Ondi is simulated. You'll pick a test persona.",
     noAccess: "Your account has no Tuma role yet. Ask an administrator to assign one.",
@@ -222,6 +235,7 @@ const en = {
     atRiskOnly: "SLA at risk",
   },
   detail: {
+    parcel: "Parcel",
     timeline: "Timeline",
     parties: "Sender and receiver",
     sender: "Sender",

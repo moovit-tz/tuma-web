@@ -3,9 +3,11 @@ import { ChevronLeft, ChevronRight, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
- * The top of a page: an optional way back, a small eyebrow, the title with an optional badge beside it, a line on what
- * the page is for, and its actions. On phones the actions drop below the title and share the width, so they stay
- * easy to tap; on wider screens they sit to the right.
+ * The top of a page, as a Tuma header: the brand's black band with the region map fading in from the right (the same
+ * header as the app and the public pages). An optional way back, a small eyebrow, the title with an optional badge,
+ * a line on what the page is for, and its actions. The band always uses the dark palette (`theme-dark`), so buttons
+ * and text inside keep AA contrast in light and dark mode. On phones the actions drop below the title and share the
+ * width; on wider screens they sit to the right.
  */
 export function PageHeader({
   eyebrow,
@@ -25,29 +27,39 @@ export function PageHeader({
   icon?: LucideIcon;
 }) {
   return (
-    <header className="mb-6">
-      {back && (
-        <Link href={back.href} className="text-muted-foreground hover:text-foreground mb-3 inline-flex items-center gap-1 text-sm outline-none focus-visible:underline print:hidden">
-          <ChevronLeft className="size-4" aria-hidden /> {back.label}
-        </Link>
-      )}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="flex min-w-0 items-start gap-3.5">
-          {Icon && (
-            <span aria-hidden className="bg-muted text-foreground/80 mt-1 hidden size-10 shrink-0 place-items-center rounded-lg border sm:grid">
-              <Icon className="size-[18px]" />
-            </span>
-          )}
-          <div className="min-w-0">
-            {eyebrow && <div className="eyebrow mb-1">{eyebrow}</div>}
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-              <h2 className="font-display min-w-0 text-[24px] leading-tight font-bold tracking-[-0.02em] break-words sm:text-[30px]">{title}</h2>
-              {badge}
+    <header className="theme-dark relative mb-6 overflow-hidden rounded-xl border print:border-0 print:bg-transparent print:text-black">
+      {/* eslint-disable-next-line @next/next/no-img-element -- a decorative SVG, no optimisation needed */}
+      <img
+        src="/maps/region-base.svg"
+        alt=""
+        aria-hidden
+        className="pointer-events-none absolute top-1/2 right-0 h-[260%] w-auto max-w-none -translate-y-[38%] opacity-70 select-none [mask-image:linear-gradient(to_right,transparent_0%,black_45%)] max-sm:opacity-35 print:hidden"
+      />
+      <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_140%_at_0%_0%,rgba(0,0,0,0.85),transparent_60%)] print:hidden" />
+      <div className="relative px-5 py-5 sm:px-7 sm:py-6">
+        {back && (
+          <Link href={back.href} className="text-muted-foreground hover:text-foreground mb-3 inline-flex items-center gap-1 text-sm outline-none focus-visible:underline print:hidden">
+            <ChevronLeft className="size-4" aria-hidden /> {back.label}
+          </Link>
+        )}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="flex min-w-0 items-start gap-3.5">
+            {Icon && (
+              <span aria-hidden className="bg-brand-red/15 text-brand-ink mt-1 hidden size-11 shrink-0 place-items-center rounded-lg border border-white/10 sm:grid">
+                <Icon className="size-5" />
+              </span>
+            )}
+            <div className="min-w-0">
+              {eyebrow && <div className="text-brand-tan mb-1 font-mono text-[11px] tracking-[0.14em] uppercase">{eyebrow}</div>}
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                <h2 className="font-display min-w-0 text-[24px] leading-tight font-bold tracking-[-0.02em] break-words sm:text-[30px]">{title}</h2>
+                {badge}
+              </div>
+              {description && <p className="text-muted-foreground mt-1.5 max-w-2xl text-sm text-pretty">{description}</p>}
             </div>
-            {description && <p className="text-muted-foreground mt-1.5 max-w-2xl text-sm text-pretty">{description}</p>}
           </div>
+          {children && <div className="flex flex-wrap items-center gap-2 *:max-sm:flex-1 print:hidden">{children}</div>}
         </div>
-        {children && <div className="flex flex-wrap items-center gap-2 *:max-sm:flex-1 print:hidden">{children}</div>}
       </div>
     </header>
   );

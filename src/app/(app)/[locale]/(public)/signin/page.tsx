@@ -1,17 +1,12 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { ArrowRight, Building2, PackageSearch, ShieldCheck, Store, Users } from "lucide-react";
+import { ArrowRight, Building2, PackageSearch, PackageX, ShieldCheck, Store, Users } from "lucide-react";
 import { getDict } from "@/i18n";
 import { OndiButton } from "@/components/auth/ondi-button";
 import { TumaMark, TumaWordmark } from "@/components/brand/logo";
 import { LocaleSwitch } from "@/components/shell/locale-switch";
 import { ThemeSwitch } from "@/components/shell/theme-switch";
 
-const ERRORS: Record<string, string> = {
-  state: "The sign-in request expired. Try again.",
-  exchange: "Ondi could not verify the sign-in. Try again.",
-  inactive: "This user has been deactivated.",
-};
 
 const POINT_ICONS = [Store, Building2, Users];
 
@@ -81,22 +76,34 @@ export default async function SignIn({ params, searchParams }: PageProps<"/[loca
           </p>
           {process.env.ONDI_MODE === "stub" && <p className="bg-muted text-muted-foreground mt-6 rounded-md px-3 py-2.5 text-xs">{s.stubNote}</p>}
 
-          <div className="mt-10 grid gap-2 border-t pt-6 text-sm">
-            <p className="text-muted-foreground">
-              {s.newHere}{" "}
-              <Link href={`/${locale}/onboarding`} className="text-foreground inline-flex items-center gap-1 font-semibold hover:underline">
-                {s.openBusiness}
-                <ArrowRight className="size-3.5" aria-hidden />
+          {/* Without signing in: the same two cards as the app's welcome screen. */}
+          <p className="text-muted-foreground mt-10 mb-3 font-mono text-[11px] tracking-[0.14em] uppercase">{s.orWithout}</p>
+          <div className="grid grid-cols-2 gap-3">
+            {[
+              { href: `/${locale}/track`, Icon: PackageSearch, title: s.track, sub: s.trackSub },
+              { href: `/${locale}/report-lost-item`, Icon: PackageX, title: s.lost, sub: s.lostSub },
+            ].map(({ href, Icon, title, sub }) => (
+              <Link
+                key={href}
+                href={href}
+                className="bg-card group hover:border-foreground/30 focus-visible:ring-ring flex flex-col rounded-lg border p-4 shadow-sm transition-colors outline-none focus-visible:ring-2"
+              >
+                <Icon className="text-brand-ink size-6" aria-hidden />
+                <span className="mt-4 text-[15px] leading-tight font-semibold">{title}</span>
+                <span className="text-muted-foreground mt-1 text-[12.5px] leading-snug">{sub}</span>
               </Link>
-            </p>
-            <Link href={`/${locale}/track`} className="text-muted-foreground hover:text-foreground inline-flex w-fit items-center gap-1.5">
-              <PackageSearch className="size-4" aria-hidden />
-              {s.track}
-            </Link>
+            ))}
           </div>
+          <p className="text-muted-foreground mt-6 text-sm">
+            {s.newHere}{" "}
+            <Link href={`/${locale}/onboarding`} className="text-foreground inline-flex items-center gap-1 font-semibold hover:underline">
+              {s.openBusiness}
+              <ArrowRight className="size-3.5" aria-hidden />
+            </Link>
+          </p>
         </div>
 
-        <nav className="text-muted-foreground flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs lg:justify-start">
+        <nav className="text-muted-foreground flex flex-nowrap items-center justify-center gap-x-5 text-xs whitespace-nowrap">
           <Link href={`/${locale}/terms`} className="hover:text-foreground">
             {t.site.terms}
           </Link>
@@ -122,7 +129,7 @@ async function SignInButton({ locale, searchParams }: { locale: string; searchPa
     <>
       {error && (
         <p role="alert" className="border-destructive/30 bg-destructive/10 text-destructive mt-6 rounded-md border px-3 py-2 text-sm">
-          {error === "no_role" ? t.signin.noAccess : (ERRORS[error] ?? "Sign-in failed.")}
+          {error === "no_role" ? t.signin.noAccess : ((t.signin.errors as Record<string, string>)[error] ?? t.signin.errors.failed)}
         </p>
       )}
       <OndiButton href={href} className="mt-8 w-full">

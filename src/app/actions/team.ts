@@ -1,5 +1,6 @@
 "use server";
 import { refresh } from "next/cache";
+import { tErr } from "@/server/action-errors";
 import { ZodError } from "zod";
 import { getCurrentUser, type CurrentUser } from "@/server/auth/current-user";
 import { DomainError } from "@/server/errors";
@@ -20,9 +21,9 @@ async function run<T>(fn: (user: CurrentUser) => Promise<T>): Promise<ActionResu
       for (const i of e.issues) fieldErrors[i.path.join(".")] ??= i.message;
       return { ok: false, error: "Check the highlighted fields.", fieldErrors };
     }
-    if (e instanceof DomainError) return { ok: false, error: e.message, code: e.code };
+    if (e instanceof DomainError) return { ok: false, error: await tErr(e.message), code: e.code };
     console.error(e);
-    return { ok: false, error: "Something went wrong. Try again." };
+    return { ok: false, error: await tErr("Something went wrong. Try again.") };
   }
 }
 

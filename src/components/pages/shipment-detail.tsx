@@ -36,7 +36,7 @@ export async function ShipmentDetailPage({ locale, waybill }: { locale: string; 
         <div className="mt-3 flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
             <div className="eyebrow flex flex-wrap gap-x-3">
-              <span className="text-parcel">Parcel</span>
+              <span className="text-parcel">{t.detail.parcel}</span>
               {s.merchantRef && <span>{s.merchantRef}</span>}
               {perms.has("shipment.read.all") && <span>{s.accountName}</span>}
             </div>
