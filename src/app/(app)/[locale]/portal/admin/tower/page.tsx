@@ -70,7 +70,7 @@ export default async function TowerPage({ params }: PageProps<"/[locale]/portal/
                   <tr key={r.region}>
                     <td className="px-4 py-2">{r.region}</td>
                     <td className="tabular px-3 py-2 text-right">{r.live}</td>
-                    <td className={`tabular px-3 py-2 text-right ${r.late ? "text-brand-red font-semibold" : ""}`}>{r.late}</td>
+                    <td className={`tabular px-3 py-2 text-right ${r.late ? "text-brand-ink font-semibold" : ""}`}>{r.late}</td>
                     <td className="tabular px-4 py-2 text-right">{r.exceptions}</td>
                   </tr>
                 ))}

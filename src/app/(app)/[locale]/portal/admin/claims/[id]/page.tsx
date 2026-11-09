@@ -107,7 +107,7 @@ export default async function ClaimPage({ params }: PageProps<"/[locale]/portal/
                   <li key={i} className="px-4 py-3 text-sm">
                     <p className="whitespace-pre-wrap">{e.note}</p>
                     {e.url && (
-                      <a href={e.url} target="_blank" rel="noreferrer" className="text-brand-red text-xs break-all hover:underline">
+                      <a href={e.url} target="_blank" rel="noreferrer" className="text-brand-ink text-xs break-all hover:underline">
                         {e.url}
                       </a>
                     )}

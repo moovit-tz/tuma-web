@@ -33,7 +33,7 @@ export default async function SignIn({ params, searchParams }: PageProps<"/[loca
             <TumaWordmark by={t.brand.by} />
           </Link>
           <div className="max-w-lg">
-            <p className="text-brand-red font-mono text-xs tracking-[0.16em] uppercase">{s.kicker}</p>
+            <p className="text-brand-ink font-mono text-xs tracking-[0.16em] uppercase">{s.kicker}</p>
             <h2 className="font-display mt-4 text-[clamp(30px,3.2vw,44px)] leading-[1.08] font-bold tracking-[-0.02em] text-balance">{s.headline}</h2>
             <ul className="mt-10 grid gap-5">
               {s.points.map(([title, body], i) => {

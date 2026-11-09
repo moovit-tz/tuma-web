@@ -18,14 +18,14 @@ export function UserMenu({ user }: { user: ShellUser }) {
           <span className="block max-w-[160px] truncate text-sm font-semibold">{user.name}</span>
           <span className="text-muted-foreground block max-w-[160px] truncate text-xs">{user.company ?? user.roleLabel}</span>
         </span>
-        <span aria-hidden className="bg-brand-red grid size-9 shrink-0 place-items-center rounded-md text-sm font-semibold text-white">
+        <span aria-hidden className="bg-brand-red grid size-9 shrink-0 place-items-center rounded-md text-sm font-semibold text-black">
           {user.initials}
         </span>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" sideOffset={8} className="w-[min(18rem,calc(100vw-2rem))] p-1.5">
         <DropdownMenuLabel className="p-3 font-normal">
           <div className="flex items-center gap-3">
-            <span aria-hidden className="bg-brand-red grid size-10 shrink-0 place-items-center rounded-md font-semibold text-white">
+            <span aria-hidden className="bg-brand-red grid size-10 shrink-0 place-items-center rounded-md font-semibold text-black">
               {user.initials}
             </span>
             <span className="min-w-0">

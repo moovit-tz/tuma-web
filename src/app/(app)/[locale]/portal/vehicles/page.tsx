@@ -263,7 +263,7 @@ function AllVehicles({
                 )}
               >
                 {label(f)}
-                <span className={cn("tabular rounded-full px-1.5 text-[11px] leading-[18px]", active ? "bg-brand-red text-white" : "bg-muted text-muted-foreground")}>{num(count(f), locale)}</span>
+                <span className={cn("tabular rounded-full px-1.5 text-[11px] leading-[18px]", active ? "bg-brand-red text-black" : "bg-muted text-muted-foreground")}>{num(count(f), locale)}</span>
               </Link>
             );
           })}

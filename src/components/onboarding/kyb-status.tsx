@@ -9,10 +9,10 @@ type Status = keyof ReturnType<typeof getDict>["onboarding"]["status"];
 
 const TONE: Record<string, string> = {
   submitted: "text-foreground",
-  in_review: "text-amber-600 dark:text-amber-400",
-  needs_info: "text-amber-600 dark:text-amber-400",
-  approved: "text-emerald-600 dark:text-emerald-400",
-  rejected: "text-brand-red",
+  in_review: "text-amber-700 dark:text-amber-400",
+  needs_info: "text-amber-700 dark:text-amber-400",
+  approved: "text-emerald-700 dark:text-emerald-400",
+  rejected: "text-brand-ink",
 };
 
 /** Where the application stands, the reviewer's note, and the one action that fits the status. */
@@ -39,11 +39,11 @@ export function KybStatus({ app, locale, base = `/${locale}/onboarding` }: { app
         )}
         <div className="mt-5 flex flex-col gap-2 sm:flex-row">
           {status === "approved" ? (
-            <Link href={`/${locale}/portal`} className="bg-brand-red hover:bg-brand-red/90 inline-flex h-11 items-center justify-center rounded-md px-5 font-semibold text-white">
+            <Link href={`/${locale}/portal`} className="bg-brand-red hover:bg-brand-red/90 inline-flex h-11 items-center justify-center rounded-md px-5 font-semibold text-black">
               {o.openWorkspace}
             </Link>
           ) : app.canEdit ? (
-            <Link href={`${base}?edit=1`} className="bg-brand-red hover:bg-brand-red/90 inline-flex h-11 items-center justify-center rounded-md px-5 font-semibold text-white">
+            <Link href={`${base}?edit=1`} className="bg-brand-red hover:bg-brand-red/90 inline-flex h-11 items-center justify-center rounded-md px-5 font-semibold text-black">
               {o.edit}
             </Link>
           ) : (

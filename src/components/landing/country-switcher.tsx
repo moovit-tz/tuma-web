@@ -17,7 +17,7 @@ export function CountrySwitcher({ selected, locale, sourceLabel }: { selected: C
           className="border-sidebar-border hover:border-sidebar-foreground/40 flex cursor-pointer list-none items-center gap-2 rounded-full border bg-[#0e0e0e]/80 py-1.5 pr-3 pl-2.5 text-sm backdrop-blur transition-colors [&::-webkit-details-marker]:hidden"
           aria-label={t.hero.change}
         >
-          <MapPin className="text-brand-red size-4" aria-hidden />
+          <MapPin className="text-brand-ink size-4" aria-hidden />
           <span className="font-medium">{selected.name[locale]}</span>
           <span className="text-sidebar-muted font-mono text-[11px]">{selected.iso2}</span>
           <ChevronDown className="text-sidebar-muted size-4 transition-transform group-open:rotate-180" aria-hidden />

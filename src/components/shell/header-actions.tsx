@@ -38,7 +38,7 @@ export function HeaderActions({ actions }: { actions: QuickAction[] }) {
         type="button"
         onClick={() => setTrackOpen(true)}
         aria-label={t.shell.trackParcel}
-        className="bg-brand-red hover:bg-brand-red/90 inline-flex h-10 shrink-0 items-center gap-2 rounded-md px-3 text-[13px] font-semibold text-white shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-offset-2 md:px-4"
+        className="bg-brand-red hover:bg-brand-red/90 inline-flex h-10 shrink-0 items-center gap-2 rounded-md px-3 text-[13px] font-semibold text-black shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-offset-2 md:px-4"
       >
         <PackageSearch className="size-[18px]" aria-hidden />
         <span className="hidden md:inline">{t.shell.trackParcel}</span>
@@ -49,7 +49,7 @@ export function HeaderActions({ actions }: { actions: QuickAction[] }) {
             aria-label={t.shell.quickActions}
             className="bg-sidebar text-sidebar-foreground hover:bg-sidebar/85 data-[state=open]:bg-sidebar/85 inline-flex h-10 shrink-0 items-center gap-2 rounded-md px-3 text-[13px] font-semibold shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-offset-2 dark:ring-1 dark:ring-white/10 lg:px-4"
           >
-            <Zap className="text-brand-red size-[18px] fill-current" aria-hidden />
+            <Zap className="text-brand-ink size-[18px] fill-current" aria-hidden />
             <span className="hidden lg:inline">{t.shell.quickActions}</span>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" sideOffset={8} className="w-[min(20rem,calc(100vw-2rem))] overflow-hidden p-0">

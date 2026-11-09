@@ -118,7 +118,7 @@ function Row({ k, v, mono }: { k: string; v: string; mono?: boolean }) {
 
 function Btn({ d, primary, children }: { d: string; primary?: boolean; children: React.ReactNode }) {
   return (
-    <button name="decision" value={d} className={primary ? "bg-brand-red h-9 rounded-md px-4 text-sm font-semibold text-white" : "bg-background hover:bg-muted h-9 rounded-md border px-3 text-sm"}>
+    <button name="decision" value={d} className={primary ? "bg-brand-red h-9 rounded-md px-4 text-sm font-semibold text-black" : "bg-background hover:bg-muted h-9 rounded-md border px-3 text-sm"}>
       {children}
     </button>
   );

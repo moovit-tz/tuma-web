@@ -128,7 +128,7 @@ export default async function ReportsPage({ params, searchParams }: PageProps<"/
               <div className="mt-1 flex items-center gap-2">
                 <span className="font-display text-4xl font-semibold">{rat.score}</span>
                 <span className="text-muted-foreground text-sm">
-                  <Star className="inline size-4 fill-amber-400 text-amber-400" /> {rat.average}
+                  <Star className="inline size-4 fill-amber-400 text-amber-700" /> {rat.average}
                 </span>
               </div>
             ) : (
@@ -175,7 +175,7 @@ export default async function ReportsPage({ params, searchParams }: PageProps<"/
                 {rat.recent.map((x) => (
                   <li key={`${x.waybill}-${x.at}`}>
                     <div className="flex items-center gap-2">
-                      <span className={cn("tabular text-xs font-semibold", (x.stars ?? 0) <= 2 ? "text-brand-red" : "text-amber-500")}>{x.stars}★</span>
+                      <span className={cn("tabular text-xs font-semibold", (x.stars ?? 0) <= 2 ? "text-brand-ink" : "text-warn")}>{x.stars}★</span>
                       <Link href={`/${locale}/portal/parcels/${x.waybill}`} prefetch={false} className="font-mono text-xs underline-offset-4 hover:underline">
                         {x.waybill}
                       </Link>

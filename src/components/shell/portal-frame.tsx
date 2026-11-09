@@ -226,7 +226,7 @@ function Sidebar({
           collapsed ? "justify-center px-0 py-3.5" : sub ? "py-2.5 pr-5 pl-[3.25rem] text-[13.5px]" : "px-5 py-3 text-[14px]",
           isActive
             ? cn("border-brand-red text-rail-foreground font-semibold", sub ? "bg-brand-red/[0.07]" : "bg-brand-red/[0.11]")
-            : "text-rail-foreground/60 hover:text-rail-foreground border-transparent hover:bg-rail-hover",
+            : "text-rail-muted hover:text-rail-foreground border-transparent hover:bg-rail-hover",
         )}
       >
         {(!sub || collapsed) && <Icon className="size-[19px] shrink-0" aria-hidden />}
@@ -270,7 +270,7 @@ function Sidebar({
           onClick={() => setOpen(isOpen ? null : e.label)}
           className={cn(
             "flex w-full items-center gap-3.5 border-l-4 px-5 py-3 text-left text-[14px] outline-none transition-colors focus-visible:bg-rail-hover",
-            holdsActive ? "border-brand-red text-rail-foreground bg-rail-hover font-semibold" : "text-rail-foreground/60 hover:text-rail-foreground border-transparent hover:bg-rail-hover",
+            holdsActive ? "border-brand-red text-rail-foreground bg-rail-hover font-semibold" : "text-rail-muted hover:text-rail-foreground border-transparent hover:bg-rail-hover",
           )}
         >
           <Icon className="size-[19px] shrink-0" aria-hidden />
@@ -302,7 +302,7 @@ function Sidebar({
               type="button"
               onClick={mobile ? onClose : onToggle}
               aria-label={mobile ? t.shell.closeMenu : t.shell.collapse}
-              className="text-rail-foreground/60 hover:text-rail-foreground rounded-md p-2 outline-none hover:bg-rail-hover focus-visible:bg-rail-hover"
+              className="text-rail-muted hover:text-rail-foreground rounded-md p-2 outline-none hover:bg-rail-hover focus-visible:bg-rail-hover"
             >
               {mobile ? <X className="size-5" /> : <ChevronsLeft className="size-5" />}
             </button>
@@ -331,7 +331,7 @@ function Sidebar({
           </div>
         )}
         <div className={cn("flex items-center gap-3", collapsed && "flex-col")}>
-          <div aria-hidden className="bg-brand-red grid size-9 shrink-0 place-items-center rounded-md text-sm font-semibold text-white">
+          <div aria-hidden className="bg-brand-red grid size-9 shrink-0 place-items-center rounded-md text-sm font-semibold text-black">
             {user.initials}
           </div>
           {!collapsed && (
@@ -346,7 +346,7 @@ function Sidebar({
             <button
               title={t.common.signOut}
               aria-label={t.common.signOut}
-              className="text-rail-foreground/60 rounded-md p-2 outline-none transition-colors hover:bg-red-500/15 hover:text-brand-red focus-visible:bg-red-500/15"
+              className="text-rail-muted rounded-md p-2 outline-none transition-colors hover:bg-red-500/15 hover:text-brand-ink focus-visible:bg-red-500/15"
             >
               <LogOut className="size-[18px]" />
             </button>

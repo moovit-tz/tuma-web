@@ -185,7 +185,7 @@ export default async function MoneyPage({ params, searchParams }: PageProps<"/[l
                           )}
                         </td>
                         <td className="px-3 py-2.5">
-                          <span className={cn("rounded-full px-2 py-0.5 text-xs font-medium", v.status === "paid" ? "bg-ok/15 text-ok" : v.overdue ? "bg-brand-red/10 text-brand-red" : "bg-muted")}>
+                          <span className={cn("rounded-full px-2 py-0.5 text-xs font-medium", v.status === "paid" ? "bg-ok/15 text-ok" : v.overdue ? "bg-brand-red/10 text-brand-ink" : "bg-muted")}>
                             {v.overdue ? m.overdue : (m.inv[v.status] ?? v.status)}
                           </span>
                         </td>

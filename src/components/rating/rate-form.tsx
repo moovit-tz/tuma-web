@@ -23,7 +23,7 @@ export function RateForm({ token }: { token: string }) {
   if (done)
     return (
       <div className="flex flex-col items-center gap-3 py-8 text-center">
-        <CheckCircle2 className="size-12 text-emerald-600" aria-hidden />
+        <CheckCircle2 className="size-12 text-emerald-700" aria-hidden />
         <p className="text-lg font-semibold">{t.thanks}</p>
         <p className="text-muted-foreground text-sm">{t.thanksSub}</p>
       </div>
@@ -53,7 +53,7 @@ export function RateForm({ token }: { token: string }) {
               onClick={() => setStars(n)}
               className="rounded-md p-1 transition-transform hover:scale-110 focus-visible:outline-2"
             >
-              <Star className={cn("size-10", n <= stars ? "fill-amber-400 text-amber-400" : "text-muted-foreground/40")} aria-hidden />
+              <Star className={cn("size-10", n <= stars ? "fill-amber-400 text-amber-700" : "text-muted-foreground")} aria-hidden />
             </button>
           ))}
         </div>

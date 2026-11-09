@@ -49,7 +49,7 @@ export async function SetupOverview({ user, locale }: { user: CurrentUser; local
       {trial && (trial.allowance > 0 || trial.used > 0) && (
         <section className="bg-card mb-6 rounded-lg border p-5 shadow-sm">
           <div className="flex flex-wrap items-start gap-4">
-            <span className="bg-brand-red/10 text-brand-red grid size-11 shrink-0 place-items-center rounded-lg">
+            <span className="bg-brand-red/10 text-brand-ink grid size-11 shrink-0 place-items-center rounded-lg">
               <Package className="size-5" />
             </span>
             <div className="min-w-0 flex-1">
@@ -79,7 +79,7 @@ export async function SetupOverview({ user, locale }: { user: CurrentUser; local
         {cards.map((c) => (
           <li key={c.href}>
             <Link href={c.href} className="bg-card hover:border-foreground/30 group flex h-full gap-4 rounded-lg border p-5 shadow-sm transition-colors">
-              <span className="bg-brand-red/10 text-brand-red grid size-11 shrink-0 place-items-center rounded-lg">
+              <span className="bg-brand-red/10 text-brand-ink grid size-11 shrink-0 place-items-center rounded-lg">
                 <c.icon className="size-5" />
               </span>
               <span className="min-w-0 flex-1">

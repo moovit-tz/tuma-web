@@ -24,7 +24,7 @@ export function InviteCards({ invites, locale }: { invites: Invite[]; locale: st
       {open.map((i) => (
         <div key={i.id} className="bg-card border-brand-red/30 rounded-lg border p-5 shadow-sm">
           <p className="flex items-center gap-2 font-semibold">
-            <Mail className="text-brand-red size-5" /> {t.youreInvited}
+            <Mail className="text-brand-ink size-5" /> {t.youreInvited}
           </p>
           <p className="text-muted-foreground mt-1 text-sm">{fmt(t.youreInvitedSub, { inviter: i.inviter, business: i.business, roles: i.roles.join(", ") })}</p>
           <div className="mt-4 flex flex-col gap-2 sm:flex-row">

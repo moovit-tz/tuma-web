@@ -38,6 +38,7 @@
   --color-rail-border: var(--rail-border);
   --color-rail-hover: var(--rail-hover);
   --color-brand-red: var(--brand-red);
+  --color-brand-ink: var(--brand-ink);
   --color-brand-tan: var(--brand-tan);
   --color-parcel: var(--parcel);
   --color-cargo: var(--cargo);
@@ -68,14 +69,14 @@
   --accent-foreground: #16171b;
   --destructive: #b42318;
   --border: #d8d8d1;
-  --input: #cfcfc7;
+  --input: #8a8b83;
   --ring: #cf2a2a;
   --radius: 0.5rem;
   --sunken: #eaeae5;
   /* The portal's sidebar: light in light mode, black in dark mode. */
   --rail: #ffffff;
   --rail-foreground: #16171b;
-  --rail-muted: #74766f;
+  --rail-muted: #65675f;
   --rail-border: #e2e2dc;
   --rail-hover: #f1f1ec;
   --sidebar: #000000;
@@ -84,11 +85,13 @@
   --sidebar-border: #2e2e2e;
   --sidebar-accent: #161616;
   --brand-red: #ff4545;
+  /* Red text: the brand red is a fill (black text on it); text on light needs this darker red for AA. */
+  --brand-ink: #c42727;
   --brand-tan: #a59b87;
-  --parcel: #cf2a2a;
+  --parcel: #b8201f;
   --cargo: #6a604c;
-  --ok: #1f7a4d;
-  --warn: #a15c00;
+  --ok: #17683f;
+  --warn: #8a4e00;
   color-scheme: light;
 }
 
@@ -110,7 +113,7 @@
     --accent-foreground: #eceae4;
     --destructive: #ff6b5e;
     --border: #2c2c30;
-    --input: #36363b;
+    --input: #6b6b72;
     --ring: #ff5757;
     --sunken: #1c1c1f;
     --sidebar-accent: #121212;
@@ -120,6 +123,7 @@
     --rail-border: #26262a;
     --rail-hover: #141416;
     --parcel: #ff5757;
+  --brand-ink: #ff4545;
     --cargo: #b8ae99;
     --ok: #4cc38a;
     --warn: #f0a83a;
@@ -145,7 +149,7 @@
   --accent-foreground: #eceae4;
   --destructive: #ff6b5e;
   --border: #2c2c30;
-  --input: #36363b;
+  --input: #6b6b72;
   --ring: #ff5757;
   --sunken: #1c1c1f;
   --sidebar-accent: #121212;
@@ -155,6 +159,7 @@
   --rail-border: #26262a;
   --rail-hover: #141416;
   --parcel: #ff5757;
+  --brand-ink: #ff4545;
   --cargo: #b8ae99;
   --ok: #4cc38a;
   --warn: #f0a83a;
@@ -180,10 +185,11 @@
   --accent-foreground: #eceae4;
   --destructive: #ff6b5e;
   --border: #2c2c30;
-  --input: #36363b;
+  --input: #6b6b72;
   --ring: #ff5757;
   --sunken: #161618;
   --parcel: #ff5757;
+  --brand-ink: #ff4545;
   --cargo: #b8ae99;
   --ok: #4cc38a;
   --warn: #f0a83a;

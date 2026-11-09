@@ -60,7 +60,7 @@ export default async function CustomerPage({ params }: PageProps<"/[locale]/port
       </div>
 
       {(p.reports.byOthers > 0 || p.reports.mine.length > 0) && (
-        <div className="border-brand-red/30 bg-brand-red/5 text-brand-red flex items-start gap-2 rounded-lg border px-4 py-3 text-sm">
+        <div className="border-brand-red/30 bg-brand-red/5 text-brand-ink flex items-start gap-2 rounded-lg border px-4 py-3 text-sm">
           <TriangleAlert className="mt-0.5 size-4 shrink-0" />
           <div>
             {p.reports.byOthers > 0 && <p>{fmt(c.byOthers, { n: p.reports.byOthers })}</p>}
@@ -119,7 +119,7 @@ export default async function CustomerPage({ params }: PageProps<"/[locale]/port
             {p.unpaid.invoices.map((i) => (
               <li key={i.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
                 <span className="font-mono text-[13px]">{i.number}</span>
-                <span className={cn("text-xs", i.overdue ? "text-brand-red" : "text-muted-foreground")}>
+                <span className={cn("text-xs", i.overdue ? "text-brand-ink" : "text-muted-foreground")}>
                   {i.overdue ? t.agent.money.overdue : t.agent.money.due} {dateOnly(i.due, locale)}
                 </span>
                 <span className="tabular ml-auto font-medium">{money(i.owed, locale)}</span>

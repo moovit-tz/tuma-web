@@ -73,7 +73,7 @@ export default async function OnboardingPage({ params, searchParams }: PageProps
             className="bg-sidebar text-sidebar-foreground group mb-6 flex items-center gap-4 rounded-lg p-5 shadow-sm"
           >
             <span className="min-w-0 flex-1">
-              <span className="text-brand-red block text-xs font-semibold tracking-wide uppercase">{s.whileYouWait}</span>
+              <span className="text-brand-ink block text-xs font-semibold tracking-wide uppercase">{s.whileYouWait}</span>
               <span className="mt-1 block text-lg font-bold">{s.goSetup}</span>
               <span className="mt-1 block text-sm text-white/70">{s.teamSub} {s.officesSub}</span>
             </span>
@@ -97,7 +97,7 @@ export default async function OnboardingPage({ params, searchParams }: PageProps
               { href: `/${locale}/report-lost-item`, icon: SearchX, label: o.reportLostParcel },
             ].map(({ href, icon: Icon, label }) => (
               <Link key={href} href={href} className="hover:bg-muted flex items-center gap-3 rounded-md border px-4 py-3 text-sm font-medium">
-                <Icon className="text-brand-red size-5" /> <span className="flex-1">{label}</span>
+                <Icon className="text-brand-ink size-5" /> <span className="flex-1">{label}</span>
                 <ArrowRight className="text-muted-foreground size-4" />
               </Link>
             ))}

@@ -32,7 +32,7 @@ export default async function BusinessPage({ params, searchParams }: BizProps) {
       {/* Hero */}
       <section className="bg-sidebar text-sidebar-foreground">
         <div className="mx-auto max-w-6xl px-4 pt-14 pb-12 sm:px-6 sm:pt-20 sm:pb-16">
-          <div className="text-brand-red font-mono text-[11px] tracking-[0.14em] uppercase">{b.eyebrow}</div>
+          <div className="text-brand-ink font-mono text-[11px] tracking-[0.14em] uppercase">{b.eyebrow}</div>
           <h1 className="font-display mt-3 max-w-[20ch] text-[clamp(34px,5.2vw,60px)] leading-[1.02] font-bold tracking-[-0.03em] text-balance">{b.title}</h1>
           <p className="text-sidebar-muted mt-5 max-w-2xl text-[17px] leading-relaxed">{b.sub}</p>
           <div className="mt-8 flex flex-wrap gap-3">

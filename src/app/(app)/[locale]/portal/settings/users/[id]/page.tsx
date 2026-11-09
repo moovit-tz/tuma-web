@@ -49,7 +49,7 @@ export default async function MemberPage({ params }: PageProps<"/[locale]/portal
         eyebrow={[accountName ?? t.nav.settings, branchName].filter(Boolean).join(" · ")}
         title={
           <span className="inline-flex flex-wrap items-center gap-3">
-            <span aria-hidden className="bg-brand-red grid size-11 place-items-center rounded-md text-base font-semibold tracking-normal text-white">
+            <span aria-hidden className="bg-brand-red grid size-11 place-items-center rounded-md text-base font-semibold tracking-normal text-black">
               {initials}
             </span>
             {m.name}

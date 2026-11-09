@@ -252,7 +252,7 @@ export function KybForm({ initial, contactName, done }: { initial: Initial; cont
                 aria-label={s}
                 className={cn(
                   "grid size-6 shrink-0 place-items-center rounded-full border font-mono text-[11px] disabled:cursor-default",
-                  k < i ? "border-foreground bg-foreground text-background" : k === i ? "border-brand-red text-brand-red" : "text-muted-foreground",
+                  k < i ? "border-foreground bg-foreground text-background" : k === i ? "border-brand-red text-brand-ink" : "text-muted-foreground",
                 )}
               >
                 {k < i ? <Check className="size-3.5" /> : k + 1}
@@ -410,7 +410,7 @@ export function KybForm({ initial, contactName, done }: { initial: Initial; cont
                 <section key={sec.step} className="px-4 py-3.5">
                   <div className="flex items-center justify-between gap-3">
                     <h3 className="eyebrow">{sec.title}</h3>
-                    <button type="button" onClick={() => go(sec.step)} className="text-brand-red inline-flex items-center gap-1 text-[13px] font-medium hover:underline">
+                    <button type="button" onClick={() => go(sec.step)} className="text-brand-ink inline-flex items-center gap-1 text-[13px] font-medium hover:underline">
                       <Pencil className="size-3.5" aria-hidden /> {o.editStep}
                     </button>
                   </div>
@@ -448,7 +448,7 @@ export function KybForm({ initial, contactName, done }: { initial: Initial; cont
         ) : (
           <span />
         )}
-        <Button type="submit" disabled={pending || (last && !declared)} className="bg-brand-red hover:bg-brand-red/90 text-white">
+        <Button type="submit" disabled={pending || (last && !declared)} className="bg-brand-red hover:bg-brand-red/90 text-black">
           {pending ? <Loader2 className="animate-spin" /> : null}
           {last ? (pending ? o.submitting : initial ? o.resubmit : o.submit) : dict.discovery.next}
           {!last && <ArrowRight />}

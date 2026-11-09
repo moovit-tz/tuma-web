@@ -35,7 +35,7 @@ export function Hero({ locale, country, source }: { locale: AppLocale; country: 
 
         <h1 className="font-display max-w-[19ch] text-[clamp(32px,min(3.9vw,6.4vh),56px)] leading-[1.02] font-bold tracking-[-0.03em] text-balance">
           {keepHyphens(before)}
-          <span className="text-brand-red">{name}</span>
+          <span className="text-brand-ink">{name}</span>
           {keepHyphens(after)}
         </h1>
 

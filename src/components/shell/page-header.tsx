@@ -176,7 +176,7 @@ export function PageTabs({ label, items, aside, className }: { label: string; it
           >
             {i.label}
             {i.count !== undefined && (
-              <span className={cn("tabular rounded-full px-1.5 text-[11px] leading-[18px]", i.active ? "bg-brand-red text-white" : "bg-muted")}>{i.count}</span>
+              <span className={cn("tabular rounded-full px-1.5 text-[11px] leading-[18px]", i.active ? "bg-brand-red text-black" : "bg-muted")}>{i.count}</span>
             )}
           </Link>
         ))}
@@ -220,7 +220,7 @@ export function Pager({
               ← {labels.previous}
             </Link>
           ) : (
-            <span className={cn(btn, "text-muted-foreground/50 border")}>← {labels.previous}</span>
+            <span className={cn(btn, "text-muted-foreground border border-dashed cursor-not-allowed")}>← {labels.previous}</span>
           )}
           {list.map((n, i) => (
             <span key={n} className="flex items-center gap-1">
@@ -235,7 +235,7 @@ export function Pager({
               {labels.next} →
             </Link>
           ) : (
-            <span className={cn(btn, "text-muted-foreground/50 border")}>{labels.next} →</span>
+            <span className={cn(btn, "text-muted-foreground border border-dashed cursor-not-allowed")}>{labels.next} →</span>
           )}
         </div>
       )}

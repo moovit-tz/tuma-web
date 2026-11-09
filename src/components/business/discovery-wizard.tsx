@@ -280,7 +280,7 @@ function Result({
     <div ref={refEl} className="scroll-mt-24 grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
       <div className="bg-card overflow-hidden rounded-xl border">
         <div className="bg-sidebar text-sidebar-foreground px-5 py-6 sm:px-7">
-          <div className="text-brand-red font-mono text-[11px] tracking-[0.14em] uppercase">{t.resultTitle}</div>
+          <div className="text-brand-ink font-mono text-[11px] tracking-[0.14em] uppercase">{t.resultTitle}</div>
           <div className="mt-2 flex flex-wrap items-baseline gap-x-3">
             <span className="font-display text-3xl font-bold tracking-tight">Tuma {t.plan[r.plan]}</span>
             <span className="text-sidebar-muted text-sm">{t.planNote[r.plan]}</span>

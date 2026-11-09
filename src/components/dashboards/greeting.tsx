@@ -30,7 +30,7 @@ export function DashboardGreeting({ name, eyebrow, children }: { name: string; e
       <div className="min-w-0">
         {eyebrow && <div className="eyebrow mb-1.5">{eyebrow}</div>}
         <h2 className="font-display text-[26px] leading-tight font-bold tracking-[-0.02em]">
-          {hello ?? t.dashboard.greeting}, <span className="text-brand-red">{name.split(" ")[0]}</span>
+          {hello ?? t.dashboard.greeting}, <span className="text-brand-ink">{name.split(" ")[0]}</span>
         </h2>
         <p className="text-muted-foreground mt-0.5 min-h-5 text-sm">{date && fmt(t.shell.overviewFor, { date })}</p>
       </div>

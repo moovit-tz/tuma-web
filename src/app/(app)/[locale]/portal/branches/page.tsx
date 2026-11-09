@@ -33,12 +33,12 @@ export default async function BranchesPage({ params }: PageProps<"/[locale]/port
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="font-mono text-xs font-semibold text-white/60">{br.code}</span>
-                    {br.isHead && <span className="bg-brand-red rounded px-1.5 py-0.5 text-[10.5px] font-semibold text-white">{b.head}</span>}
+                    {br.isHead && <span className="bg-brand-red rounded px-1.5 py-0.5 text-[10.5px] font-semibold text-black">{b.head}</span>}
                     {!br.active && <span className="rounded bg-white/15 px-1.5 py-0.5 text-[10.5px] font-semibold">{b.closed}</span>}
                   </div>
                   <h3 className="mt-1 truncate text-base font-bold">{br.name}</h3>
                 </div>
-                <Building className="text-brand-red mt-1 size-5 shrink-0" aria-hidden />
+                <Building className="text-brand-ink mt-1 size-5 shrink-0" aria-hidden />
               </div>
               <dl className="grid grid-cols-3 divide-x border-b">
                 {(

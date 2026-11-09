@@ -87,7 +87,7 @@ export default async function Customer360Page({ params, searchParams }: PageProp
                           {e.waybill && ` · ${e.waybill}`}
                         </span>
                       </span>
-                      <span className={`tabular font-medium ${e.amount < 0 ? "" : "text-emerald-600 dark:text-emerald-400"}`}>{money(e.amount, locale)}</span>
+                      <span className={`tabular font-medium ${e.amount < 0 ? "" : "text-emerald-700 dark:text-emerald-400"}`}>{money(e.amount, locale)}</span>
                     </li>
                   ))}
                 </ul>

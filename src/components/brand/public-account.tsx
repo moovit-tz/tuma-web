@@ -37,7 +37,7 @@ export function AccountCorner({ locale, nav, user }: { locale: string; nav: NavI
       <Link suppressHydrationWarning href={item.href} className={pill}>
         {item.label}
         {user ? (
-          <span className="bg-brand-red grid size-7 place-items-center rounded-full text-[11px] font-semibold text-white" aria-hidden>
+          <span className="bg-brand-red grid size-7 place-items-center rounded-full text-[11px] font-semibold text-black" aria-hidden>
             {initials}
           </span>
         ) : (

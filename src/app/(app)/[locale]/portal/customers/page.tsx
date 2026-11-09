@@ -83,7 +83,7 @@ export default async function CustomersPage({ params, searchParams }: PageProps<
                       <Link href={`${base}/${x.id}`} prefetch={false} className="flex items-center gap-2 font-medium underline-offset-4 hover:underline">
                         {x.kind === "company" ? <Building2 className="text-muted-foreground size-4 shrink-0" /> : <User className="text-muted-foreground size-4 shrink-0" />}
                         <span className="truncate">{x.name}</span>
-                        {x.flagged > 0 && <TriangleAlert aria-label={fmt(c.flagged, { n: x.flagged })} className="text-brand-red size-4 shrink-0" />}
+                        {x.flagged > 0 && <TriangleAlert aria-label={fmt(c.flagged, { n: x.flagged })} className="text-brand-ink size-4 shrink-0" />}
                       </Link>
                       {x.contactName && <span className="text-muted-foreground block truncate pl-6 text-xs">{x.contactName}</span>}
                     </td>

@@ -18,7 +18,7 @@ export function HeroTrack() {
       }}
     >
       <label htmlFor="hero-wb" className="text-sidebar-muted mb-2 flex items-center gap-2 px-1 font-mono text-[11px] tracking-[0.14em] uppercase">
-        <PackageSearch className="text-brand-red size-4" aria-hidden /> {t.nav.track}
+        <PackageSearch className="text-brand-ink size-4" aria-hidden /> {t.nav.track}
       </label>
       <div className="flex gap-2">
         <input

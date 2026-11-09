@@ -516,7 +516,7 @@ function PartyCard({ title, value, onChange, contactLabel, onPicked }: { title: 
                       {c.flagged ? ` · ${b.flagged}` : ""}
                     </span>
                   </span>
-                  <span className="text-brand-red text-xs font-semibold">{b.use}</span>
+                  <span className="text-brand-ink text-xs font-semibold">{b.use}</span>
                 </button>
               </li>
             ))}

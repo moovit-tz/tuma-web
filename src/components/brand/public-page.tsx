@@ -6,7 +6,7 @@ export function PublicPage({ locale, children, eyebrow, title, sub }: { locale: 
       <PublicHeader locale={locale} />
       <div className="bg-sidebar text-sidebar-foreground">
         <div className="mx-auto max-w-6xl px-4 pt-10 pb-10 sm:px-6 sm:pt-14">
-          {eyebrow && <div className="text-brand-red mb-2 font-mono text-[11px] tracking-[0.14em] uppercase">{eyebrow}</div>}
+          {eyebrow && <div className="text-brand-ink mb-2 font-mono text-[11px] tracking-[0.14em] uppercase">{eyebrow}</div>}
           <h1 className="font-display max-w-3xl text-[clamp(32px,5vw,52px)] leading-[1.02] font-bold tracking-[-0.025em] text-balance">{title}</h1>
           {sub && <p className="text-sidebar-muted mt-4 max-w-2xl text-[16px] leading-relaxed">{sub}</p>}
         </div>

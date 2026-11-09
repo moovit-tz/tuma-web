@@ -26,7 +26,7 @@ export function EmptyState({
       <div className={cn("relative grid place-items-center rounded-full", compact ? "size-12" : "size-16")}>
         <span aria-hidden className="bg-brand-red/10 absolute inset-0 rounded-full" />
         <span aria-hidden className="border-brand-red/20 absolute -inset-2 rounded-full border border-dashed" />
-        <Icon aria-hidden className={cn("text-brand-red relative", compact ? "size-5" : "size-7")} strokeWidth={1.75} />
+        <Icon aria-hidden className={cn("text-brand-ink relative", compact ? "size-5" : "size-7")} strokeWidth={1.75} />
       </div>
       <h3 className={cn("font-display font-semibold tracking-tight", compact ? "mt-4 text-[15px]" : "mt-5 text-lg")}>{title}</h3>
       {body && <p className={cn("text-muted-foreground mt-1.5 max-w-sm text-balance", compact ? "text-[13px]" : "text-sm")}>{body}</p>}

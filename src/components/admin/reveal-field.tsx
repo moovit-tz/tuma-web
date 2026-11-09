@@ -19,7 +19,7 @@ export function RevealField({ customerKey, field, masked }: { customerKey: strin
       <span>{masked}</span>
       <ConfirmNote
         trigger={
-          <button type="button" className="text-brand-red inline-flex items-center gap-1 text-xs font-medium hover:underline">
+          <button type="button" className="text-brand-ink inline-flex items-center gap-1 text-xs font-medium hover:underline">
             <Eye className="size-3.5" aria-hidden /> {c.reveal}
           </button>
         }

@@ -101,7 +101,7 @@ export function PageBand({
       <div className="relative mx-auto flex max-w-6xl flex-col gap-5 px-4 py-6 sm:px-6 sm:py-8 lg:flex-row lg:items-end lg:justify-between [@media(max-height:760px)]:py-5">
         <div className="min-w-0">
           {eyebrow && (
-            <div className="text-brand-red mb-2 font-mono text-[11px] tracking-[0.14em] uppercase">
+            <div className="text-brand-ink mb-2 font-mono text-[11px] tracking-[0.14em] uppercase">
               {eyebrow}
             </div>
           )}
