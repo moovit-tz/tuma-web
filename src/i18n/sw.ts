@@ -101,8 +101,8 @@ const sw: Dict = {
     operationsBody: "Simamia SLA, shughulikia matatizo na uendeshe mtandao kutoka kituo cha udhibiti.",
   },
   signin: {
-    title: "Ingia kwenye Tuma",
-    body: "Tumia akaunti yako ya Ondi, ileile ya programu ya Tuma. Utaingia kwenye eneo sahihi kulingana na jukumu lako.",
+    title: "Ingia kwenye eneo lako la kazi",
+    body: "Tumia akaunti ileile ya programu yako ya Tuma. Tutafungua eneo la kazi linalolingana na jukumu lako.",
     kicker: "Lango la Tuma",
     headline: "Vifurushi na mizigo kote Tanzania, vikiendeshwa mahali pamoja.",
     points: [
@@ -110,7 +110,6 @@ const sw: Dict = {
       ["Biashara", "Tuma kwa niaba ya kampuni, fuatilia kila kifurushi, lipa ankara."],
       ["Timu ya Tuma", "Kituo cha udhibiti, huduma kwa wateja, fedha, hatari na uzingatiaji."],
     ],
-    secure: "Inalindwa na Ondi. Tuma haioni nenosiri lako kamwe.",
     newHere: "Mgeni kwenye Tuma?",
     openBusiness: "Sajili biashara yako",
     track: "Fuatilia kifurushi",

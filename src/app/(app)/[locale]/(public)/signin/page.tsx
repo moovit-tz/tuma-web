@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { ArrowRight, Building2, PackageSearch, PackageX, ShieldCheck, Store, Users } from "lucide-react";
+import { ArrowRight, Building2, PackageSearch, PackageX, Store, Users } from "lucide-react";
 import { getDict } from "@/i18n";
 import { OndiButton } from "@/components/auth/ondi-button";
 import { TumaMark, TumaWordmark } from "@/components/brand/logo";
@@ -69,10 +69,6 @@ export default async function SignIn({ params, searchParams }: PageProps<"/[loca
           <Suspense fallback={<div className="bg-muted mt-8 h-12 rounded-md" />}>
             <SignInButton locale={locale} searchParams={searchParams} />
           </Suspense>
-          <p className="text-muted-foreground mt-4 flex items-center gap-2 text-xs">
-            <ShieldCheck className="size-3.5 shrink-0" aria-hidden />
-            {s.secure}
-          </p>
           {process.env.ONDI_MODE === "stub" && <p className="bg-muted text-muted-foreground mt-6 rounded-md px-3 py-2.5 text-xs">{s.stubNote}</p>}
 
           {/* Without signing in: the same two cards as the app's welcome screen. */}

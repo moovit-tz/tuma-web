@@ -71,6 +71,8 @@ beforeAll(async () => {
   await db.insert(roles).values({ key: r.key, name: r.name, description: r.description, surface: r.surface, system: true }).onConflictDoNothing();
   await db.insert(rolePermissions).values(r.permissions.map((p) => ({ roleKey: r.key, permission: p }))).onConflictDoNothing();
   await db.insert(platformSettings).values({ key: "pendingParcelAllowance", value: 20 }).onConflictDoUpdate({ target: platformSettings.key, set: { value: 20 } });
+  // The company tests count on 5 parcels while a company is reviewed.
+  await db.insert(platformSettings).values({ key: "pendingCompanyParcelAllowance", value: 5 }).onConflictDoUpdate({ target: platformSettings.key, set: { value: 5 } });
   await cleanup();
 });
 afterAll(async () => {

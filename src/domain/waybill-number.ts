@@ -47,8 +47,12 @@ export function checkChar(body: string): string {
   return ALPHABET[(N - remainder) % N];
 }
 
+// Building an Intl formatter is slow; keep one per time zone.
+const yymmFormats = new Map<string, Intl.DateTimeFormat>();
 function yymm(date: Date, timeZone = "Africa/Dar_es_Salaam"): string {
-  const parts = new Intl.DateTimeFormat("en-GB", { timeZone, year: "2-digit", month: "2-digit" }).formatToParts(date);
+  let f = yymmFormats.get(timeZone);
+  if (!f) yymmFormats.set(timeZone, (f = new Intl.DateTimeFormat("en-GB", { timeZone, year: "2-digit", month: "2-digit" })));
+  const parts = f.formatToParts(date);
   const y = parts.find((p) => p.type === "year")!.value;
   const m = parts.find((p) => p.type === "month")!.value;
   return `${y}${m}`;

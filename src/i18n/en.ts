@@ -98,8 +98,8 @@ const en = {
     operationsBody: "Watch SLAs, manage exceptions and keep the network moving from the control tower.",
   },
   signin: {
-    title: "Sign in to Tuma",
-    body: "Use your Ondi account, the same one as the Tuma app. You'll land on the right workspace for your role.",
+    title: "Sign in to your workspace",
+    body: "Use the same account as your Tuma app. We'll open the workspace that matches your role.",
     kicker: "Tuma portal",
     headline: "Parcels and cargo across Tanzania, run from one place.",
     points: [
@@ -107,7 +107,6 @@ const en = {
       ["Businesses", "Send for your company, track every parcel, settle invoices."],
       ["Tuma team", "Control tower, support, finance, risk and compliance."],
     ] as [string, string][],
-    secure: "Secured by Ondi. Tuma never sees your password.",
     newHere: "New to Tuma?",
     openBusiness: "Register your business",
     track: "Track a parcel",
