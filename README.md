@@ -7,7 +7,7 @@ Parcel module first (R1). `../web` and `../api` are the older MySafari Parcel co
 
 ```bash
 pnpm install
-pnpm db:up          # Postgres 17 in Docker on localhost:5544
+# Postgres and Redis: this machine's shared dev-infra containers (dev_postgres :5432, dev_redis :6379); no per-project container
 pnpm db:push        # create tables from src/server/db/schema.ts
 pnpm db:seed        # roles, reason codes, locations, accounts, users, 64 demo shipments
 pnpm dev            # http://localhost:3100
