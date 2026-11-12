@@ -7,6 +7,7 @@ import { audit } from "../audit";
 import { ulid } from "../ids";
 import { enqueue } from "../adapters/outbox";
 import { COMPLYOS_DECISIONS, kybSubmission, searchBusinessRegistry } from "../adapters/complyos";
+import { syncOrganizationToOndi } from "../adapters/ondi-organizations";
 import { DomainError } from "./shipments";
 import type { DriverCtx } from "./drivers";
 import { toE164TZ } from "@/domain/phone";
@@ -238,7 +239,7 @@ export const kybDecisionSchema = z.object({
  */
 export async function applyKybDecision(raw: unknown, actorId = "complyos") {
   const d = kybDecisionSchema.parse(raw);
-  return db.transaction(async (tx) => {
+  const result = await db.transaction(async (tx) => {
     const [a] = await tx.select().from(kybApplications).where(eq(kybApplications.ref, d.ref)).for("update");
     if (!a) throw new DomainError("NOT_FOUND", "No application with that reference.", 404);
     const [ev] = await tx
@@ -246,8 +247,8 @@ export async function applyKybDecision(raw: unknown, actorId = "complyos") {
       .values({ applicationId: a.id, status: d.decision, note: d.note ?? null, source: "complyos", externalId: `complyos:${d.eventId}`, occurredAt: d.occurredAt ?? new Date() })
       .onConflictDoNothing({ target: kybEvents.externalId })
       .returning({ id: kybEvents.id });
-    if (!ev) return { ref: a.ref, status: a.status, duplicate: true };
-    if (!(OPEN as readonly string[]).includes(a.status)) return { ref: a.ref, status: a.status, ignored: true };
+    if (!ev) return { ref: a.ref, status: a.status, duplicate: true, newlyApproved: null };
+    if (!(OPEN as readonly string[]).includes(a.status)) return { ref: a.ref, status: a.status, ignored: true, newlyApproved: null };
 
     const final = d.decision === "approved" || d.decision === "rejected";
     let accountId: string | null = null;
@@ -273,8 +274,19 @@ export async function applyKybDecision(raw: unknown, actorId = "complyos") {
       });
     }
     await audit(tx, { actorId, action: `kyb.${d.decision}`, entity: "kyb_application", entityId: a.ref, before: { status: a.status }, after: { status: d.decision, accountId } });
-    return { ref: a.ref, status: d.decision, accountId };
+    return {
+      ref: a.ref,
+      status: d.decision,
+      accountId,
+      // Only set on a fresh approval — carries what's needed to sync this business into Ondi
+      // after the transaction commits (see below), never inside it (an Ondi outage must not
+      // roll back a Tuma approval).
+      newlyApproved: d.decision === "approved" ? { businessName: a.businessName, registrationNumber: a.tin, ownerUserId: a.userId } : null,
+    };
   });
+
+  if (result.newlyApproved) await syncOrganizationToOndi(result.newlyApproved);
+  return result;
 }
 
 /** Seeds a default role on first use (the seed script normally does this), so approval never depends on it. */
