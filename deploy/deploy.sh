@@ -5,7 +5,8 @@ set -eu
 KEY="$HOME/.ssh/hudumika-vps-13.140.152.64"
 HOST=root@13.140.152.64
 DEST=/root/newapps-deploy/tuma
-SSH="ssh -i $KEY $HOST"
+# Keepalives make a connection this host has dropped fail instead of hanging forever.
+SSH="ssh -i $KEY -o ServerAliveInterval=15 -o ServerAliveCountMax=4 $HOST"
 rsync -az --delete -e "ssh -i $KEY" --exclude node_modules --exclude .next --exclude uploads --exclude '.env*' \
   ./ "$HOST:$DEST/"
 # Images are built here (the box is short on memory) and loaded there. `docker exec` hangs on this host, so nothing
@@ -23,10 +24,16 @@ rm -f "$IMG"
 $SSH 'gunzip -c /root/tuma-images.tar.gz | docker load && rm /root/tuma-images.tar.gz'
 # Migrations and the restart run as separate, retried connections: this host drops long-lived sessions, and a drop
 # after the migration used to leave the old container running.
-$SSH "cd $DEST/deploy && docker compose -f compose.tuma.yml run --rm tuma-tools pnpm drizzle-kit migrate"
+# The tools container doesn't always exit once its work is done (drizzle-kit keeps its connection open), so each step
+# is time-limited on the box and judged by its output, and leftover tools containers are removed after.
+RUN="cd $DEST/deploy && timeout 300 docker compose -f compose.tuma.yml run --rm -T tuma-tools"
+MIG=$($SSH "$RUN pnpm drizzle-kit migrate" 2>&1) || true
+echo "$MIG" | tail -3
+echo "$MIG" | grep -q "migrations applied successfully" || { echo "❌ Migrations did not finish; the old version stays live."; exit 1; }
 # Reference data is re-seeded on every deploy and is safe to skip: a failed seed warns, it never blocks the restart.
-$SSH "cd $DEST/deploy && docker compose -f compose.tuma.yml run --rm tuma-tools pnpm tsx scripts/seed.ts --platform" ||
-  echo "⚠️  Seeding reference data failed (see above). The new version still goes live; re-run the seed later."
+SEED=$($SSH "$RUN pnpm tsx scripts/seed.ts --platform" 2>&1) || true
+echo "$SEED" | grep -q "^Done\." && echo "Reference data seeded." || { echo "$SEED" | tail -5; echo "⚠️  Seeding reference data didn't finish. The new version still goes live; re-run the seed later."; }
+$SSH "docker ps -aq --filter name=tuma-tools-run | xargs -r docker rm -f" >/dev/null 2>&1 || true
 for i in 1 2 3; do
   $SSH "cd $DEST/deploy && docker compose -f compose.tuma.yml up -d tuma-portal" && break
   echo "restart interrupted, retrying ($i)"; sleep 8
