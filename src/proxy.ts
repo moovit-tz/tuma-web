@@ -52,6 +52,6 @@ export async function proxy(req: NextRequest) {
 }
 
 export const config = {
-  // Everything except API routes, the stub IdP, Next internals and files with an extension.
-  matcher: ["/((?!api|dev|_next/static|_next/image|.*\\..*).*)"],
+  // Everything except API routes, the stub IdP, the Ondi sign-in return, Next internals and files with an extension.
+  matcher: ["/((?!api|dev|auth/callback|_next/static|_next/image|.*\\..*).*)"],
 };

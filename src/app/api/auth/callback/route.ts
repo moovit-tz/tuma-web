@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { eq } from "drizzle-orm";
 import { ondi } from "@/server/adapters/ondi";
+import { ondiRedirectUri } from "@/server/auth/ondi-redirect";
 import { db } from "@/server/db/client";
 import { users } from "@/server/db/schema";
 import { effectivePermissions } from "@/server/rbac";
@@ -20,7 +21,7 @@ export async function GET(req: NextRequest) {
 
   let claims;
   try {
-    claims = await ondi().exchangeCode({ code, codeVerifier: flow.verifier, state: flow.state, redirectUri: new URL("/api/auth/callback", process.env.APP_URL).toString() });
+    claims = await ondi().exchangeCode({ code, codeVerifier: flow.verifier, state: flow.state, redirectUri: ondiRedirectUri() });
   } catch {
     return fail("exchange");
   }
@@ -57,6 +58,7 @@ export async function GET(req: NextRequest) {
     path: "/",
     maxAge: IDLE_SECONDS,
   });
-  res.cookies.delete({ name: "tuma_oidc", path: "/api/auth" });
+  res.cookies.delete({ name: "tuma_oidc", path: "/" });
+  res.cookies.delete({ name: "tuma_oidc", path: "/api/auth" }); // set there before ONDI_REDIRECT_PATH
   return res;
 }
