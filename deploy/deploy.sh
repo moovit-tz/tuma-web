@@ -23,7 +23,10 @@ rm -f "$IMG"
 $SSH 'gunzip -c /root/tuma-images.tar.gz | docker load && rm /root/tuma-images.tar.gz'
 # Migrations and the restart run as separate, retried connections: this host drops long-lived sessions, and a drop
 # after the migration used to leave the old container running.
-$SSH "cd $DEST/deploy && docker compose -f compose.tuma.yml run --rm tuma-tools"
+$SSH "cd $DEST/deploy && docker compose -f compose.tuma.yml run --rm tuma-tools pnpm drizzle-kit migrate"
+# Reference data is re-seeded on every deploy and is safe to skip: a failed seed warns, it never blocks the restart.
+$SSH "cd $DEST/deploy && docker compose -f compose.tuma.yml run --rm tuma-tools pnpm tsx scripts/seed.ts --platform" ||
+  echo "⚠️  Seeding reference data failed (see above). The new version still goes live; re-run the seed later."
 for i in 1 2 3; do
   $SSH "cd $DEST/deploy && docker compose -f compose.tuma.yml up -d tuma-portal" && break
   echo "restart interrupted, retrying ($i)"; sleep 8

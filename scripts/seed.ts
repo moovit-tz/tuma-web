@@ -19,7 +19,8 @@ import { eventTypeFor, type ParcelState } from "../src/domain/states";
 import { ulid } from "../src/server/ids";
 import collectionPoints from "../drizzle/seed/collection-points.json";
 
-const client = postgres(process.env.DATABASE_URL!, { max: 1 });
+// Give up instead of waiting forever on a lock another connection holds (a deploy once sat two hours here).
+const client = postgres(process.env.DATABASE_URL!, { max: 1, connection: { lock_timeout: 30_000, statement_timeout: 300_000 } });
 const db = drizzle(client, { schema, casing: "snake_case" });
 const reset = process.argv.includes("--reset");
 const platform = process.argv.includes("--platform");
