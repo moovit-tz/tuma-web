@@ -529,6 +529,8 @@ async function seedDrivers() {
   }
   await client.end();
   console.log("Done.");
+  // Something it imports keeps a handle open; without this the deploy waits on a finished seed forever.
+  process.exit(0);
 })().catch(async (e) => {
   console.error(e);
   await client.end();
