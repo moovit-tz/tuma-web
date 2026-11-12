@@ -246,6 +246,13 @@
       "when": 1794252088217,
       "tag": "0034_platform_partners",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1794252148217,
+      "tag": "0035_reference_allocator_per_series",
+      "breakpoints": true
     }
   ]
 }
