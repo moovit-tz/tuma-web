@@ -2,7 +2,7 @@
 import { useMemo, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Boxes, Building, Building2, ChevronDown, ChevronsLeft, HandCoins, LayoutDashboard, LogOut, Menu, Package, PackagePlus, RadioTower, Receipt, Search, ShieldCheck, TriangleAlert, Truck, Users, Wallet, X, type LucideIcon, Send, Bike, Settings2, ClipboardList, ChartColumn, Bell, LifeBuoy, Landmark, UserCheck, SlidersHorizontal, Siren, FileWarning, ShieldAlert, Scale, Plug, Handshake } from "lucide-react";
+import { Boxes, Building, Building2, ChevronDown, ChevronsLeft, PanelRightOpen, HandCoins, LayoutDashboard, LogOut, Menu, Package, PackagePlus, RadioTower, Receipt, Search, ShieldCheck, TriangleAlert, Truck, Users, Wallet, X, type LucideIcon, Send, Bike, Settings2, ClipboardList, ChartColumn, Bell, LifeBuoy, Landmark, UserCheck, SlidersHorizontal, Siren, FileWarning, ShieldAlert, Scale, Plug, Handshake } from "lucide-react";
 import { useI18n } from "@/i18n/client";
 import { TumaMark, TumaWordmark } from "@/components/brand/logo";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -11,6 +11,7 @@ import { HeaderActions, type QuickAction } from "./header-actions";
 import { UserMenu, type ShellUser } from "./user-menu";
 import { LocaleSwitch } from "./locale-switch";
 import { ThemeSegments } from "./theme-switch";
+import { RightRail } from "./right-rail";
 
 export const NAV_ICONS = {
   dashboard: LayoutDashboard,
@@ -56,6 +57,8 @@ type Props = {
   user: ShellUser;
   quickActions: QuickAction[];
   search: React.ReactNode;
+  /** Whether the right rail shows Notifications (offices and businesses with a workspace). */
+  showNotifications: boolean;
   children: React.ReactNode;
 };
 
@@ -96,7 +99,7 @@ const collapseStore = {
  * The portal frame: a fixed sidebar (light or dark with the theme) that collapses to icons,
  * a fixed top bar with the page title, search and actions, and a main area that scrolls on its own.
  */
-export function PortalFrame({ nav, systemGroup, user, quickActions, search, children }: Props) {
+export function PortalFrame({ nav, systemGroup, user, quickActions, search, showNotifications, children }: Props) {
   const { dict: t } = useI18n();
   const pathname = usePathname();
   const collapsed = useSyncExternalStore(collapseStore.subscribe, collapseStore.get, () => false);
@@ -122,8 +125,13 @@ export function PortalFrame({ nav, systemGroup, user, quickActions, search, chil
 
   const width = collapsed ? NARROW : WIDE;
 
+  // Right rail: 56px of icons, plus 320px while a drawer is open. Opening a drawer collapses the left menu once.
+  const [railHidden, setRailHidden] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const railWidth = railHidden ? 0 : 56 + (drawerOpen ? 320 : 0);
+
   return (
-    <div className="bg-background h-dvh w-full overflow-hidden" style={{ "--sidebar-w": `${width}px` } as React.CSSProperties}>
+    <div className="bg-background h-dvh w-full overflow-hidden" style={{ "--sidebar-w": `${width}px`, "--rail-w": `${railWidth}px` } as React.CSSProperties}>
       {/* Phones: slide-over */}
       <div
         aria-hidden={!mobileOpen}
@@ -139,7 +147,7 @@ export function PortalFrame({ nav, systemGroup, user, quickActions, search, chil
         <Sidebar nav={nav} systemGroup={systemGroup} activeHref={active?.href} user={user} collapsed={collapsed} onToggle={toggle} />
       </div>
 
-      <header className="bg-background fixed top-0 right-0 left-0 z-20 flex h-16 items-center gap-3 border-b px-4 transition-[left] duration-300 ease-in-out sm:px-6 lg:left-[var(--sidebar-w)]">
+      <header className="bg-background fixed top-0 right-0 left-0 z-20 flex h-16 items-center gap-3 border-b px-4 transition-[left,right] duration-300 ease-in-out sm:px-6 lg:right-[var(--rail-w)] lg:left-[var(--sidebar-w)]">
         <button
           type="button"
           onClick={() => setMobileOpen(true)}
@@ -154,12 +162,39 @@ export function PortalFrame({ nav, systemGroup, user, quickActions, search, chil
           <HeaderActions actions={quickActions} />
           <div className="bg-border hidden h-8 w-px sm:block" aria-hidden />
           <UserMenu user={user} />
+          {railHidden && (
+            <TooltipProvider delayDuration={200}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button type="button" onClick={() => setRailHidden(false)} aria-label={t.shell.rail.show} className="text-muted-foreground hover:bg-muted hover:text-foreground hidden size-9 place-items-center rounded-md lg:grid">
+                    <PanelRightOpen className="size-4" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">{t.shell.rail.show}</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
         </div>
       </header>
 
-      <main className="h-full overflow-y-auto pt-16 transition-[padding] duration-300 ease-in-out lg:pl-[var(--sidebar-w)]" id="portal-main">
+      <main className="h-full overflow-y-auto pt-16 transition-[padding] duration-300 ease-in-out lg:pr-[var(--rail-w)] lg:pl-[var(--sidebar-w)]" id="portal-main">
         <div className="mx-auto w-full max-w-[1400px] px-4 py-6 sm:px-6 sm:py-8">{children}</div>
       </main>
+
+      <TooltipProvider delayDuration={200}>
+        <RightRail
+          showNotifications={showNotifications}
+          collapsed={railHidden}
+          onCollapse={() => {
+            setRailHidden(true);
+            setDrawerOpen(false);
+          }}
+          onOpenChange={(open) => {
+            setDrawerOpen(open);
+            if (open) collapseStore.set(true);
+          }}
+        />
+      </TooltipProvider>
     </div>
   );
 }

@@ -22,7 +22,8 @@ export async function GET(req: NextRequest) {
   let claims;
   try {
     claims = await ondi().exchangeCode({ code, codeVerifier: flow.verifier, state: flow.state, redirectUri: ondiRedirectUri() });
-  } catch {
+  } catch (e) {
+    console.error("[auth] Ondi sign-in failed:", e instanceof Error ? e.message : e);
     return fail("exchange");
   }
 

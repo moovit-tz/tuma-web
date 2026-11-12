@@ -357,3 +357,15 @@
 .theme-dark .map-art {
   filter: none;
 }
+
+/* Right-rail drawer: same slide-in/out timing as the CRM's. */
+@keyframes drawer-slide-in {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes drawer-slide-out {
+  from { opacity: 1; transform: translateX(0); }
+  to { opacity: 0; transform: translateX(20px); }
+}
+.drawer-slide-in { animation: drawer-slide-in 0.22s cubic-bezier(0.16, 1, 0.3, 1); }
+.drawer-slide-out { animation: drawer-slide-out 0.18s cubic-bezier(0.4, 0, 1, 1) forwards; }

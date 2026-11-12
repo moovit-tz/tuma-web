@@ -77,6 +77,7 @@ async function Shell({ locale, nav, systemGroup, quickActions, gate, search, chi
       user={shellUser}
       quickActions={quickActions.filter((a) => holds(user, a.permission) && !(a.unless && user.permissions.has(a.unless))).map(({ key, href }) => ({ key, href }))}
       search={search}
+      showNotifications={user.permissions.has("agent.workspace") && !!user.accountId}
     >
       <Suspense fallback={<PageSkeleton />}>{allowed ? children : <NoAccess locale={locale} />}</Suspense>
     </PortalFrame>

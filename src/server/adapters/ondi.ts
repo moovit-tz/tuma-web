@@ -135,7 +135,12 @@ class OndiOidc implements IdentityProvider {
       }),
       cache: "no-store",
     });
-    if (!res.ok) throw new Error(`Ondi token exchange failed (${res.status})`);
+    if (!res.ok) {
+      // Ondi's error code and description (never tokens), so a failed sign-in says why in the server log.
+      const body = (await res.json().catch(() => ({}))) as { error?: string; error_description?: string; message?: string };
+      const why = [body.error, body.error_description ?? body.message].filter(Boolean).join(": ").slice(0, 300);
+      throw new Error(`Ondi token exchange failed (${res.status})${why ? ` — ${why}` : ""}`);
+    }
     const tokens = (await res.json()) as { id_token?: string };
     if (!tokens.id_token) throw new Error("Ondi returned no ID token");
     this.jwks ??= createRemoteJWKSet(new URL(d.jwks_uri));
